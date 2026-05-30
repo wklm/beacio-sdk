@@ -427,6 +427,10 @@ export interface BluetoothLEScanFilter {
   name?: string;
   /** Match devices whose name starts with this prefix (case-sensitive). */
   namePrefix?: string;
+  /** Filter by manufacturer-specific data. */
+  manufacturerData?: { companyIdentifier: number; dataPrefix?: BufferSource }[];
+  /** Filter by service data. */
+  serviceData?: { service: string; dataPrefix?: BufferSource }[];
 }
 
 /**

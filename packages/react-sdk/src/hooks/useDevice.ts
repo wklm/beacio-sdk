@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { WebBLEError } from '@ios-web-bluetooth/core';
 import type { WebBLEDevice } from '@ios-web-bluetooth/core';
-import type { ConnectionOptions, ConnectionState, UseDeviceReturn } from '../types';
+import type { ConnectionOptions, ConnectionPriority, ConnectionState, UseDeviceReturn } from '../types';
 
 const DEFAULT_RECONNECT_ATTEMPTS = 3;
 const DEFAULT_RECONNECT_DELAY = 1000;
@@ -63,6 +63,8 @@ export function useDevice(
   const [error, setError] = useState<WebBLEError | null>(null);
   const [autoReconnect, setAutoReconnectState] = useState(options?.autoReconnect ?? false);
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
+  const [isWatchingAdvertisements, setIsWatchingAdvertisements] = useState(false);
+  const [connectionPriority, setConnectionPriorityState] = useState<ConnectionPriority | null>(null);
 
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectCancelledRef = useRef(false);
@@ -90,16 +92,7 @@ export function useDevice(
   }, []);
 
   const loadServices = useCallback(async (target: WebBLEDevice): Promise<void> => {
-    const getPrimaryServices = (target as WebBLEDevice & {
-      getPrimaryServices?: () => Promise<BluetoothRemoteGATTService[]>;
-    }).getPrimaryServices;
-
-    if (typeof getPrimaryServices !== 'function') {
-      setServices([]);
-      return;
-    }
-
-    const discoveredServices = await getPrimaryServices.call(target);
+    const discoveredServices = await target.getPrimaryServices();
     setServices(discoveredServices);
   }, []);
 
@@ -122,6 +115,7 @@ export function useDevice(
 
     clearReconnectTimer();
     reconnectTimeoutRef.current = setTimeout(async () => {
+      if (reconnectCancelledRef.current) return;
       try {
         await device.connect();
         if (!device.connected && connectionStateRef.current !== 'connected') {
@@ -192,6 +186,102 @@ export function useDevice(
     setServices([]);
   }, [clearReconnectTimer, device]);
 
+  const watchAdvertisements = useCallback(async () => {
+    if (!device) {
+      const missingDeviceError = new WebBLEError('INVALID_PARAMETER', 'No device available');
+      setError(missingDeviceError);
+      throw missingDeviceError;
+    }
+
+    if (typeof device.raw.watchAdvertisements !== 'function') {
+      const unsupportedError = new WebBLEError('GATT_OPERATION_FAILED', 'watchAdvertisements is not supported on this device');
+      setError(unsupportedError);
+      throw unsupportedError;
+    }
+
+    try {
+      setError(null);
+      await device.watchAdvertisements();
+      setIsWatchingAdvertisements(true);
+    } catch (err) {
+      const watchError = WebBLEError.from(err);
+      setError(watchError);
+      throw watchError;
+    }
+  }, [device]);
+
+  const unwatchAdvertisements = useCallback(async () => {
+    if (!device) {
+      const missingDeviceError = new WebBLEError('INVALID_PARAMETER', 'No device available');
+      setError(missingDeviceError);
+      throw missingDeviceError;
+    }
+
+    const rawDevice = device.raw as BluetoothDevice & { unwatchAdvertisements?: () => Promise<void> };
+    if (typeof rawDevice.unwatchAdvertisements !== 'function') {
+      const unsupportedError = new WebBLEError('GATT_OPERATION_FAILED', 'unwatchAdvertisements is not supported on this device');
+      setError(unsupportedError);
+      throw unsupportedError;
+    }
+
+    try {
+      setError(null);
+      await device.unwatchAdvertisements();
+      setIsWatchingAdvertisements(false);
+    } catch (err) {
+      const unwatchError = WebBLEError.from(err);
+      setError(unwatchError);
+      throw unwatchError;
+    }
+  }, [device]);
+
+  const forget = useCallback(async () => {
+    if (!device) {
+      const missingDeviceError = new WebBLEError('INVALID_PARAMETER', 'No device available');
+      setError(missingDeviceError);
+      throw missingDeviceError;
+    }
+
+    if (typeof device.raw.forget !== 'function') {
+      const unsupportedError = new WebBLEError('GATT_OPERATION_FAILED', 'forget is not supported on this device');
+      setError(unsupportedError);
+      throw unsupportedError;
+    }
+
+    try {
+      setError(null);
+      await device.forget();
+      setIsWatchingAdvertisements(false);
+      setConnectionPriorityState(null);
+    } catch (err) {
+      const forgetError = WebBLEError.from(err);
+      setError(forgetError);
+      throw forgetError;
+    }
+  }, [device]);
+
+  const setConnectionPriority = useCallback(async (priority: ConnectionPriority) => {
+    const gatt = device?.raw.gatt as (BluetoothRemoteGATTServer & {
+      requestConnectionPriority?: (priority: ConnectionPriority) => Promise<void>;
+    }) | undefined;
+    const requestConnectionPriority = gatt?.requestConnectionPriority;
+    if (!device || !gatt || typeof requestConnectionPriority !== 'function') {
+      const unsupportedError = new WebBLEError('GATT_OPERATION_FAILED', 'Connection priority is not supported on this device');
+      setError(unsupportedError);
+      throw unsupportedError;
+    }
+
+    try {
+      setError(null);
+      await requestConnectionPriority.call(gatt, priority);
+      setConnectionPriorityState(priority);
+    } catch (err) {
+      const priorityError = WebBLEError.from(err);
+      setError(priorityError);
+      throw priorityError;
+    }
+  }, [device]);
+
   const setAutoReconnect = useCallback((value: boolean) => {
     setAutoReconnectState(value);
     if (!value) {
@@ -210,10 +300,14 @@ export function useDevice(
     if (!device) {
       setConnectionState('disconnected');
       setServices([]);
+      setIsWatchingAdvertisements(false);
+      setConnectionPriorityState(null);
       return;
     }
 
     setConnectionState(device.connected ? 'connected' : 'disconnected');
+    setIsWatchingAdvertisements(device.raw.watchingAdvertisements ?? false);
+    setConnectionPriorityState(null);
     if (device.connected) {
       loadServices(device).catch(() => {});
     }
@@ -244,7 +338,8 @@ export function useDevice(
   useEffect(() => () => {
     reconnectCancelledRef.current = true;
     clearReconnectTimer();
-  }, [clearReconnectTimer]);
+    device?.disconnect();
+  }, [clearReconnectTimer, device]);
 
   return {
     device,
@@ -255,6 +350,12 @@ export function useDevice(
     error,
     connect,
     disconnect,
+    watchAdvertisements,
+    unwatchAdvertisements,
+    isWatchingAdvertisements,
+    forget,
+    connectionPriority,
+    setConnectionPriority,
     autoReconnect,
     setAutoReconnect,
     reconnectAttempt,

@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://ioswebble.com"><img src="https://raw.githubusercontent.com/wklm/WebBLE-Safari-Extension/main/design-assets/brand/logo.png" alt="WebBLE" width="84" height="84"></a>
+</p>
+
 # @ios-web-bluetooth/profiles
 
 Pre-built BLE device profiles -- heart rate, battery, device info. Typed parsers for Bluetooth GATT characteristics.

@@ -27,7 +27,12 @@
       "require": "./dist/device-info.js"
     }
   },
-  "files": ["dist", "README.md", "CHANGELOG.md", "AGENTS.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "AGENTS.md"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -35,7 +40,28 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run typecheck"
   },
-  "keywords": ["bluetooth", "ble", "profiles", "heart-rate", "battery", "webble", "webbluetooth", "gatt", "device-info", "web-bluetooth", "ios", "safari", "ai", "agent", "polyfill", "cross-browser", "bluetooth-low-energy", "web-bluetooth-polyfill", "safari-bluetooth", "navigator-bluetooth"],
+  "keywords": [
+    "bluetooth",
+    "ble",
+    "profiles",
+    "heart-rate",
+    "battery",
+    "webble",
+    "webbluetooth",
+    "gatt",
+    "device-info",
+    "web-bluetooth",
+    "ios",
+    "safari",
+    "ai",
+    "agent",
+    "polyfill",
+    "cross-browser",
+    "bluetooth-low-energy",
+    "web-bluetooth-polyfill",
+    "safari-bluetooth",
+    "navigator-bluetooth"
+  ],
   "author": "wklm",
   "license": "MIT",
   "repository": {
@@ -50,15 +76,19 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@ios-web-bluetooth/core": ">=2.0.0-beta.2"
   },
+  "dependencies": {},
   "devDependencies": {
     "@types/jest": "^30",
     "jest": "^30",
     "jest-environment-jsdom": "^30",
     "ts-jest": "^29",
     "tsup": "^8.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

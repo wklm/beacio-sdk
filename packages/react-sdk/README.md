@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://ioswebble.com"><img src="https://raw.githubusercontent.com/wklm/WebBLE-Safari-Extension/main/design-assets/brand/logo.png" alt="WebBLE" width="84" height="84"></a>
+</p>
+
 # @ios-web-bluetooth/react
 
 [![npm version](https://img.shields.io/npm/v/@ios-web-bluetooth/react.svg)](https://www.npmjs.com/package/@ios-web-bluetooth/react)

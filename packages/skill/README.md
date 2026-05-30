@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://ioswebble.com"><img src="https://raw.githubusercontent.com/wklm/WebBLE-Safari-Extension/main/design-assets/brand/logo.png" alt="WebBLE" width="84" height="84"></a>
+</p>
+
 # @ios-web-bluetooth/skill
 
 Agent skill file for WebBLE integration. Contains a `SKILL.md` that AI coding agents (Claude Code, Cursor, Copilot) can discover and use to add iOS Safari Bluetooth support to any web project.

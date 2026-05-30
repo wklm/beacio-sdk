@@ -1,0 +1,69 @@
+{
+  "html": {
+    "packages": [],
+    "bootstrap": { "op": "insert", "path": "index.html", "position": "head", "insert": "<script src=\"https://cdn.ioswebble.com/v1.js\"></script>" },
+    "steps": [
+      "Install the WebBLE Safari Web Extension from the App Store on the target iPhone and enable it under Settings → Apps → Safari → Extensions → WebBLE with 'Always Allow on Every Website' granted.",
+      "Drop a single <script> tag into your HTML that loads the CDN polyfill — no build step required.",
+      "Invoke navigator.bluetooth.requestDevice() from a user gesture (click/tap). Values stream via characteristicvaluechanged events once notifications are started.",
+      "Serve the page over HTTPS — Web Bluetooth requires a secure context."
+    ],
+    "code_snippet": "<!doctype html>\n<html>\n  <body>\n    <button id=\"connect\">Connect heart-rate monitor</button>\n    <pre id=\"out\"></pre>\n    <script src=\"https://cdn.ioswebble.com/v1.js\"></script>\n    <script>\n      const out = document.getElementById('out');\n      document.getElementById('connect').onclick = async () => {\n        const device = await navigator.bluetooth.requestDevice({\n          filters: [{ services: ['heart_rate'] }]\n        });\n        const server = await device.gatt.connect();\n        const service = await server.getPrimaryService('heart_rate');\n        const char = await service.getCharacteristic('heart_rate_measurement');\n        await char.startNotifications();\n        char.addEventListener('characteristicvaluechanged', (ev) => {\n          const v = ev.target.value;\n          const bpm = v.getUint8(0) & 0x01 ? v.getUint16(1, true) : v.getUint8(1);\n          out.textContent = `${bpm} bpm`;\n        });\n      };\n    </script>\n  </body>\n</html>"
+  },
+  "react": {
+    "packages": ["@ios-web-bluetooth/core", "@ios-web-bluetooth/react"],
+    "bootstrap": { "op": "insert", "path": "src/main.tsx", "position": "top", "insert": "import '@ios-web-bluetooth/core/auto';" },
+    "steps": [
+      "Install WebBLE Safari Web Extension on the iPhone and enable it on every website.",
+      "Install the polyfill and React bindings:  npm install @ios-web-bluetooth/core @ios-web-bluetooth/react",
+      "Import '@ios-web-bluetooth/core/auto' once at the entry (main.tsx) so navigator.bluetooth is installed before any component renders.",
+      "Use the useBluetoothDevice hook to drive a click-triggered requestDevice and stream characteristic values into component state."
+    ],
+    "code_snippet": "// main.tsx\nimport '@ios-web-bluetooth/core/auto';\nimport { createRoot } from 'react-dom/client';\nimport App from './App';\ncreateRoot(document.getElementById('root')!).render(<App />);\n\n// HeartRate.tsx\nimport { useState } from 'react';\nimport { useBluetoothDevice } from '@ios-web-bluetooth/react';\n\nexport function HeartRate() {\n  const { device, connect, connecting, error } = useBluetoothDevice({\n    filters: [{ services: ['heart_rate'] }]\n  });\n  const [bpm, setBpm] = useState<number | null>(null);\n  async function start() {\n    const d = await connect();\n    const server = await d.gatt!.connect();\n    const service = await server.getPrimaryService('heart_rate');\n    const char = await service.getCharacteristic('heart_rate_measurement');\n    await char.startNotifications();\n    char.addEventListener('characteristicvaluechanged', (ev) => {\n      const v = (ev.target as BluetoothRemoteGATTCharacteristic).value!;\n      setBpm(v.getUint8(0) & 0x01 ? v.getUint16(1, true) : v.getUint8(1));\n    });\n  }\n  if (error) return <p>Error: {error.message}</p>;\n  if (!device) return <button onClick={start} disabled={connecting}>Connect</button>;\n  return <p>{bpm ?? '—'} bpm</p>;\n}"
+  },
+  "vue": {
+    "packages": ["@ios-web-bluetooth/core"],
+    "bootstrap": { "op": "insert", "path": "src/main.ts", "position": "top", "insert": "import '@ios-web-bluetooth/core/auto';" },
+    "steps": [
+      "Install WebBLE Safari Web Extension on the iPhone and enable it on every website.",
+      "Install the polyfill: npm install @ios-web-bluetooth/core",
+      "Import '@ios-web-bluetooth/core/auto' once in main.ts before createApp() so navigator.bluetooth mounts before any component renders.",
+      "Invoke navigator.bluetooth.requestDevice() from a @click handler — it must run under user activation."
+    ],
+    "code_snippet": "// main.ts\nimport '@ios-web-bluetooth/core/auto';\nimport { createApp } from 'vue';\nimport App from './App.vue';\ncreateApp(App).mount('#app');\n\n<!-- HeartRate.vue -->\n<script setup lang=\"ts\">\nimport { ref } from 'vue';\nconst bpm = ref<number | null>(null);\nasync function connect() {\n  const device = await navigator.bluetooth.requestDevice({\n    filters: [{ services: ['heart_rate'] }]\n  });\n  const server = await device.gatt!.connect();\n  const service = await server.getPrimaryService('heart_rate');\n  const char = await service.getCharacteristic('heart_rate_measurement');\n  await char.startNotifications();\n  char.addEventListener('characteristicvaluechanged', (ev) => {\n    const v = (ev.target as BluetoothRemoteGATTCharacteristic).value!;\n    bpm.value = v.getUint8(0) & 0x01 ? v.getUint16(1, true) : v.getUint8(1);\n  });\n}\n</script>\n<template>\n  <button @click=\"connect\">Connect</button>\n  <p>{{ bpm ?? '—' }} bpm</p>\n</template>"
+  },
+  "svelte": {
+    "packages": ["@ios-web-bluetooth/core"],
+    "bootstrap": { "op": "insert", "path": "src/main.ts", "position": "top", "insert": "import '@ios-web-bluetooth/core/auto';" },
+    "steps": [
+      "Install WebBLE Safari Web Extension on the iPhone and enable it on every website.",
+      "Install the polyfill: npm install @ios-web-bluetooth/core",
+      "Import '@ios-web-bluetooth/core/auto' once in src/main.ts before mounting the root component so navigator.bluetooth is present on first render.",
+      "Call navigator.bluetooth.requestDevice() from an on:click handler to satisfy the user-activation requirement."
+    ],
+    "code_snippet": "// src/main.ts\nimport '@ios-web-bluetooth/core/auto';\nimport App from './App.svelte';\nnew App({ target: document.getElementById('app')! });\n\n<!-- HeartRate.svelte -->\n<script lang=\"ts\">\n  let bpm: number | null = null;\n  async function connect() {\n    const device = await navigator.bluetooth.requestDevice({\n      filters: [{ services: ['heart_rate'] }]\n    });\n    const server = await device.gatt!.connect();\n    const service = await server.getPrimaryService('heart_rate');\n    const char = await service.getCharacteristic('heart_rate_measurement');\n    await char.startNotifications();\n    char.addEventListener('characteristicvaluechanged', (ev) => {\n      const v = (ev.target as BluetoothRemoteGATTCharacteristic).value!;\n      bpm = v.getUint8(0) & 0x01 ? v.getUint16(1, true) : v.getUint8(1);\n    });\n  }\n</script>\n<button on:click={connect}>Connect</button>\n<p>{bpm ?? '—'} bpm</p>"
+  },
+  "angular": {
+    "packages": ["@ios-web-bluetooth/core"],
+    "dev_packages": ["@types/web-bluetooth"],
+    "bootstrap": { "op": "insert", "path": "src/main.ts", "position": "top", "insert": "import '@ios-web-bluetooth/core/auto';" },
+    "steps": [
+      "Install WebBLE Safari Web Extension on the iPhone and enable it on every website.",
+      "Install the polyfill and W3C types:  npm install @ios-web-bluetooth/core  && npm install --save-dev @types/web-bluetooth",
+      "Import '@ios-web-bluetooth/core/auto' once in src/main.ts before bootstrapApplication() so navigator.bluetooth mounts before any zone/component runs.",
+      "Invoke navigator.bluetooth.requestDevice() from a (click) handler; run value updates through NgZone if you touch change detection."
+    ],
+    "code_snippet": "// src/main.ts\nimport '@ios-web-bluetooth/core/auto';\nimport { bootstrapApplication } from '@angular/platform-browser';\nimport { AppComponent } from './app/app.component';\nbootstrapApplication(AppComponent);\n\n// heart-rate.component.ts\nimport { Component, NgZone, signal } from '@angular/core';\n@Component({\n  standalone: true,\n  selector: 'app-heart-rate',\n  template: `<button (click)=\"connect()\">Connect</button><p>{{ bpm() ?? '—' }} bpm</p>`\n})\nexport class HeartRateComponent {\n  bpm = signal<number | null>(null);\n  constructor(private zone: NgZone) {}\n  async connect() {\n    const device = await navigator.bluetooth.requestDevice({\n      filters: [{ services: ['heart_rate'] }]\n    });\n    const server = await device.gatt!.connect();\n    const service = await server.getPrimaryService('heart_rate');\n    const char = await service.getCharacteristic('heart_rate_measurement');\n    await char.startNotifications();\n    char.addEventListener('characteristicvaluechanged', (ev) => {\n      const v = (ev.target as BluetoothRemoteGATTCharacteristic).value!;\n      this.zone.run(() => this.bpm.set(v.getUint8(0) & 0x01 ? v.getUint16(1, true) : v.getUint8(1)));\n    });\n  }\n}"
+  },
+  "next": {
+    "packages": ["@ios-web-bluetooth/core", "@ios-web-bluetooth/react"],
+    "bootstrap": { "op": "create", "path": "app/providers.tsx", "position": "top", "insert": "'use client';\nimport { useEffect } from 'react';\nexport function WebBLEProvider({ children }: { children: React.ReactNode }) {\n  useEffect(() => { import('@ios-web-bluetooth/core/auto'); }, []);\n  return <>{children}</>;\n}", "note": "Client-only: wrap your root layout's children with <WebBLEProvider>. Never import the polyfill at module scope under SSR." },
+    "steps": [
+      "Install WebBLE Safari Web Extension on the iPhone and enable it on every website.",
+      "Install the polyfill and React bindings:  npm install @ios-web-bluetooth/core @ios-web-bluetooth/react",
+      "Gate the polyfill to the browser by dynamic-importing '@ios-web-bluetooth/core/auto' inside a 'use client' boundary (never at module scope — it would run during SSR).",
+      "Drive requestDevice() from a click handler in a client component; stream characteristic values into React state."
+    ],
+    "code_snippet": "// app/providers.tsx\n'use client';\nimport { useEffect } from 'react';\n\nexport function WebBLEProvider({ children }: { children: React.ReactNode }) {\n  useEffect(() => {\n    import('@ios-web-bluetooth/core/auto');\n  }, []);\n  return <>{children}</>;\n}\n\n// app/heart-rate/page.tsx\n'use client';\nimport { useState } from 'react';\n\nexport default function HeartRatePage() {\n  const [bpm, setBpm] = useState<number | null>(null);\n  async function connect() {\n    const device = await navigator.bluetooth.requestDevice({\n      filters: [{ services: ['heart_rate'] }]\n    });\n    const server = await device.gatt!.connect();\n    const service = await server.getPrimaryService('heart_rate');\n    const char = await service.getCharacteristic('heart_rate_measurement');\n    await char.startNotifications();\n    char.addEventListener('characteristicvaluechanged', (ev) => {\n      const v = (ev.target as BluetoothRemoteGATTCharacteristic).value!;\n      setBpm(v.getUint8(0) & 0x01 ? v.getUint16(1, true) : v.getUint8(1));\n    });\n  }\n  return <><button onClick={connect}>Connect</button><p>{bpm ?? '—'} bpm</p></>;\n}"
+  }
+}

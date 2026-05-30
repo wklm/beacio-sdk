@@ -1,64 +1,65 @@
 {
   "name": "@ios-web-bluetooth/mcp",
-  "version": "0.1.1",
-  "description": "MCP server for AI coding agents — scaffold BLE web apps, look up UUIDs, get code examples",
-  "main": "dist/index.js",
+  "version": "0.1.0",
+  "description": "MCP server for WebBLE — unified tools for SDK consumers and extension developers shipping iOS Safari Web Bluetooth.",
+  "type": "module",
   "bin": {
-    "ioswebble-mcp": "./dist/index.js"
+    "webble-mcp": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "files": [
     "dist",
-    "README.md",
-    "AGENTS.md"
+    "README.md"
   ],
-  "scripts": {
-    "build": "tsup src/index.ts --format cjs && NODE_OPTIONS=--max-old-space-size=8192 tsc --emitDeclarationOnly",
-    "dev": "tsup src/index.ts --format cjs --watch"
+  "publishConfig": {
+    "access": "public"
   },
+  "homepage": "https://ioswebble.com/mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wklm/WebBLE-Safari-Extension.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/wklm/WebBLE-Safari-Extension/issues"
+  },
+  "license": "MIT",
+  "author": "wklm",
   "keywords": [
     "mcp",
+    "model-context-protocol",
+    "web-bluetooth",
     "ios",
     "safari",
     "bluetooth",
     "ble",
-    "ai",
-    "agent",
-    "web-bluetooth",
-    "webbluetooth",
-    "webble",
-    "gatt",
-    "model-context-protocol",
-    "claude",
-    "cursor",
-    "copilot",
-    "polyfill",
-    "cross-browser",
-    "web-bluetooth-polyfill",
-    "safari-bluetooth",
-    "navigator-bluetooth"
+    "webble"
   ],
-  "author": "wklm",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/wklm/ioswebble-sdk.git",
-    "directory": "packages/mcp"
+  "scripts": {
+    "prebuild": "rm -rf dist",
+    "build": "tsc",
+    "test": "vitest run",
+    "dev": "tsx watch src/cli.ts",
+    "prepublishOnly": "npm run build && npm test"
   },
-  "homepage": "https://ioswebble.com",
-  "bugs": {
-    "url": "https://github.com/wklm/ioswebble-sdk/issues"
-  },
-  "publishConfig": {
-    "access": "public"
-  },
-  "license": "MIT",
   "dependencies": {
-    "@ios-web-bluetooth/detect": "^0.1.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
-    "tsup": "^8.0.0",
-    "typescript": "^6.0.3"
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

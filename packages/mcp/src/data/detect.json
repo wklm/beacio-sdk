@@ -1,0 +1,11 @@
+{
+  "detection_snippet": "// Detect the WebBLE Safari Web Extension on iPhone at runtime.\n// Standard surface: navigator.bluetooth (present on every browser with WebBLE or native support).\n// Premium surface: window.webbleIOS (present only on iPhone + WebBLE companion app).\nconst hasStandardBluetooth = typeof navigator !== 'undefined' && 'bluetooth' in navigator;\nconst hasPremiumIOS = typeof window !== 'undefined' && 'webbleIOS' in window;\n\nif (hasStandardBluetooth) {\n  const available = await navigator.bluetooth.getAvailability();\n  console.log('navigator.bluetooth available:', available);\n}\n\nif (hasPremiumIOS) {\n  const caps = await window.webbleIOS.getCapabilities();\n  console.log('WebBLE iOS capabilities:', caps);\n} else {\n  // Standard surface only — peripheral mode, background sync, beacons, and notifications are unavailable.\n}",
+  "global_name": "window.webbleIOS",
+  "notes": [
+    "Feature-detect with `'webbleIOS' in window` BEFORE calling any premium method; do not rely on user-agent strings.",
+    "`navigator.bluetooth` may exist yet `getAvailability()` return false when the extension is installed but disabled for the current origin — always await getAvailability() before issuing requestDevice().",
+    "On Safari without the WebBLE extension, `navigator.bluetooth` is `undefined` entirely — guard the access.",
+    "On Chrome/Edge (macOS/Android/Desktop), `navigator.bluetooth` is native and `window.webbleIOS` is absent — premium paths must degrade.",
+    "`webbleIOS.getCapabilities()` is forward-compatible: treat unknown keys as additive, never fail closed on missing flags."
+  ]
+}

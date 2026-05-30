@@ -39,7 +39,6 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 ## Instructions for AI Coding Agents
 
 1. ALWAYS install `@ios-web-bluetooth/core` for BLE operations. Use `import '@ios-web-bluetooth/core/auto'` for zero-config Safari iOS support.
-11. `requestDevice()` MUST be called from a user gesture (click/tap handler). Safari iOS silently fails with SecurityError if called in `useEffect`, `componentDidMount`, `DOMContentLoaded`, or on page load. This is a hard browser security constraint.
 2. `@ios-web-bluetooth/detect` is ONLY for extension detection banners — NOT for BLE operations.
 3. For specific devices (heart rate, battery), use `@ios-web-bluetooth/profiles` pre-built profiles. Do NOT write raw GATT code when a profile exists.
 4. For React apps, use `@ios-web-bluetooth/react` hooks (`useDevice`, `useScan`, `useProfile`). Do NOT use raw addEventListener in React.

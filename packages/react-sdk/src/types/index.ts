@@ -28,6 +28,15 @@ type RequestDeviceOptions = CoreRequestDeviceOptions;
 // Re-export error from core -- replaces compat-error.ts
 export { WebBLEError } from '@ios-web-bluetooth/core';
 
+/**
+ * SDK wrapper around a GATT service. Avoids leaking raw
+ * BluetoothRemoteGATTService in public types.
+ */
+export interface WebBLEGATTService {
+  uuid: string;
+  isPrimary: boolean;
+}
+
 // Configuration types — single source of truth for SDK configuration
 export interface WebBLEConfig {
   /** API key from ioswebble.com (wbl_xxxxx) -- enables install prompt on iOS Safari */
@@ -110,6 +119,12 @@ export interface UseDeviceReturn {
   isConnecting: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
+  watchAdvertisements: () => Promise<void>;
+  unwatchAdvertisements: () => Promise<void>;
+  isWatchingAdvertisements: boolean;
+  forget: () => Promise<void>;
+  connectionPriority: ConnectionPriority | null;
+  setConnectionPriority: (priority: ConnectionPriority) => Promise<void>;
   services: BluetoothRemoteGATTService[];
   error: WebBLEErrorType | null;
   autoReconnect: boolean;

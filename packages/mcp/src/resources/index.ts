@@ -26,6 +26,7 @@ npm install @ios-web-bluetooth/core
 
 ## Step 2: Connect and read
 \`\`\`typescript
+import '@ios-web-bluetooth/core/auto';
 import { WebBLE } from '@ios-web-bluetooth/core'
 
 const ble = new WebBLE()
@@ -333,6 +334,7 @@ Each has a \`.code\` (string) and \`.suggestion\` (human-readable fix).
 
 ## Error handling pattern
 \`\`\`typescript
+import '@ios-web-bluetooth/core/auto';
 import { WebBLEError } from '@ios-web-bluetooth/core'
 
 try {
@@ -517,7 +519,7 @@ export function IOSWebBLEProvider(props: { apiKey: string; children: React.React
 
 ### @ios-web-bluetooth/mcp
 - MCP server for AI coding agents
-- Tools: init, check, add, scaffold-profile, get-example, troubleshoot, docs
+- Tools: webble_install_plan, webble_example, webble_detect_ios_support, webble_premium_guide, webble_troubleshoot, webble_spec_citation
 - Resources: quickstart, api, profiles, uuids, errors, changelog
 `,
         },

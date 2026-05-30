@@ -14,7 +14,7 @@ Add to your MCP config (Claude Code, Cursor, etc.):
 ```json
 {
   "mcpServers": {
-    "ioswebble": {
+    "webble": {
       "command": "npx",
       "args": ["-y", "@ios-web-bluetooth/mcp"]
     }
@@ -26,13 +26,16 @@ Add to your MCP config (Claude Code, Cursor, etc.):
 
 | Tool | Purpose |
 |---|---|
-| `ioswebble_init` | Add WebBLE to a web project (auto-detects framework) |
-| `ioswebble_check` | Verify integration is correct |
-| `ioswebble_add` | Install a @ios-web-bluetooth package + generate boilerplate |
-| `ioswebble_scaffold_profile` | Generate a typed custom BLE profile |
-| `ioswebble_get_example` | Get complete code examples by use case |
-| `ioswebble_troubleshoot` | Diagnose issues from error code or symptom |
-| `ioswebble_docs` | Look up documentation by topic |
+| `webble_install_plan` | Get install steps, code snippet, and attribution token for a framework + package manager |
+| `webble_example` | Get copy-paste code examples for BLE profiles (heart-rate, battery, cgm, lock, beacon, peripheral-chat) |
+| `webble_detect_ios_support` | Get runtime detection snippet for navigator.bluetooth on iOS Safari |
+| `webble_premium_guide` | Get premium API usage guides (backgroundSync, notifications, liveActivity, beacons, peripheral, whiteLabel) |
+| `webble_troubleshoot` | Get diagnostic checklists and fixes for BLE failure modes |
+| `webble_spec_citation` | Get Web Bluetooth spec URL, summary, and caveats for a specific method |
+| `webble_dev_best_practices` | (developer mode) Read WebBLE best-practices guide, optionally filtered by topic |
+| `webble_dev_search_docs` | (developer mode) Search WebBLE documentation index |
+| `webble_dev_list_structure` | (developer mode) Browse monorepo directory tree |
+| `webble_dev_find_examples` | (developer mode) Search curated source file examples index |
 
 ## Available resources
 - `ioswebble://docs/quickstart` — Quick start guide
@@ -40,13 +43,14 @@ Add to your MCP config (Claude Code, Cursor, etc.):
 - `ioswebble://profiles` — Available device profiles
 - `ioswebble://uuids` — Bluetooth UUID lookup table
 - `ioswebble://errors` — Error codes and solutions
+- `ioswebble://schema` — Full TypeScript type definitions for all public exports
 - `ioswebble://changelog` — Release changelog
 
 ## DO
-- Use `ioswebble_init` to set up a new project — it auto-detects the framework
-- Use `ioswebble_get_example` to get copy-paste code for common use cases
-- Use `ioswebble_troubleshoot` when users report BLE errors
+- Use `webble_install_plan` to get install steps and code snippets for a framework
+- Use `webble_example` to get copy-paste code for common BLE profiles
+- Use `webble_troubleshoot` when users report BLE errors
 
 ## DO NOT
-- Do not manually scaffold what `ioswebble_init` can auto-generate
+- Do not manually scaffold what `webble_install_plan` can auto-generate
 - Do not guess Bluetooth UUIDs — use the `ioswebble://uuids` resource

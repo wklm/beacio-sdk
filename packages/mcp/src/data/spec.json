@@ -1,0 +1,82 @@
+{
+  "spec_base_url": "https://webbluetoothcg.github.io/web-bluetooth/",
+  "methods": {
+    "navigator.bluetooth.requestDevice": {
+      "fragment": "#dom-bluetooth-requestdevice",
+      "summary": "Prompts the user to select a nearby BLE peripheral matching the provided filters. Must be called from a user activation (click/tap). Returns a BluetoothDevice; rejects with NotFoundError if the user cancels or no device matches.",
+      "caveats": [
+        "Requires a user gesture — calling from a timer or promise microtask throws SecurityError.",
+        "Requires a secure context (HTTPS).",
+        "Declare every service you plan to access in filters or optionalServices — anything else is blocked with SecurityError.",
+        "Cannot combine acceptAllDevices:true with filters.",
+        "On WebBLE, the chooser UI is driven by the Safari Web Extension; styling cannot be customised from the page."
+      ]
+    },
+    "navigator.bluetooth.getAvailability": {
+      "fragment": "#dom-bluetooth-getavailability",
+      "summary": "Reports whether the browser has a usable Bluetooth radio and (on WebBLE) whether the extension is reachable on the current origin. Returns Promise<boolean>.",
+      "caveats": [
+        "On WebBLE, false may mean the extension is installed but disabled or not granted permission on this origin — not necessarily that the radio is off.",
+        "Always check before calling requestDevice() to show a helpful message rather than a generic rejection."
+      ]
+    },
+    "BluetoothDevice.gatt.connect": {
+      "fragment": "#dom-bluetoothremotegattserver-connect",
+      "summary": "Opens a GATT connection to the peripheral. Returns the connected BluetoothRemoteGATTServer; rejects with NetworkError if the peripheral is out of range or refuses the connection.",
+      "caveats": [
+        "After every reconnect, all previously obtained service / characteristic / descriptor handles are invalidated — re-fetch them.",
+        "Serialize concurrent connect() calls from different code paths.",
+        "Listen for 'gattserverdisconnected' on the BluetoothDevice to react to drops."
+      ]
+    },
+    "BluetoothDevice.gatt.disconnect": {
+      "fragment": "#dom-bluetoothremotegattserver-disconnect",
+      "summary": "Tears down the GATT connection. Fires gattserverdisconnected synchronously on the device.",
+      "caveats": [
+        "Does not unpair the device — only closes the active GATT link.",
+        "Subsequent operations on stale handles fail with NetworkError."
+      ]
+    },
+    "BluetoothRemoteGATTServer.getPrimaryService": {
+      "fragment": "#dom-bluetoothremotegattserver-getprimaryservice",
+      "summary": "Returns a primary GATT service advertised by the peripheral. Accepts a 16-bit alias ('heart_rate'), 128-bit UUID string, or numeric service ID.",
+      "caveats": [
+        "Rejects with NotFoundError if the service is absent or wasn't listed in filters/optionalServices at requestDevice() time.",
+        "UUID name aliases must match the Bluetooth SIG assigned-numbers table exactly (lowercase underscore form)."
+      ]
+    },
+    "BluetoothRemoteGATTService.getCharacteristic": {
+      "fragment": "#dom-bluetoothremotegattservice-getcharacteristic",
+      "summary": "Returns a single GATT characteristic of this service by 16-bit alias, 128-bit UUID string, or numeric ID.",
+      "caveats": [
+        "Rejects with NotFoundError when the characteristic is absent from the peripheral's firmware — enumerate with service.getCharacteristics() to discover what is actually exposed.",
+        "Handles are invalidated by any reconnect."
+      ]
+    },
+    "BluetoothRemoteGATTCharacteristic.readValue": {
+      "fragment": "#dom-bluetoothremotegattcharacteristic-readvalue",
+      "summary": "Performs a GATT read and returns a DataView over the raw bytes. Also updates characteristic.value.",
+      "caveats": [
+        "Only valid when char.properties.read is true — otherwise rejects with NotSupportedError.",
+        "Returns a DataView; use getUint8/getUint16(offset, littleEndian)/getFloat32 to decode. Check endianness against the profile spec."
+      ]
+    },
+    "BluetoothRemoteGATTCharacteristic.writeValue": {
+      "fragment": "#dom-bluetoothremotegattcharacteristic-writevalue",
+      "summary": "Writes the given BufferSource to the characteristic. Legacy API — prefer writeValueWithResponse() / writeValueWithoutResponse() when you need explicit control.",
+      "caveats": [
+        "Only valid when char.properties.write or writeWithoutResponse is true.",
+        "Values longer than the negotiated ATT MTU are fragmented automatically but may still be rejected by constrained peripherals."
+      ]
+    },
+    "BluetoothRemoteGATTCharacteristic.startNotifications": {
+      "fragment": "#dom-bluetoothremotegattcharacteristic-startnotifications",
+      "summary": "Subscribes to value-change notifications. Each fire dispatches a 'characteristicvaluechanged' event with the new bytes at event.target.value.",
+      "caveats": [
+        "Requires char.properties.notify or char.properties.indicate.",
+        "Call stopNotifications() to unsubscribe; on disconnect the subscription is torn down automatically and must be re-established after reconnect.",
+        "Safari foreground only unless a window.webbleIOS.backgroundSync registration keeps the channel alive."
+      ]
+    }
+  }
+}

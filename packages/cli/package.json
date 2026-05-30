@@ -5,6 +5,13 @@
   "bin": {
     "ioswebble": "./dist/index.js"
   },
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
     "dist",
     "README.md",
@@ -12,7 +19,8 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs --dts",
-    "dev": "tsup src/index.ts --format cjs --watch"
+    "dev": "tsup src/index.ts --format cjs --watch",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "ios",
@@ -46,12 +54,15 @@
     "access": "public"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "@ios-web-bluetooth/detect": "^0.1.1"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "tsup": "^8.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.3"
   }
 }

@@ -12,6 +12,7 @@
       "require": "./dist/index.js"
     },
     "./auto": {
+      "types": "./dist/auto.d.ts",
       "import": "./dist/auto.mjs",
       "require": "./dist/auto.js"
     },
@@ -22,14 +23,38 @@
     }
   },
   "sideEffects": false,
-  "files": ["dist", "README.md", "AGENTS.md", "SKILL.md", "CONTEXT.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "AGENTS.md",
+    "SKILL.md",
+    "CONTEXT.md"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run typecheck"
   },
-  "keywords": ["ios", "safari", "bluetooth", "ble", "web-bluetooth", "webbluetooth", "webble", "extension", "detect", "install-banner", "ai", "agent", "mcp", "polyfill", "cross-browser", "safari-bluetooth", "navigator-bluetooth"],
+  "keywords": [
+    "ios",
+    "safari",
+    "bluetooth",
+    "ble",
+    "web-bluetooth",
+    "webbluetooth",
+    "webble",
+    "extension",
+    "detect",
+    "install-banner",
+    "ai",
+    "agent",
+    "mcp",
+    "polyfill",
+    "cross-browser",
+    "safari-bluetooth",
+    "navigator-bluetooth"
+  ],
   "author": "wklm",
   "license": "MIT",
   "repository": {
@@ -49,13 +74,20 @@
     "@ios-web-bluetooth/core": ">=2.0.0-beta.2"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "@ios-web-bluetooth/core": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "@ios-web-bluetooth/core": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^19.2.14",
     "react": "^19.2.5",
     "tsup": "^8.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

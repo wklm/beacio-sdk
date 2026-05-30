@@ -15,6 +15,10 @@ function createMockDevice(overrides: Record<string, any> = {}) {
     raw: {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
+      watchingAdvertisements: false,
+      watchAdvertisements: jest.fn().mockResolvedValue(undefined),
+      unwatchAdvertisements: jest.fn().mockResolvedValue(undefined),
+      forget: jest.fn().mockResolvedValue(undefined),
       gatt: {
         connected: false,
         requestConnectionPriority: jest.fn().mockResolvedValue(undefined),
@@ -28,6 +32,13 @@ function createMockDevice(overrides: Record<string, any> = {}) {
       device.connected = false;
     }),
     getPrimaryServices: jest.fn().mockResolvedValue([]),
+    watchAdvertisements: jest.fn().mockImplementation(async () => {
+      device.raw.watchingAdvertisements = true;
+    }),
+    unwatchAdvertisements: jest.fn().mockImplementation(async () => {
+      device.raw.watchingAdvertisements = false;
+    }),
+    forget: jest.fn().mockResolvedValue(undefined),
     on: jest.fn().mockReturnValue(jest.fn()),
     off: jest.fn(),
     ...overrides,
@@ -190,10 +201,110 @@ describe('useDevice Hook', () => {
       expect(result.current).toHaveProperty('error');
       expect(result.current).toHaveProperty('connect');
       expect(result.current).toHaveProperty('disconnect');
+      expect(result.current).toHaveProperty('watchAdvertisements');
+      expect(result.current).toHaveProperty('unwatchAdvertisements');
+      expect(result.current).toHaveProperty('isWatchingAdvertisements');
+      expect(result.current).toHaveProperty('forget');
+      expect(result.current).toHaveProperty('connectionPriority');
+      expect(result.current).toHaveProperty('setConnectionPriority');
       expect(result.current).toHaveProperty('connectionState');
       expect(result.current).toHaveProperty('autoReconnect');
       expect(result.current).toHaveProperty('setAutoReconnect');
       expect(result.current).toHaveProperty('reconnectAttempt');
+    });
+
+    it('should delegate advertisement watching to the device', async () => {
+      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+
+      await act(async () => {
+        await result.current.watchAdvertisements();
+      });
+
+      expect(mockDevice.watchAdvertisements).toHaveBeenCalled();
+      expect(result.current.isWatchingAdvertisements).toBe(true);
+
+      await act(async () => {
+        await result.current.unwatchAdvertisements();
+      });
+
+      expect(mockDevice.unwatchAdvertisements).toHaveBeenCalled();
+      expect(result.current.isWatchingAdvertisements).toBe(false);
+    });
+
+    it('should initialize advertisement watching state from the raw device', () => {
+      mockDevice.raw.watchingAdvertisements = true;
+
+      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+
+      expect(result.current.isWatchingAdvertisements).toBe(true);
+    });
+
+    it('should delegate forget to the device', async () => {
+      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+
+      await act(async () => {
+        await result.current.forget();
+      });
+
+      expect(mockDevice.forget).toHaveBeenCalled();
+      expect(result.current.isWatchingAdvertisements).toBe(false);
+      expect(result.current.connectionPriority).toBeNull();
+    });
+
+    it('should report GATT_OPERATION_FAILED when watchAdvertisements is not supported', async () => {
+      mockDevice.raw.watchAdvertisements = undefined;
+
+      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+
+      await act(async () => {
+        try {
+          await result.current.watchAdvertisements();
+        } catch (_) {}
+      });
+
+      expect(result.current.error).toBeInstanceOf(Error);
+      expect(result.current.error?.code).toBe('GATT_OPERATION_FAILED');
+    });
+
+    it('should report GATT_OPERATION_FAILED when unwatchAdvertisements is not supported', async () => {
+      mockDevice.raw.unwatchAdvertisements = undefined;
+
+      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+
+      await act(async () => {
+        try {
+          await result.current.unwatchAdvertisements();
+        } catch (_) {}
+      });
+
+      expect(result.current.error).toBeInstanceOf(Error);
+      expect(result.current.error?.code).toBe('GATT_OPERATION_FAILED');
+    });
+
+    it('should report GATT_OPERATION_FAILED when forget is not supported', async () => {
+      mockDevice.raw.forget = undefined;
+
+      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+
+      await act(async () => {
+        try {
+          await result.current.forget();
+        } catch (_) {}
+      });
+
+      expect(result.current.error).toBeInstanceOf(Error);
+      expect(result.current.error?.code).toBe('GATT_OPERATION_FAILED');
+    });
+
+    it('should delegate connection priority requests to raw GATT', async () => {
+      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+
+      await act(async () => {
+        await result.current.setConnectionPriority('high');
+      });
+
+      expect(mockDevice.raw.gatt.requestConnectionPriority).toHaveBeenCalledWith('high');
+      expect(result.current.connectionPriority).toBe('high');
     });
 
     it('should handle null device gracefully', () => {
@@ -201,6 +312,8 @@ describe('useDevice Hook', () => {
 
       expect(result.current.device).toBeNull();
       expect(result.current.isConnected).toBe(false);
+      expect(result.current.isWatchingAdvertisements).toBe(false);
+      expect(result.current.connectionPriority).toBeNull();
       expect(result.current.services).toEqual([]);
     });
   });

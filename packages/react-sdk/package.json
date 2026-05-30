@@ -32,10 +32,8 @@
     "lint": "eslint src/**/*.{ts,tsx}",
     "prepublishOnly": "npm run build && npm run typecheck"
   },
-  "dependencies": {
-    "@ios-web-bluetooth/core": ">=2.0.0-beta.2"
-  },
   "peerDependencies": {
+    "@ios-web-bluetooth/core": ">=2.0.0-beta.2",
     "@ios-web-bluetooth/detect": ">=0.1.0",
     "@ios-web-bluetooth/profiles": ">=1.0.0-beta.2",
     "react": ">=16.8.0",
@@ -69,7 +67,7 @@
     "ts-jest": "^29.4.9",
     "tslib": "^2.6.2",
     "tsup": "^8.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.3"
   },
   "keywords": [
     "bluetooth",
@@ -106,5 +104,8 @@
   "homepage": "https://ioswebble.com/docs#react-sdk",
   "publishConfig": {
     "access": "public"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

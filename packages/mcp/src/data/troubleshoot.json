@@ -1,0 +1,47 @@
+{
+  "extension-not-detected": {
+    "checklist": [
+      "Confirm WebBLE is installed from the App Store on this iPhone.",
+      "Settings → Apps → Safari → Extensions → WebBLE: Allow Extension is ON and Permission → Other Websites is Allow.",
+      "Grant 'Always Allow on Every Website' for WebBLE via the aA button on the address bar → Manage Extensions → WebBLE.",
+      "Verify the tab is not in Private Browsing (extensions may be inert).",
+      "Page is served over HTTPS (Web Bluetooth requires a secure context).",
+      "Reload the page after toggling permissions so the extension re-injects.",
+      "Check navigator.bluetooth.getAvailability() — if it returns false, the extension is installed but not reachable on this origin."
+    ],
+    "common_fix": "Open Settings → Apps → Safari → Extensions → WebBLE and toggle Allow Extension ON, then grant 'Always Allow on Every Website'. Reload the page. navigator.bluetooth.getAvailability() should then return true."
+  },
+  "device-disconnects": {
+    "checklist": [
+      "Is Safari backgrounded? iOS suspends the extension's BLE session when the tab loses focus — foreground only, or register a keep-alive via window.webbleIOS.backgroundSync.requestBackgroundConnection.",
+      "Is the peripheral in range and powered? BLE drops around 10 m / 30 ft unobstructed and when the peripheral battery dies.",
+      "Are you re-using a BluetoothRemoteGATTService / Characteristic handle from before a disconnect? Handles are invalidated — re-fetch after reconnect.",
+      "Are you calling gatt.connect() concurrently from multiple call sites? Serialize reconnects.",
+      "Is 'gattserverdisconnected' handled with exponential-backoff reconnect logic?",
+      "Is another app on the phone holding the peripheral? iOS multiplexes CoreBluetooth but some peripherals only accept one central."
+    ],
+    "common_fix": "Add a gattserverdisconnected listener and reconnect on user interaction. For background-safe operation, register window.webbleIOS.backgroundSync.requestBackgroundConnection({ deviceId: device.id }) to have the companion app hold the link while Safari is backgrounded."
+  },
+  "gatt-operation-failed": {
+    "checklist": [
+      "Is the service listed in filters or optionalServices of the requestDevice() call? Access is gated by that list — SecurityError otherwise.",
+      "Does the peripheral actually expose the characteristic? Call service.getCharacteristics() and log the UUIDs the peripheral returns.",
+      "Does the characteristic support the operation you issued? Check char.properties { read, write, writeWithoutResponse, notify, indicate }.",
+      "Is the handle fresh? A handle captured before a disconnect fails with NetworkError after reconnect — re-fetch service/characteristic after every gatt.connect().",
+      "Did you await gatt.connect() before getPrimaryService()?",
+      "Is the peripheral bonded where bonding is required? Some characteristics reject reads/writes until pairing completes."
+    ],
+    "common_fix": "Declare every service you plan to touch in filters/optionalServices at requestDevice() time, re-fetch service and characteristic handles after every reconnect, and consult char.properties before calling read/write/startNotifications."
+  },
+  "notifications-not-firing": {
+    "checklist": [
+      "Notification permission granted? Call window.webbleIOS.backgroundSync.requestPermission() and expect 'granted' — 'denied' means the user must flip Settings → Notifications → WebBLE manually.",
+      "Has the WebBLE companion app been launched at least once? Background sync runs inside the app; registrations persist but nothing consumes them until the app has registered its background modes.",
+      "Is cooldownSeconds throttling your events? Minimum 5 s is enforced — set it low only if your product truly needs that rate.",
+      "Is template.url same-origin with the registering page? Cross-origin urls are dropped silently at fire time.",
+      "Does the condition ever match? operator:'gt', threshold:150 only fires when the decoded value exceeds 150 — use 'always' or 'changed' to confirm the pipeline end-to-end.",
+      "Is the peripheral actually notifying in the background? Some peripherals drop subscriptions under iOS background constraints."
+    ],
+    "common_fix": "Call requestPermission() before registering, launch the WebBLE companion app at least once, then test with a 'changed' or 'always' operator to confirm the pipeline end-to-end before narrowing the condition."
+  }
+}

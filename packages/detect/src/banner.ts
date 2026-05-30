@@ -31,7 +31,10 @@ export interface BannerOptions {
   dismissDays?: number;
 }
 
-const DEFAULT_APP_STORE_URL = 'https://apps.apple.com/search?term=WebBLE&mt=8';
+// AIDEV-NOTE: Canonical zero-config onboarding default — the guided /setup page (install →
+// enable Safari extension → return), not a bare App Store search. Lets an agent wire the banner
+// with no URL config and still send users to a flow that actually completes setup.
+const DEFAULT_ONBOARDING_URL = 'https://ioswebble.com/setup';
 const DISMISS_KEY = 'ioswebble_dismiss_until';
 const RETURN_KEY = 'ioswebble_return';
 const RETURN_LINK_HOST = 'link.ioswebble.com';
@@ -76,7 +79,7 @@ function saveReturnContext(): void {
 }
 
 function resolveOnboardingUrl(options: Pick<BannerOptions, 'startOnboardingUrl' | 'appStoreUrl'>): string {
-  return options.startOnboardingUrl ?? options.appStoreUrl ?? DEFAULT_APP_STORE_URL;
+  return options.startOnboardingUrl ?? options.appStoreUrl ?? DEFAULT_ONBOARDING_URL;
 }
 
 function redirectToOnboarding(url: string, apiKey?: string): void {

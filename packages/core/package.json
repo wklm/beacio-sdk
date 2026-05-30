@@ -24,8 +24,18 @@
       "require": "./dist/global.js"
     }
   },
-  "sideEffects": ["./dist/auto.mjs", "./dist/auto.js"],
-  "files": ["dist", "README.md", "CHANGELOG.md", "POWER_MANAGEMENT.md", "AGENTS.md", "CONTEXT.md"],
+  "sideEffects": [
+    "./dist/auto.mjs",
+    "./dist/auto.js"
+  ],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "POWER_MANAGEMENT.md",
+    "AGENTS.md",
+    "CONTEXT.md"
+  ],
   "scripts": {
     "build": "tsup && tsup --config tsup.browser.config.ts",
     "dev": "tsup --watch",
@@ -33,7 +43,30 @@
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run typecheck"
   },
-  "keywords": ["bluetooth", "ble", "web-bluetooth", "webbluetooth", "webble", "safari", "sdk", "ios", "gatt", "bluetooth-low-energy", "ai", "agent", "mcp", "polyfill", "cross-browser", "web-bluetooth-polyfill", "safari-bluetooth", "ios-bluetooth", "bluetooth-polyfill", "web-bluetooth-safari", "navigator-bluetooth", "iphone-bluetooth"],
+  "keywords": [
+    "bluetooth",
+    "ble",
+    "web-bluetooth",
+    "webbluetooth",
+    "webble",
+    "safari",
+    "sdk",
+    "ios",
+    "gatt",
+    "bluetooth-low-energy",
+    "ai",
+    "agent",
+    "mcp",
+    "polyfill",
+    "cross-browser",
+    "web-bluetooth-polyfill",
+    "safari-bluetooth",
+    "ios-bluetooth",
+    "bluetooth-polyfill",
+    "web-bluetooth-safari",
+    "navigator-bluetooth",
+    "iphone-bluetooth"
+  ],
   "author": "wklm",
   "license": "MIT",
   "repository": {
@@ -55,6 +88,9 @@
     "jest-environment-jsdom": "^30",
     "ts-jest": "^29",
     "tsup": "^8.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
