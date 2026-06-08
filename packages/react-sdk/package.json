@@ -60,7 +60,7 @@
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5",
+    "react-dom": "^19.2.6",
     "ts-jest": "^29.4.9",
     "tslib": "^2.6.2",
     "tsup": "^8.0.0",
