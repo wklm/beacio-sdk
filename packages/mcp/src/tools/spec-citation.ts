@@ -50,5 +50,3 @@ export const specCitationTool: ToolDefinition<SpecCitationInput, SpecCitationOut
     'Return the W3C Web Bluetooth spec URL, a one-paragraph summary, and implementation caveats for a specific method (e.g. navigator.bluetooth.requestDevice).',
   run: runSpecCitation,
 };
-
-export const SUPPORTED_METHODS = Object.keys(DATA.methods);

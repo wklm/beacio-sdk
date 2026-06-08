@@ -519,7 +519,8 @@ export function IOSWebBLEProvider(props: { apiKey: string; children: React.React
 
 ### @ios-web-bluetooth/mcp
 - MCP server for AI coding agents
-- Tools: webble_install_plan, webble_example, webble_detect_ios_support, webble_premium_guide, webble_troubleshoot, webble_spec_citation
+- Consumer tools: webble_install_plan, webble_verify_integration, webble_example, webble_detect_ios_support, webble_premium_guide, webble_troubleshoot, webble_spec_citation
+- Developer tools (--developer): webble_dev_best_practices, webble_dev_search_docs, webble_dev_list_structure, webble_dev_find_examples
 - Resources: quickstart, api, profiles, uuids, errors, changelog
 `,
         },

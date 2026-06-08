@@ -1,5 +1,4 @@
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
-import { BaseProfile, parseRawBytes } from './base';
+import { BaseProfile } from './base';
 
 /**
  * Parsed heart rate measurement data from the Heart Rate Measurement
@@ -58,10 +57,6 @@ export interface HeartRateData {
  */
 export class HeartRateProfile extends BaseProfile {
   protected readonly service = 'heart_rate';
-
-  constructor(device: WebBLEDevice) {
-    super(device);
-  }
 
   /** Subscribe to heart rate measurements. Returns unsubscribe function. */
   onHeartRate(callback: (data: HeartRateData) => void): () => void {
@@ -134,5 +129,3 @@ export function parseHeartRate(dv: DataView): HeartRateData {
 
   return { bpm, contact, energyExpended, rrIntervals };
 }
-
-export { parseRawBytes };

@@ -674,6 +674,6 @@ Enable debug logging:
 
 ## Support
 
-- GitHub Issues: https://github.com/wklm/WebBLE-Safari-Extension/issues
-- Documentation: https://github.com/wklm/WebBLE-Safari-Extension/tree/main/packages/react-sdk/docs
-- Examples: https://github.com/wklm/WebBLE-Safari-Extension/tree/main/packages/react-sdk/examples
+- GitHub Issues: https://github.com/wklm/ioswebble-sdk/issues
+- Documentation: https://github.com/wklm/ioswebble-sdk/tree/main/packages/react-sdk/docs
+- Examples: https://github.com/wklm/ioswebble-sdk/tree/main/examples/heart-rate-monitor

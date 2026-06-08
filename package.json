@@ -23,7 +23,6 @@
     "@axe-core/playwright": "^4.11.2",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.59.1",
-    "@rollup/plugin-terser": "^1.0.0",
     "@types/chrome": "^0.1.40",
     "@types/jest": "^30",
     "@types/web-bluetooth": "^0.0.21",
@@ -38,7 +37,5 @@
     "webpack": "^5.106.2",
     "webpack-cli": "^7.0.2"
   },
-  "dependencies": {
-    "minimatch": "^9.0.9"
-  }
+  "dependencies": {}
 }

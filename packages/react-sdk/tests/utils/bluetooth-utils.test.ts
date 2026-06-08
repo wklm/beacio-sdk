@@ -3,13 +3,12 @@ import {
   getCharacteristicName,
   parseValue,
   formatValue,
-  canonicalUUID,
-  matchesNameFilter,
-  calculateDistance,
-  formatBytes,
-  debounce
+  canonicalUUID
 } from '../../src/utils/bluetooth-utils';
 
+// Title Case names are produced by core's getDisplayName() formatter applied
+// to core's snake_case SIG names (single source of truth); the local
+// STANDARD_SERVICES/STANDARD_CHARACTERISTICS maps were removed.
 describe('bluetooth-utils', () => {
   describe('getServiceName', () => {
     it('should return standard service names', () => {
@@ -174,153 +173,6 @@ describe('bluetooth-utils', () => {
     it('should return already canonical UUID unchanged', () => {
       const canonical = '12345678-9abc-def0-1234-567890abcdef';
       expect(canonicalUUID(canonical)).toBe(canonical);
-    });
-  });
-
-  describe('matchesNameFilter', () => {
-    it('should match exact name', () => {
-      expect(matchesNameFilter('Test Device', { name: 'Test Device' })).toBe(true);
-      expect(matchesNameFilter('Other Device', { name: 'Test Device' })).toBe(false);
-    });
-
-    it('should match name prefix', () => {
-      expect(matchesNameFilter('Test Device', { namePrefix: 'Test' })).toBe(true);
-      expect(matchesNameFilter('Device Test', { namePrefix: 'Test' })).toBe(false);
-    });
-
-    it('should return false for undefined device name', () => {
-      expect(matchesNameFilter(undefined, { name: 'Test' })).toBe(false);
-      expect(matchesNameFilter(undefined, { namePrefix: 'Test' })).toBe(false);
-    });
-
-    it('should return true if no filter specified', () => {
-      expect(matchesNameFilter('Any Device', {})).toBe(true);
-    });
-
-    it('should prioritize exact name over prefix', () => {
-      expect(matchesNameFilter('Test Device', { 
-        name: 'Test Device',
-        namePrefix: 'Other' 
-      })).toBe(true);
-      
-      expect(matchesNameFilter('Other Device', { 
-        name: 'Test Device',
-        namePrefix: 'Other' 
-      })).toBe(false);
-    });
-  });
-
-  describe('calculateDistance', () => {
-    it('should calculate distance from RSSI', () => {
-      // At 1 meter, RSSI should equal txPower
-      expect(calculateDistance(-59, -59)).toBe(1);
-      
-      // Stronger signal = closer
-      expect(calculateDistance(-40, -59)).toBeLessThan(1);
-      
-      // Weaker signal = farther
-      expect(calculateDistance(-70, -59)).toBeGreaterThan(1);
-    });
-
-    it('should use default txPower', () => {
-      const distance = calculateDistance(-70);
-      expect(distance).toBeGreaterThan(1);
-    });
-
-    it('should round to 2 decimal places', () => {
-      const distance = calculateDistance(-65, -59);
-      expect(distance.toString()).toMatch(/^\d+(\.\d{1,2})?$/);
-    });
-  });
-
-  describe('formatBytes', () => {
-    it('should format zero bytes', () => {
-      expect(formatBytes(0)).toBe('0 B');
-    });
-
-    it('should format bytes', () => {
-      expect(formatBytes(100)).toBe('100.00 B');
-      expect(formatBytes(1023)).toBe('1023.00 B');
-    });
-
-    it('should format kilobytes', () => {
-      expect(formatBytes(1024)).toBe('1.00 KB');
-      expect(formatBytes(2048)).toBe('2.00 KB');
-      expect(formatBytes(1536)).toBe('1.50 KB');
-    });
-
-    it('should format megabytes', () => {
-      expect(formatBytes(1024 * 1024)).toBe('1.00 MB');
-      expect(formatBytes(1.5 * 1024 * 1024)).toBe('1.50 MB');
-    });
-
-    it('should format gigabytes', () => {
-      expect(formatBytes(1024 * 1024 * 1024)).toBe('1.00 GB');
-      expect(formatBytes(2.5 * 1024 * 1024 * 1024)).toBe('2.50 GB');
-    });
-  });
-
-  describe('debounce', () => {
-    jest.useFakeTimers();
-
-    it('should debounce function calls', () => {
-      const mockFn = jest.fn();
-      const debouncedFn = debounce(mockFn, 100);
-      
-      debouncedFn('first');
-      debouncedFn('second');
-      debouncedFn('third');
-      
-      expect(mockFn).not.toHaveBeenCalled();
-      
-      jest.advanceTimersByTime(100);
-      
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      expect(mockFn).toHaveBeenCalledWith('third');
-    });
-
-    it('should preserve this context', () => {
-      const context = { value: 42 };
-      const mockFn = jest.fn(function(this: any) {
-        return this.value;
-      });
-      
-      const debouncedFn = debounce(mockFn, 100);
-      debouncedFn.call(context);
-      
-      jest.advanceTimersByTime(100);
-      
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      expect(mockFn.mock.instances[0]).toBe(context);
-    });
-
-    it('should handle multiple arguments', () => {
-      const mockFn = jest.fn();
-      const debouncedFn = debounce(mockFn, 100);
-      
-      debouncedFn(1, 'two', { three: 3 });
-      
-      jest.advanceTimersByTime(100);
-      
-      expect(mockFn).toHaveBeenCalledWith(1, 'two', { three: 3 });
-    });
-
-    it('should reset timer on subsequent calls', () => {
-      const mockFn = jest.fn();
-      const debouncedFn = debounce(mockFn, 100);
-      
-      debouncedFn('first');
-      jest.advanceTimersByTime(50);
-      
-      debouncedFn('second');
-      jest.advanceTimersByTime(50);
-      
-      expect(mockFn).not.toHaveBeenCalled();
-      
-      jest.advanceTimersByTime(50);
-      
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      expect(mockFn).toHaveBeenCalledWith('second');
     });
   });
 });

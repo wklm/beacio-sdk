@@ -791,3 +791,187 @@ describe('WebBLEDevice advanced APIs', () => {
     ).rejects.toMatchObject({ code: 'WRITE_INCOMPLETE', retryAfterMs: 1000 });
   });
 });
+
+// AIDEV-NOTE: White-box tests added for cleanup item 144 (god-class split into
+// write-chunker + notification-manager). These lock in the load-bearing behaviors
+// across the extraction: reconcile ordering, the reconnect-gate lifecycle, the
+// notifications() pause/resume on disconnect, and in-flight write abort cleanup.
+describe('WebBLEDevice god-class split invariants', () => {
+  it('reconciles concurrent subscribe/unsubscribe/re-subscribe to a single active native lifecycle', async () => {
+    const { device, characteristic, addEventListener, startNotifications, stopNotifications } = createConnectedDevice();
+    await device.connect();
+
+    const firstCallback = jest.fn();
+    const secondCallback = jest.fn();
+
+    // Fire all three transitions in the same tick so they queue onto the
+    // single serialized reconcilePromise chain for this characteristic.
+    const unsubscribeFirst = device.subscribe('heart_rate', 'heart_rate_measurement', firstCallback);
+    unsubscribeFirst();
+    device.subscribe('heart_rate', 'heart_rate_measurement', secondCallback);
+
+    await flushPromises(20);
+
+    // Final state: exactly one active native subscription; the surviving
+    // callback receives values, the unsubscribed one does not.
+    // AIDEV-NOTE: notificationStates moved onto NotificationManager in the
+    // cleanup-144 split; read it via the manager's read accessor.
+    const states = (device as unknown as {
+      notificationManager: { getNotificationStates: () => Map<string, { nativeActive: boolean; callbacks: Set<unknown> }> };
+    }).notificationManager.getNotificationStates();
+    expect(states.size).toBe(1);
+    const [state] = [...states.values()];
+    expect(state.nativeActive).toBe(true);
+    expect(state.callbacks.size).toBe(1);
+    expect(startNotifications.mock.calls.length).toBeGreaterThanOrEqual(1);
+
+    const listener = addEventListener.mock.calls[addEventListener.mock.calls.length - 1]?.[1] as (event: Event) => void;
+    characteristic.value = new DataView(new Uint8Array([99]).buffer);
+    listener({ target: characteristic } as unknown as Event);
+
+    expect(secondCallback).toHaveBeenCalledTimes(1);
+    expect(firstCallback).not.toHaveBeenCalled();
+    expect(stopNotifications).not.toHaveBeenCalled();
+  });
+
+  it('pauses the notifications() iterator on unexpected disconnect and resumes after reconnect', async () => {
+    const { device, characteristic, addEventListener } = createConnectedDevice();
+    await device.connect();
+
+    const iterator = device.notifications('heart_rate', 'heart_rate_measurement', { maxQueueSize: 16 })[Symbol.asyncIterator]();
+    const bootstrap = iterator.next();
+    await flushPromises();
+
+    const firstListener = addEventListener.mock.calls[addEventListener.mock.calls.length - 1]?.[1] as (event: Event) => void;
+    const firstValue = new DataView(new Uint8Array([1]).buffer);
+    characteristic.value = firstValue;
+    firstListener({ target: characteristic } as unknown as Event);
+    await expect(bootstrap).resolves.toEqual({ value: firstValue, done: false });
+
+    // Unexpected disconnect: handleDisconnect creates the reconnect gate
+    // (recoveryRegistry is non-empty because notifications() auto-registers).
+    const disconnectHandler = (device as unknown as { handleDisconnect: () => void }).handleDisconnect.bind(device);
+    (device as unknown as { intentionalDisconnect: boolean }).intentionalDisconnect = false;
+
+    // Pull next() first so the iterator is parked on the queue promise, then
+    // disconnect — the iterator should pause (not terminate) on the gate.
+    const pendingNext = iterator.next();
+    disconnectHandler();
+
+    const gate = (device as unknown as { reconnectGate: { promise: Promise<void> } | null }).reconnectGate;
+    expect(gate).not.toBeNull();
+
+    // Reconnect resolves the gate; recoverSubscriptions re-registers the callback.
+    await device.connect();
+    await flushPromises(20);
+
+    const resumedListener = addEventListener.mock.calls[addEventListener.mock.calls.length - 1]?.[1] as (event: Event) => void;
+    const resumedValue = new DataView(new Uint8Array([2]).buffer);
+    characteristic.value = resumedValue;
+    resumedListener({ target: characteristic } as unknown as Event);
+
+    await expect(pendingNext).resolves.toEqual({ value: resumedValue, done: false });
+
+    if (!iterator.return) throw new Error('Async iterator is missing return()');
+    await iterator.return(undefined);
+  });
+
+  it('has a non-null reconnect gate while disconnect listeners run (created before fire)', async () => {
+    const { device } = createConnectedDevice();
+    await device.connect();
+
+    // A recovery registration is required for handleDisconnect to create the gate.
+    device.subscribe('heart_rate', 'heart_rate_measurement', jest.fn());
+    await flushPromises();
+
+    let gateDuringListener: unknown = 'unset';
+    device.on('disconnected', () => {
+      gateDuringListener = (device as unknown as { reconnectGate: unknown }).reconnectGate;
+    });
+
+    const disconnectHandler = (device as unknown as { handleDisconnect: () => void }).handleDisconnect.bind(device);
+    (device as unknown as { intentionalDisconnect: boolean }).intentionalDisconnect = false;
+    disconnectHandler();
+
+    expect(gateDuringListener).not.toBeNull();
+    expect(gateDuringListener).not.toBe('unset');
+  });
+
+  it('rejects writeLarge with WRITE_INCOMPLETE when a disconnect aborts a mid-transfer chunk', async () => {
+    const writeDeferred = deferred<void>();
+    const { device, characteristic } = createConnectedDevice({
+      getWriteLimits: async () => ({ withResponse: 4 }),
+    });
+    await device.connect();
+
+    let call = 0;
+    characteristic.writeValueWithResponse = jest.fn(() => {
+      call += 1;
+      // First chunk succeeds, second chunk hangs until the disconnect aborts it.
+      return call === 1 ? Promise.resolve() : writeDeferred.promise;
+    });
+
+    const payload = new Uint8Array([1, 2, 3, 4, 5, 6, 7]); // 2 chunks of size 4
+    const promise = device.writeLarge('heart_rate', 'heart_rate_measurement', payload);
+    // Attach the rejection assertion before triggering the rejection so the
+    // promise always has a handler (avoids unhandled-rejection worker crash).
+    const assertion = expect(promise).rejects.toMatchObject({ code: 'WRITE_INCOMPLETE' });
+    // Keep a handler on the hung chunk's underlying promise so rejecting it
+    // never surfaces as an unhandled rejection (it is the source of truth that
+    // the write() finalizer converts into WRITE_INCOMPLETE via the aborted flag).
+    writeDeferred.promise.catch(() => undefined);
+    await flushPromises(20);
+
+    // The second chunk must be in-flight before we disconnect.
+    // AIDEV-NOTE: inFlightWrites lives on the injected WriteChunker after the
+    // cleanup-144 split; behavior is identical, only the owning object moved.
+    const inFlight = (device as unknown as { writeChunker: { inFlightWrites: Map<symbol, unknown> } }).writeChunker.inFlightWrites;
+    expect(inFlight.size).toBe(1);
+
+    // Unexpected disconnect mid-transfer marks the in-flight write aborted.
+    const disconnectHandler = (device as unknown as { handleDisconnect: () => void }).handleDisconnect.bind(device);
+    (device as unknown as { intentionalDisconnect: boolean }).intentionalDisconnect = false;
+    disconnectHandler();
+    writeDeferred.reject(new Error('link dropped'));
+
+    await assertion;
+  });
+
+  it('rejects all concurrent writes on disconnect and clears in-flight state', async () => {
+    const firstDeferred = deferred<void>();
+    const secondDeferred = deferred<void>();
+    const { device, characteristic } = createConnectedDevice();
+    await device.connect();
+
+    let call = 0;
+    characteristic.writeValueWithResponse = jest.fn(() => {
+      call += 1;
+      return call === 1 ? firstDeferred.promise : secondDeferred.promise;
+    });
+
+    const firstWrite = device.write('heart_rate', 'heart_rate_measurement', new Uint8Array([1]));
+    const secondWrite = device.write('heart_rate', 'heart_rate_measurement', new Uint8Array([2]));
+    // Attach rejection assertions before rejecting to keep handlers in place.
+    const firstAssertion = expect(firstWrite).rejects.toMatchObject({ code: 'WRITE_INCOMPLETE' });
+    const secondAssertion = expect(secondWrite).rejects.toMatchObject({ code: 'WRITE_INCOMPLETE' });
+    // Guard the underlying hung promises against unhandled-rejection crashes.
+    firstDeferred.promise.catch(() => undefined);
+    secondDeferred.promise.catch(() => undefined);
+    await flushPromises();
+
+    // AIDEV-NOTE: inFlightWrites moved onto WriteChunker in the cleanup-144 split.
+    const inFlight = (device as unknown as { writeChunker: { inFlightWrites: Map<symbol, unknown> } }).writeChunker.inFlightWrites;
+    expect(inFlight.size).toBe(2);
+
+    const disconnectHandler = (device as unknown as { handleDisconnect: () => void }).handleDisconnect.bind(device);
+    (device as unknown as { intentionalDisconnect: boolean }).intentionalDisconnect = false;
+    disconnectHandler();
+    firstDeferred.reject(new Error('link dropped'));
+    secondDeferred.reject(new Error('link dropped'));
+
+    await firstAssertion;
+    await secondAssertion;
+
+    expect(inFlight.size).toBe(0);
+  });
+});

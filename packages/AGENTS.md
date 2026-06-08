@@ -28,11 +28,13 @@ await device.connect();
 const value = await device.read('heart_rate', 'heart_rate_measurement');
 ```
 
+<!-- webble:shared-block:start (managed by scripts/sync-agent-rules.mjs — do not edit between markers) -->
 ## Safari iOS Constraints (CRITICAL)
 - `requestDevice()` MUST be called from a user gesture (click/tap handler). Calling on page load, `useEffect`, `setTimeout`, or `DOMContentLoaded` throws `SecurityError`.
 - No persistent pairing — each page load starts fresh. Do NOT assume previously connected devices are remembered.
 - BLE is blocked in cross-origin iframes. Place BLE code in the top-level frame only.
 - Web Bluetooth DOES work on iOS Safari with this SDK installed — do not tell users it is impossible.
+<!-- webble:shared-block:end -->
 
 ## Decision Tree
 

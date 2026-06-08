@@ -1,0 +1,264 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "battery level" 1`] = `
+[
+  "packages/profiles/src/battery.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "core entry point" 1`] = `
+[
+  "packages/core/src/webble.ts",
+  "packages/core/src/device.ts",
+  "packages/core/src/errors.ts",
+  "packages/core/src/uuids.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "defineProfile custom" 1`] = `
+[
+  "packages/profiles/src/define.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "detect ios" 1`] = `
+[
+  "packages/detect/src/index.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "device connect" 1`] = `
+[
+  "packages/core/src/device.ts",
+  "packages/profiles/src/device-info.ts",
+  "packages/core/src/webble.ts",
+  "packages/react-sdk/src/provider.tsx",
+  "packages/react-sdk/src/hooks.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "device info manufacturer" 1`] = `
+[
+  "packages/profiles/src/device-info.ts",
+  "packages/core/src/device.ts",
+  "packages/core/src/webble.ts",
+  "packages/react-sdk/src/hooks.ts",
+  "packages/testing/src/mock.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "error" 1`] = `
+[
+  "packages/core/src/errors.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "example code profile" 1`] = `
+[
+  "packages/mcp/src/tools/example.ts",
+  "packages/profiles/src/heart-rate.ts",
+  "packages/profiles/src/battery.ts",
+  "packages/profiles/src/device-info.ts",
+  "packages/profiles/src/define.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "gatt" 1`] = `
+[
+  "packages/core/src/device.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "heart rate" 1`] = `
+[
+  "packages/profiles/src/heart-rate.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "install plan framework" 1`] = `
+[
+  "packages/mcp/src/tools/install-plan.ts",
+  "packages/detect/src/index.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "mcp server" 1`] = `
+[
+  "packages/mcp/src/server.ts",
+  "packages/mcp/src/tools/install-plan.ts",
+  "packages/mcp/src/tools/example.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "react hooks" 1`] = `
+[
+  "packages/react-sdk/src/hooks.ts",
+  "packages/react-sdk/src/provider.tsx",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "react provider" 1`] = `
+[
+  "packages/react-sdk/src/provider.tsx",
+  "packages/react-sdk/src/hooks.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "requestDevice" 1`] = `
+[
+  "packages/core/src/webble.ts",
+  "packages/testing/src/mock.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "testing mock" 1`] = `
+[
+  "packages/testing/src/mock.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "uuid resolve" 1`] = `
+[
+  "packages/core/src/uuids.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "webble class" 1`] = `
+[
+  "packages/core/src/webble.ts",
+  "packages/core/src/device.ts",
+  "packages/core/src/errors.ts",
+  "packages/profiles/src/heart-rate.ts",
+  "packages/profiles/src/battery.ts",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "api reference" 1`] = `
+[
+  "API Reference — WebBLE class",
+  "API Reference — WebBLEDevice class",
+  "API Reference — WebBLEError",
+  "Error Codes & Troubleshooting",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "battery" 1`] = `
+[
+  "Typed Profiles",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "defineProfile custom" 1`] = `
+[
+  "Typed Profiles",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "device connect" 1`] = `
+[
+  "API Reference — WebBLEDevice class",
+  "Error Codes & Troubleshooting",
+  "API Reference — WebBLE class",
+  "API Reference — WebBLEError",
+  "React SDK",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "error codes" 1`] = `
+[
+  "Error Codes & Troubleshooting",
+  "API Reference — WebBLEError",
+  "User Gesture Requirement",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "getAvailability" 1`] = `
+[
+  "API Reference — WebBLE class",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "heart rate" 1`] = `
+[
+  "Typed Profiles",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "install" 1`] = `
+[
+  "iOS Detection & Install Banner",
+  "Quick Start",
+  "Error Codes & Troubleshooting",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "ios safari banner" 1`] = `
+[
+  "iOS Detection & Install Banner",
+  "Quick Start",
+  "User Gesture Requirement",
+  "React SDK",
+  "Typed Profiles",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "notifications" 1`] = `
+[
+  "API Reference — WebBLEDevice class",
+  "React SDK",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "profiles" 1`] = `
+[
+  "Typed Profiles",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "quickstart" 1`] = `
+[
+  "Quick Start",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "react hooks" 1`] = `
+[
+  "React SDK",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "requestDevice" 1`] = `
+[
+  "API Reference — WebBLE class",
+  "User Gesture Requirement",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "testing mock vitest" 1`] = `
+[
+  "Testing with Mocks",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "troubleshoot disconnect" 1`] = `
+[
+  "Error Codes & Troubleshooting",
+  "API Reference — WebBLEDevice class",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "user gesture click" 1`] = `
+[
+  "User Gesture Requirement",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "webble class" 1`] = `
+[
+  "API Reference — WebBLE class",
+  "API Reference — WebBLEDevice class",
+  "API Reference — WebBLEError",
+  "Quick Start",
+  "React SDK",
+]
+`;

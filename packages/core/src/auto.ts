@@ -10,7 +10,7 @@
  */
 
 import { detectPlatform, getBluetoothAPI } from './platform';
-import { BluetoothUUID } from './bluetooth-uuid';
+import { BluetoothUUID } from './uuid';
 
 /**
  * Patch navigator.permissions.query to support { name: 'bluetooth' }.

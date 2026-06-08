@@ -1,8 +1,6 @@
 import type {
   NotificationCallback,
   WebBLEDevice,
-  WebBLEPeripheralCharacteristicDefinition,
-  WebBLEPeripheralServiceDefinition,
   WriteLimits,
   WriteOptions,
 } from '@ios-web-bluetooth/core';
@@ -58,13 +56,6 @@ export type CharacteristicDefinition<TRead = never, TWrite = never> = {
 export interface ProfileConfig<C extends Record<string, CharacteristicDefinition<any, any>>> {
   name: string;
   service: UUIDLike;
-  characteristics: C;
-}
-
-export interface PeripheralProfileConfig<C extends Record<string, WebBLEPeripheralCharacteristicDefinition>> {
-  name: string;
-  service: UUIDLike;
-  isPrimary?: boolean;
   characteristics: C;
 }
 
@@ -187,13 +178,6 @@ export interface DefinedProfile<C extends Record<string, CharacteristicDefinitio
   };
 }
 
-export interface DefinedPeripheralProfile<C extends Record<string, WebBLEPeripheralCharacteristicDefinition>> {
-  readonly profileName: string;
-  readonly serviceUUID: string;
-  readonly service: WebBLEPeripheralServiceDefinition;
-  createService(overrides?: Partial<Pick<WebBLEPeripheralServiceDefinition, 'isPrimary'>>): WebBLEPeripheralServiceDefinition;
-}
-
 export function defineProfile<C extends Record<string, CharacteristicDefinition<any, any>>>(
   config: ProfileConfig<C>,
 ): DefinedProfile<C> {
@@ -271,41 +255,4 @@ export function defineProfile<C extends Record<string, CharacteristicDefinition<
 }
 
   return GeneratedProfile as unknown as DefinedProfile<C>;
-}
-
-export function definePeripheralProfile<C extends Record<string, WebBLEPeripheralCharacteristicDefinition>>(
-  config: PeripheralProfileConfig<C>,
-): DefinedPeripheralProfile<C> {
-  const serviceUUID = canonicalizeUUID(config.service);
-  type PeripheralCharacteristic = WebBLEPeripheralCharacteristicDefinition & { characteristicUuid: string };
-  const characteristics = Object.entries(config.characteristics).map(([name, definition]) => {
-    const uuidSource = definition.characteristicUuid ?? definition.uuid;
-    if (!uuidSource) {
-      throw new Error(`Peripheral characteristic ${name} is missing uuid`);
-    }
-
-    return {
-      ...definition,
-      characteristicUuid: canonicalizeUUID(String(uuidSource)),
-    } as PeripheralCharacteristic;
-  });
-
-  const baseService: WebBLEPeripheralServiceDefinition = {
-    serviceUuid: serviceUUID,
-    isPrimary: config.isPrimary ?? true,
-    characteristics: characteristics as WebBLEPeripheralCharacteristicDefinition[],
-  };
-
-  return {
-    profileName: config.name,
-    serviceUUID,
-    service: baseService,
-    createService(overrides = {}) {
-      return {
-        ...baseService,
-        ...overrides,
-        characteristics: baseService.characteristics?.map((characteristic: WebBLEPeripheralCharacteristicDefinition) => ({ ...characteristic })) ?? [],
-      };
-    },
-  };
 }

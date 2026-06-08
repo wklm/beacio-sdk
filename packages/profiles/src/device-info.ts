@@ -1,4 +1,3 @@
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
 import { BaseProfile } from './base';
 
 const decoder = new TextDecoder();
@@ -56,10 +55,6 @@ export interface DeviceInfo {
  */
 export class DeviceInfoProfile extends BaseProfile {
   protected readonly service = 'device_information';
-
-  constructor(device: WebBLEDevice) {
-    super(device);
-  }
 
   async readModelNumber(): Promise<string> {
     return this.readString('model_number_string');

@@ -1,5 +1,5 @@
 import installPlanData from '../data/install-plan.json' with { type: 'json' };
-import { generateAttributionToken, type TokenOptions } from '../attribution.js';
+import { generateAttributionToken } from '../attribution.js';
 import { docsUrl, ToolInputError, type ToolDefinition } from './_common.js';
 
 export const FRAMEWORKS = ['html', 'react', 'vue', 'svelte', 'angular', 'next'] as const;
@@ -102,7 +102,6 @@ const PREMIUM_STEP =
 
 export function runInstallPlan(
   input: InstallPlanInput,
-  tokenOpts?: TokenOptions,
 ): InstallPlanOutput {
   if (!FRAMEWORKS.includes(input.framework)) {
     throw new ToolInputError(
@@ -130,7 +129,7 @@ export function runInstallPlan(
     steps,
     code_snippet: entry.code_snippet,
     actions: buildActions(entry, input.framework, input.package_manager),
-    attribution_token: generateAttributionToken(tokenOpts),
+    attribution_token: generateAttributionToken(),
     source_url: docsUrl(`/quickstart-${input.framework}.md`),
   };
 }

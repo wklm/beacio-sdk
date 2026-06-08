@@ -1,5 +1,5 @@
-import { DeviceInfoProfile } from '../device-info';
-import type { DeviceInfo } from '../device-info';
+import { DeviceInfoProfile } from '../src/device-info';
+import type { DeviceInfo } from '../src/device-info';
 import type { WebBLEDevice } from '@ios-web-bluetooth/core';
 
 function stringToDataView(str: string): DataView {

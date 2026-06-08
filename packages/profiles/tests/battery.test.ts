@@ -1,4 +1,4 @@
-import { BatteryProfile } from '../battery';
+import { BatteryProfile } from '../src/battery';
 import type { WebBLEDevice } from '@ios-web-bluetooth/core';
 
 function makeDataView(bytes: number[]): DataView {

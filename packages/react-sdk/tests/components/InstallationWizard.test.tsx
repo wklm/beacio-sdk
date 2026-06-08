@@ -34,12 +34,7 @@ describe('InstallationWizard', () => {
     mockDetector = {
       detect: jest.fn(),
       detectInstallState: jest.fn(),
-      isInstalled: jest.fn().mockReturnValue(false),
       getInstallState: jest.fn().mockReturnValue('not-installed'),
-      getInstallationInstructions: jest.fn(),
-      openExtensionStore: jest.fn(),
-      isBrowserSupported: jest.fn().mockReturnValue(true),
-      getBrowserCompatibilityMessage: jest.fn().mockReturnValue(null),
     };
     
     // Mock constructor to return our mock instance

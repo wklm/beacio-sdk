@@ -1,12 +1,12 @@
 <p align="center">
-  <a href="https://ioswebble.com"><img src="https://raw.githubusercontent.com/wklm/WebBLE-Safari-Extension/main/design-assets/brand/logo.png" alt="WebBLE" width="84" height="84"></a>
+  <a href="https://ioswebble.com"><img src="https://raw.githubusercontent.com/wklm/ioswebble-sdk/main/design-assets/brand/logo.png" alt="WebBLE" width="84" height="84"></a>
 </p>
 
 # @ios-web-bluetooth/mcp
 
 MCP server that teaches coding agents (Claude, Cursor, Copilot, …) how to ship [iOS Safari Web Bluetooth](https://ioswebble.com) with **WebBLE**.
 
-Six tools, all offline, all citing canonical docs at `https://ioswebble.com/docs-md/*`.
+Eleven tools (seven consumer + four developer), all offline, all citing canonical docs at `https://ioswebble.com/docs-md/*`.
 
 ## Install
 
@@ -32,14 +32,30 @@ Or add it to your MCP client config (example: Claude Desktop, `~/Library/Applica
 
 ## Tools
 
+### Consumer tools
+
+Available in the default (consumer) mode for agents shipping the SDK into an app.
+
 | Tool | Purpose |
 |------|---------|
 | `webble_install_plan` | Canonical install steps + runnable snippet for `html \| react \| vue \| svelte \| angular \| next` × `npm \| pnpm \| yarn \| bun \| cdn`. |
+| `webble_verify_integration` | Agent-runnable checklist (shell commands + pass criteria) confirming the polyfill is installed, bootstrapped, builds, and resolves types. |
 | `webble_example` | Ready-to-paste code for a BLE profile: `heart-rate`, `battery`, `cgm`, `lock`, `beacon`, `peripheral-chat`. |
 | `webble_detect_ios_support` | Runtime detection snippet for `navigator.bluetooth` + `window.webbleIOS`, with every gotcha noted. |
 | `webble_premium_guide` | One of the iOS-only premium surfaces: `backgroundSync`, `notifications`, `liveActivity`, `beacons`, `peripheral`, `whiteLabel`. |
 | `webble_troubleshoot` | Diagnostic checklist + common fix for `extension-not-detected`, `device-disconnects`, `gatt-operation-failed`, `notifications-not-firing`. |
 | `webble_spec_citation` | W3C Web Bluetooth spec URL + summary + caveats for a given method (e.g. `navigator.bluetooth.requestDevice`). |
+
+### Developer tools
+
+Surfaced with `--developer` mode, for agents working inside the WebBLE monorepo itself.
+
+| Tool | Purpose |
+|------|---------|
+| `webble_dev_best_practices` | Read the project's `AGENTS.md` best-practices guide, optionally filtered by topic section. |
+| `webble_dev_search_docs` | Search the WebBLE documentation index by keyword; returns ranked results with `ioswebble.com` URLs. |
+| `webble_dev_list_structure` | Build a tree view of the monorepo directory structure (optional root path, depth 1-4, gitignore support). |
+| `webble_dev_find_examples` | Search a curated index of key source files; returns ranked matches with file path, line number, and category. |
 
 Every response is JSON with a `source_url` that points into `https://ioswebble.com/docs-md/` so agents can cite authoritative docs.
 
@@ -80,9 +96,9 @@ No device data, no BLE payloads, no user input is ever sent. Fire-and-forget, 1-
 
 - Homepage: <https://ioswebble.com/mcp>
 - Docs (machine-readable): <https://ioswebble.com/docs-md/>
-- Source: <https://github.com/wklm/WebBLE-Safari-Extension/tree/main/packages/mcp>
-- Issues: <https://github.com/wklm/WebBLE-Safari-Extension/issues>
-- Which WebBLE package should I install? [`packages/AGENTS.md`](https://github.com/wklm/WebBLE-Safari-Extension/blob/main/packages/AGENTS.md)
+- Source: <https://github.com/wklm/ioswebble-sdk/tree/main/packages/mcp>
+- Issues: <https://github.com/wklm/ioswebble-sdk/issues>
+- Which WebBLE package should I install? [`packages/AGENTS.md`](https://github.com/wklm/ioswebble-sdk/blob/main/packages/AGENTS.md)
 
 ## License
 

@@ -1,6 +1,7 @@
 {
   "name": "@ios-web-bluetooth/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "mcpName": "io.github.wklm/ios-web-bluetooth",
   "description": "MCP server for WebBLE — unified tools for SDK consumers and extension developers shipping iOS Safari Web Bluetooth.",
   "type": "module",
   "bin": {
@@ -24,11 +25,11 @@
   "homepage": "https://ioswebble.com/mcp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wklm/WebBLE-Safari-Extension.git",
+    "url": "https://github.com/wklm/ioswebble-sdk.git",
     "directory": "packages/mcp"
   },
   "bugs": {
-    "url": "https://github.com/wklm/WebBLE-Safari-Extension/issues"
+    "url": "https://github.com/wklm/ioswebble-sdk/issues"
   },
   "license": "MIT",
   "author": "wklm",
@@ -54,10 +55,10 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
+    "@types/node": "^20",
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
-    "vitest": "^1.6.0"
+    "vitest": "^4.1.8"
   },
   "engines": {
     "node": ">=20"

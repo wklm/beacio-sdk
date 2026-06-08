@@ -1,6 +1,9 @@
 import type { RetryOptions } from './errors';
 import { WebBLEError, withRetry } from './errors';
 import { resolveUUID } from './uuid';
+import { WriteChunker } from './write-chunker';
+import { NotificationManager } from './notification-manager';
+import type { RecoveryEntry } from './notification-manager';
 import type {
   ActiveSubscription,
   AutoReconnectOptions,
@@ -33,14 +36,6 @@ type Listener = () => void;
 type QueueOverflowListener = (event: QueueOverflowEvent) => void;
 type SubscriptionLostListener = (event: SubscriptionLostEvent) => void;
 type ErrorListener = (error: Error, context: DeviceErrorContext) => void;
-
-type NotificationState = {
-  callbacks: Set<NotificationCallback>;
-  characteristic: BluetoothRemoteGATTCharacteristic | null;
-  listenerAttached: boolean;
-  nativeActive: boolean;
-  reconcilePromise: Promise<void> | null;
-};
 
 type DeviceTransportInfo = {
   getMtu?: () => Promise<number | null>;
@@ -78,8 +73,7 @@ export class WebBLEDevice {
   private primaryServicesCache: BluetoothRemoteGATTService[] | null = null;
   private serviceCache = new Map<string, BluetoothRemoteGATTService>();
   private charCache = new Map<string, BluetoothRemoteGATTCharacteristic>();
-  private notificationStates = new Map<string, NotificationState>();
-  private recoveryRegistry = new Map<string, { service: string; characteristic: string; callbacks: Set<NotificationCallback> }>();
+  private recoveryRegistry = new Map<string, RecoveryEntry>();
   private disconnectListeners = new Set<DisconnectListener>();
   private reconnectedListeners = new Set<Listener>();
   private queueOverflowListeners = new Set<QueueOverflowListener>();
@@ -90,21 +84,42 @@ export class WebBLEDevice {
   private lastDisconnectReason: DisconnectReason | null = null;
   private autoReconnectConfig: AutoReconnectOptions | null = null;
   private autoReconnectAbort: AbortController | null = null;
-  private inFlightWrites = new Map<symbol, { service: string; characteristic: string; aborted: boolean }>();
+  private readonly writeChunker: WriteChunker;
+  private readonly notificationManager: NotificationManager;
   private readonly hooks: DeviceHooks;
-
-  // AIDEV-NOTE: PERF — Keep this low enough to avoid hidden memory growth while
-  // still absorbing short consumer stalls without spurious overflow failures.
-  private static readonly DEFAULT_NOTIFICATION_QUEUE_SIZE = 256;
-
-  // AIDEV-NOTE: subscribeAsync() shares the same underlying notification state
-  // as subscribe(), but surfaces setup failures synchronously for stricter flows.
 
   constructor(device: BluetoothDevice, hooks: DeviceHooks = {}) {
     this.id = device.id;
     this.name = device.name ?? undefined;
     this.raw = device;
     this.hooks = hooks;
+
+    // AIDEV-NOTE: Write fragmentation + in-flight tracking lives in WriteChunker
+    // (cleanup item 144). Deps are bound so the chunker holds no BLE state itself.
+    this.writeChunker = new WriteChunker({
+      getCharacteristic: (service, characteristic) => this.getCharacteristic(service, characteristic),
+      emitError: (error, context) => this.emitError(error, context),
+      validateTimeoutMs: (timeoutMs) => this.validateTimeoutMs(timeoutMs),
+      withOptionalTimeout: (operation, timeoutMs, message) => this.withOptionalTimeout(operation, timeoutMs, message),
+      isConnected: () => this.connected,
+      getTransport: () => this.raw.gatt as (BluetoothRemoteGATTServer & DeviceTransportInfo) | null,
+    });
+
+    // AIDEV-NOTE: Notification subscription lifecycle lives in NotificationManager
+    // (cleanup item 144). recoveryRegistry + charCache are shared BY REFERENCE so
+    // the device keeps reading/clearing them across connect()/disconnect(); the
+    // reconnect gate is read live via getReconnectGate() so its create-before-fire
+    // / resolve-in-finally lifecycle is unchanged.
+    this.notificationManager = new NotificationManager({
+      getCharacteristic: (service, characteristic) => this.getCharacteristic(service, characteristic),
+      emitError: (error, context) => this.emitError(error, context),
+      emitSubscriptionLost: (event) => this.emitSubscriptionLost(event),
+      emitQueueOverflow: (event) => this.emitQueueOverflow(event),
+      recoveryRegistry: this.recoveryRegistry,
+      charCache: this.charCache,
+      getReconnectGate: () => this.reconnectGate,
+      isIntentionalDisconnect: () => this.intentionalDisconnect,
+    });
 
     // AIDEV-NOTE: Guard for environments where BluetoothDevice objects may lack
     // EventTarget methods (e.g. advertisement-discovered devices in scan results).
@@ -181,7 +196,7 @@ export class WebBLEDevice {
       this.server = await gatt.connect();
       this.lastDisconnectReason = null;
 
-      await this.recoverSubscriptions();
+      await this.notificationManager.recoverSubscriptions();
 
       for (const fn of this.reconnectedListeners) {
         try {
@@ -219,8 +234,8 @@ export class WebBLEDevice {
     this.autoReconnectConfig = null;
     this.autoReconnectAbort?.abort();
     this.autoReconnectAbort = null;
-    this.abortInFlightWrites();
-    this.cleanupSubscriptions();
+    this.writeChunker.abortInFlightWrites();
+    this.notificationManager.cleanupSubscriptions();
     this.recoveryRegistry.clear();
     if (this.reconnectGate) {
       this.reconnectGate.resolve();
@@ -358,39 +373,7 @@ export class WebBLEDevice {
    * @see {@link writeWithoutResponse} for convenience fire-and-forget writes
    */
   async write(service: string, characteristic: string, value: BufferSource, options?: WriteOptions): Promise<void> {
-    const timeoutMs = this.validateTimeoutMs(options?.timeoutMs);
-    const char = await this.getCharacteristic(service, characteristic);
-    const writeToken = Symbol(`write:${service}:${characteristic}`);
-    this.inFlightWrites.set(writeToken, { service, characteristic, aborted: false });
-
-    try {
-      if (options?.mode === 'without-response') {
-        await this.withOptionalTimeout(
-          char.writeValueWithoutResponse(value),
-          timeoutMs,
-          'Write without response timed out',
-        );
-        return;
-      }
-
-      await this.withOptionalTimeout(
-        char.writeValueWithResponse(value),
-        timeoutMs,
-        'Write with response timed out',
-      );
-    } catch (e) {
-      const tracked = this.inFlightWrites.get(writeToken);
-      if (tracked?.aborted) {
-        throw new WebBLEError(
-          'WRITE_INCOMPLETE',
-          `Write incomplete for ${service}/${characteristic}: disconnected before completion`,
-          { retryAfterMs: 1000 },
-        );
-      }
-      throw WebBLEError.from(e);
-    } finally {
-      this.inFlightWrites.delete(writeToken);
-    }
+    return this.writeChunker.write(service, characteristic, value, options);
   }
 
   /**
@@ -425,54 +408,7 @@ export class WebBLEDevice {
     value: BufferSource,
     options?: WriteFragmentedOptions,
   ): Promise<WriteFragmentedResult> {
-    const bytes = this.toUint8Array(value);
-    const totalBytes = bytes.byteLength;
-    if (totalBytes === 0) {
-      return { bytesWritten: 0, totalBytes: 0, chunkSize: 0, chunkCount: 0, retryCount: 0 };
-    }
-
-    const chunkSize = options?.chunkSize
-      ?? this.deriveChunkSizeFromMtu(options?.mtu)
-      ?? await this.deriveChunkSize(undefined, options?.mode);
-    const maxRetries = options?.maxRetries ?? 0;
-    const retryDelayMs = options?.retryDelayMs ?? 0;
-
-    let bytesWritten = 0;
-    let chunkCount = 0;
-    let retryCount = 0;
-
-    for (let offset = 0; offset < totalBytes; offset += chunkSize) {
-      const nextOffset = Math.min(offset + chunkSize, totalBytes);
-      const chunk = new Uint8Array(bytes.subarray(offset, nextOffset));
-      let attempt = 0;
-
-      while (true) {
-        try {
-          await this.write(service, characteristic, chunk, options);
-          bytesWritten += chunk.byteLength;
-          chunkCount += 1;
-          break;
-        } catch (error) {
-          if (attempt >= maxRetries) {
-            if (bytesWritten > 0 && bytesWritten < totalBytes) {
-              throw new WebBLEError(
-                'WRITE_INCOMPLETE',
-                `Write fragmented incomplete (${bytesWritten}/${totalBytes} bytes written): ${this.errorMessage(error)}`,
-                { retryAfterMs: 1000 },
-              );
-            }
-            throw WebBLEError.from(error);
-          }
-          attempt += 1;
-          retryCount += 1;
-          if (retryDelayMs > 0) {
-            await this.delay(retryDelayMs);
-          }
-        }
-      }
-    }
-
-    return { bytesWritten, totalBytes, chunkSize, chunkCount, retryCount };
+    return this.writeChunker.writeFragmented(service, characteristic, value, options);
   }
 
   /**
@@ -504,47 +440,7 @@ export class WebBLEDevice {
     value: BufferSource,
     options?: WriteLargeOptions,
   ): Promise<WriteLargeResult> {
-    const bytes = this.toUint8Array(value);
-    const totalBytes = bytes.byteLength;
-
-    if (totalBytes === 0) {
-      return { bytesWritten: 0, totalBytes: 0, chunkSize: 0, chunkCount: 0 };
-    }
-
-    const derivedChunkSize = await this.deriveChunkSize(options?.chunkSize, options?.mode);
-    let bytesWritten = 0;
-    let chunkCount = 0;
-
-    for (let offset = 0; offset < totalBytes; offset += derivedChunkSize) {
-      const nextOffset = Math.min(offset + derivedChunkSize, totalBytes);
-      const chunk = bytes.subarray(offset, nextOffset);
-      const safeChunk = new Uint8Array(chunk);
-
-      try {
-        await this.write(service, characteristic, safeChunk, options);
-        bytesWritten += chunk.byteLength;
-        chunkCount += 1;
-      } catch (error) {
-        if (bytesWritten > 0 && bytesWritten < totalBytes) {
-          throw new WebBLEError(
-            'WRITE_INCOMPLETE',
-            `Write incomplete (${bytesWritten}/${totalBytes} bytes written): ${this.errorMessage(error)}`,
-          );
-        }
-        throw WebBLEError.from(error);
-      }
-    }
-
-    if (bytesWritten !== totalBytes) {
-      throw new WebBLEError('WRITE_INCOMPLETE', `Write incomplete (${bytesWritten}/${totalBytes} bytes written)`);
-    }
-
-    return {
-      bytesWritten,
-      totalBytes,
-      chunkSize: derivedChunkSize,
-      chunkCount,
-    };
+    return this.writeChunker.writeLarge(service, characteristic, value, options);
   }
 
   /**
@@ -559,7 +455,7 @@ export class WebBLEDevice {
    * @see {@link write}
    */
   async writeWithoutResponse(service: string, characteristic: string, value: BufferSource, options?: Omit<WriteOptions, 'mode'>): Promise<void> {
-    return this.write(service, characteristic, value, { ...options, mode: 'without-response' });
+    return this.writeChunker.writeWithoutResponse(service, characteristic, value, options);
   }
 
   /**
@@ -577,17 +473,7 @@ export class WebBLEDevice {
    * @see {@link getEffectiveMtu} for a guaranteed non-null MTU (falls back to 23)
    */
   async getWriteLimits(): Promise<WriteLimits> {
-    if (!this.connected) throw new WebBLEError('DEVICE_DISCONNECTED');
-
-    const transportInfo = this.raw.gatt as BluetoothRemoteGATTServer & DeviceTransportInfo | null;
-    const limits = await transportInfo?.getWriteLimits?.();
-    const mtu = limits?.mtu ?? await transportInfo?.getMtu?.() ?? null;
-
-    return {
-      withResponse: limits?.withResponse ?? null,
-      withoutResponse: limits?.withoutResponse ?? null,
-      mtu,
-    };
+    return this.writeChunker.getWriteLimits();
   }
 
   // AIDEV-NOTE: getEffectiveMtu defined below (line ~632) with explicit type guards.
@@ -634,40 +520,7 @@ export class WebBLEDevice {
     value: BufferSource,
     options?: WriteAutoOptions,
   ): Promise<WriteAutoResult> {
-    const bytes = this.toUint8Array(value);
-    const totalBytes = bytes.byteLength;
-    const payload = new Uint8Array(bytes);
-
-    if (totalBytes === 0) {
-      await this.write(service, characteristic, payload, options);
-      return {
-        bytesWritten: 0,
-        totalBytes: 0,
-        chunkSize: 0,
-        chunkCount: 0,
-        retryCount: 0,
-        fragmented: false,
-      };
-    }
-
-    const limit = await this.deriveChunkSize(options?.chunkSize, options?.mode);
-    if (totalBytes <= limit) {
-      await this.write(service, characteristic, payload, options);
-      return {
-        bytesWritten: totalBytes,
-        totalBytes,
-        chunkSize: totalBytes,
-        chunkCount: 1,
-        retryCount: 0,
-        fragmented: false,
-      };
-    }
-
-    const result = await this.writeFragmented(service, characteristic, payload, options);
-    return {
-      ...result,
-      fragmented: true,
-    };
+    return this.writeChunker.writeAuto(service, characteristic, value, options);
   }
 
   /**
@@ -707,44 +560,7 @@ export class WebBLEDevice {
    * @see {@link SubscribeOptions}
    */
   subscribe(service: string, characteristic: string, callback: NotificationCallback, options?: SubscribeOptions): () => void {
-    const { unsubscribe, ready } = this.registerNotificationConsumer(service, characteristic, callback);
-    void ready.catch((error) => {
-      const normalizedError = WebBLEError.from(error);
-      try {
-        options?.onError?.(normalizedError);
-      } catch (listenerError) {
-        this.emitError(WebBLEError.from(listenerError), {
-          operation: 'device.subscribe.onError',
-          service,
-          characteristic,
-        });
-      }
-    });
-
-    const autoRecover = options?.autoRecover ?? true;
-
-    if (autoRecover) {
-      const key = this.charKey(service, characteristic);
-      let entry = this.recoveryRegistry.get(key);
-      if (!entry) {
-        entry = { service, characteristic, callbacks: new Set() };
-        this.recoveryRegistry.set(key, entry);
-      }
-      entry.callbacks.add(callback);
-    }
-
-    const originalUnsubscribe = unsubscribe;
-    return () => {
-      originalUnsubscribe();
-      if (autoRecover) {
-        const key = this.charKey(service, characteristic);
-        const entry = this.recoveryRegistry.get(key);
-        if (entry) {
-          entry.callbacks.delete(callback);
-          if (entry.callbacks.size === 0) this.recoveryRegistry.delete(key);
-        }
-      }
-    };
+    return this.notificationManager.subscribe(service, characteristic, callback, options);
   }
 
   /**
@@ -775,49 +591,7 @@ export class WebBLEDevice {
     callback: NotificationCallback,
     options?: SubscribeOptions,
   ): Promise<() => void> {
-    const { unsubscribe, release, ready } = this.registerNotificationConsumer(service, characteristic, callback);
-    const autoRecover = options?.autoRecover ?? true;
-
-    if (autoRecover) {
-      const key = this.charKey(service, characteristic);
-      let entry = this.recoveryRegistry.get(key);
-      if (!entry) {
-        entry = { service, characteristic, callbacks: new Set() };
-        this.recoveryRegistry.set(key, entry);
-      }
-      entry.callbacks.add(callback);
-    }
-
-    try {
-      await ready;
-    } catch (error) {
-      const normalizedError = WebBLEError.from(error);
-      // AIDEV-NOTE: Unlike sync subscribe(), subscribeAsync surfaces errors via throw only.
-      // Calling onError here would double-report since the caller already gets the rejection.
-
-      await release();
-      if (autoRecover) {
-        const key = this.charKey(service, characteristic);
-        const entry = this.recoveryRegistry.get(key);
-        if (entry) {
-          entry.callbacks.delete(callback);
-          if (entry.callbacks.size === 0) this.recoveryRegistry.delete(key);
-        }
-      }
-      throw normalizedError;
-    }
-
-    return () => {
-      unsubscribe();
-      if (autoRecover) {
-        const key = this.charKey(service, characteristic);
-        const entry = this.recoveryRegistry.get(key);
-        if (entry) {
-          entry.callbacks.delete(callback);
-          if (entry.callbacks.size === 0) this.recoveryRegistry.delete(key);
-        }
-      }
-    };
+    return this.notificationManager.subscribeAsync(service, characteristic, callback, options);
   }
 
   /**
@@ -857,141 +631,8 @@ export class WebBLEDevice {
    * @see {@link NotificationOptions}
    * @see {@link NotificationOverflowStrategy}
    */
-  async *notifications(service: string, characteristic: string, options: NotificationOptions = { maxQueueSize: WebBLEDevice.DEFAULT_NOTIFICATION_QUEUE_SIZE }): AsyncIterable<DataView> {
-    const maxQueueSize = this.validateMaxQueueSize(
-      options.maxQueueSize ?? WebBLEDevice.DEFAULT_NOTIFICATION_QUEUE_SIZE,
-    );
-    const overflowStrategy = options?.overflowStrategy ?? 'error';
-    const queue: DataView[] = [];
-    let droppedCount = 0;
-    type Resolver = (v: IteratorResult<DataView>) => void;
-    type Rejecter = (reason?: unknown) => void;
-    const state: { resolve: Resolver | null; reject: Rejecter | null; done: boolean; failure: Error | null } = {
-      resolve: null,
-      reject: null,
-      done: false,
-      failure: null,
-    };
-
-    const callback: NotificationCallback = (value) => {
-      if (state.failure) return;
-
-      if (state.resolve) {
-        const r = state.resolve;
-        state.resolve = null;
-        state.reject = null;
-        r({ value, done: false });
-      } else {
-        if (queue.length >= maxQueueSize) {
-          droppedCount += 1;
-          const overflowEvent: QueueOverflowEvent = {
-            service,
-            characteristic,
-            strategy: overflowStrategy,
-            queueSize: maxQueueSize,
-            droppedCount,
-          };
-          this.emitQueueOverflow(overflowEvent);
-
-          try {
-            options?.onOverflow?.(overflowEvent);
-          } catch (error) {
-            this.emitError(WebBLEError.from(error), {
-              operation: 'device.notifications.onOverflow',
-              service,
-              characteristic,
-            });
-          }
-
-          if (overflowStrategy === 'error') {
-            const overflowError = new WebBLEError(
-              'GATT_OPERATION_FAILED',
-              `Notification queue overflowed (maxQueueSize=${maxQueueSize}). Increase queue size or consume faster.`,
-            );
-            state.failure = overflowError;
-            const reject = state.reject;
-            state.resolve = null;
-            state.reject = null;
-            reject?.(overflowError);
-            return;
-          }
-
-          if (overflowStrategy === 'drop-oldest') {
-            queue.shift();
-          }
-
-          if (overflowStrategy === 'drop-newest') {
-            return;
-          }
-        }
-        queue.push(value);
-      }
-    };
-
-    // AIDEV-NOTE: notifications() always sets autoRecover internally so the
-    // iterator can pause on unexpected disconnect and resume on reconnect.
-    const key = this.charKey(service, characteristic);
-    let entry = this.recoveryRegistry.get(key);
-    if (!entry) {
-      entry = { service, characteristic, callbacks: new Set() };
-      this.recoveryRegistry.set(key, entry);
-    }
-    entry.callbacks.add(callback);
-
-    const { unsubscribe: _unsubscribe, release, ready } = this.registerNotificationConsumer(service, characteristic, callback);
-    try {
-      await ready;
-    } catch (error) {
-      await release();
-      const regEntry = this.recoveryRegistry.get(key);
-      if (regEntry) {
-        regEntry.callbacks.delete(callback);
-        if (regEntry.callbacks.size === 0) this.recoveryRegistry.delete(key);
-      }
-      throw error;
-    }
-
-    try {
-      while (!state.done) {
-        if (state.failure) throw state.failure;
-
-        if (queue.length > 0) {
-          yield queue.shift()!;
-        } else {
-          const result = await new Promise<IteratorResult<DataView>>((resolve, reject) => {
-            state.resolve = resolve;
-            state.reject = reject;
-          });
-          if (result.done) {
-            // AIDEV-NOTE: On unexpected disconnect, the reconciliation loop will
-            // clear notificationStates but recoveryRegistry survives. If a
-            // reconnectGate exists and disconnect was not intentional, we pause
-            // the iterator and wait for reconnect rather than terminating.
-            if (this.reconnectGate && !this.intentionalDisconnect) {
-              await this.reconnectGate.promise;
-              if (this.intentionalDisconnect) return;
-              // After reconnect, recoverSubscriptions() already re-registered
-              // our callback. Continue the loop to yield new values.
-              continue;
-            }
-            return;
-          }
-          yield result.value;
-        }
-      }
-    } finally {
-      const pending = state.resolve;
-      state.resolve = null;
-      state.reject = null;
-      state.done = true;
-      await release();
-      const regEntry = this.recoveryRegistry.get(key);
-      if (regEntry) {
-        regEntry.callbacks.delete(callback);
-        if (regEntry.callbacks.size === 0) this.recoveryRegistry.delete(key);
-      }
-      if (pending) pending({ value: undefined as any, done: true });
-    }
+  notifications(service: string, characteristic: string, options?: NotificationOptions): AsyncIterable<DataView> {
+    return this.notificationManager.notifications(service, characteristic, options);
   }
 
   /**
@@ -1093,13 +734,14 @@ export class WebBLEDevice {
    * @returns Array of {@link ActiveSubscription} snapshots.
    */
   getActiveSubscriptions(): ActiveSubscription[] {
+    const notificationStates = this.notificationManager.getNotificationStates();
     const keys = new Set<string>([
-      ...this.notificationStates.keys(),
+      ...notificationStates.keys(),
       ...this.recoveryRegistry.keys(),
     ]);
 
     return [...keys].map((key) => {
-      const state = this.notificationStates.get(key);
+      const state = notificationStates.get(key);
       const recoveryEntry = this.recoveryRegistry.get(key);
       const [service, characteristic] = key.split(':');
       return {
@@ -1174,37 +816,11 @@ export class WebBLEDevice {
 
   // --- Private ---
 
-  private handleNotification = (event: Event): void => {
-    const char = event.target as BluetoothRemoteGATTCharacteristic;
-    const value = char.value;
-    if (!value) return;
-
-    // Dispatch to all subscribers for this characteristic
-    for (const [key, notificationState] of this.notificationStates) {
-      const cached = notificationState.characteristic ?? this.charCache.get(key);
-      if (cached === char) {
-        const [service, characteristic] = key.split(':');
-        for (const cb of notificationState.callbacks) {
-          try {
-            cb(value);
-          } catch (error) {
-            this.emitError(WebBLEError.from(error), {
-              operation: 'device.notification-callback',
-              service,
-              characteristic,
-            });
-          }
-        }
-        break;
-      }
-    }
-  };
-
   private handleDisconnect(): void {
     const reason: DisconnectReason = this.intentionalDisconnect ? 'intentional' : 'unexpected';
     this.lastDisconnectReason = reason;
-    this.abortInFlightWrites();
-    this.suspendSubscriptions();
+    this.writeChunker.abortInFlightWrites();
+    this.notificationManager.suspendSubscriptions();
     this.serviceCache.clear();
     this.primaryServicesCache = null;
     this.charCache.clear();
@@ -1271,198 +887,6 @@ export class WebBLEDevice {
     void loop();
   }
 
-  private cleanupSubscriptions(): void {
-    for (const notificationState of this.notificationStates.values()) {
-      this.detachNotificationListener(notificationState);
-      if (notificationState.nativeActive) {
-        void this.stopNotificationsSafely(notificationState.characteristic, {
-          operation: 'notification.cleanup',
-        });
-      }
-    }
-    this.notificationStates.clear();
-  }
-
-  // AIDEV-NOTE: suspendSubscriptions detaches listeners and clears runtime
-  // notificationStates but preserves recoveryRegistry so subscriptions can be
-  // rebuilt on reconnect.
-  private suspendSubscriptions(): void {
-    for (const notificationState of this.notificationStates.values()) {
-      this.detachNotificationListener(notificationState);
-      if (notificationState.nativeActive) {
-        void this.stopNotificationsSafely(notificationState.characteristic, {
-          operation: 'notification.suspend',
-        });
-      }
-    }
-    this.notificationStates.clear();
-  }
-
-  private async recoverSubscriptions(): Promise<void> {
-    const entries = [...this.recoveryRegistry.entries()];
-    for (const [key, entry] of entries) {
-      try {
-        for (const callback of entry.callbacks) {
-          const { ready } = this.registerNotificationConsumer(entry.service, entry.characteristic, callback);
-          await ready;
-        }
-      } catch (error) {
-        // Characteristic may no longer exist after firmware update or
-        // service change — remove the stale entry from the registry.
-        this.recoveryRegistry.delete(key);
-        const recoveredError = WebBLEError.from(error);
-        this.emitSubscriptionLost({
-          service: entry.service,
-          characteristic: entry.characteristic,
-          error: recoveredError,
-        });
-        this.emitError(recoveredError, {
-          operation: 'notification.recover',
-          service: entry.service,
-          characteristic: entry.characteristic,
-        });
-      }
-    }
-  }
-
-  // AIDEV-NOTE: Keep one serialized notification lifecycle per characteristic so
-  // subscribe() and notifications() cannot diverge during async start/stop races.
-  private registerNotificationConsumer(
-    service: string,
-    characteristic: string,
-    callback: NotificationCallback,
-  ): { unsubscribe: () => void; release: () => Promise<void>; ready: Promise<void> } {
-    const charKey = this.charKey(service, characteristic);
-    let notificationState = this.notificationStates.get(charKey);
-    if (!notificationState) {
-      notificationState = {
-        callbacks: new Set(),
-        characteristic: null,
-        listenerAttached: false,
-        nativeActive: false,
-        reconcilePromise: null,
-      };
-      this.notificationStates.set(charKey, notificationState);
-    }
-
-    notificationState.callbacks.add(callback);
-
-    const release = (): Promise<void> => {
-      const currentState = this.notificationStates.get(charKey);
-      if (!currentState?.callbacks.has(callback)) return Promise.resolve();
-
-      currentState.callbacks.delete(callback);
-      return this.syncNotificationState(charKey, service, characteristic);
-    };
-
-    return {
-      unsubscribe: () => { void release(); },
-      release,
-      ready: this.syncNotificationState(charKey, service, characteristic),
-    };
-  }
-
-  private syncNotificationState(serviceKey: string, service: string, characteristic: string): Promise<void> {
-    const notificationState = this.notificationStates.get(serviceKey);
-    if (!notificationState) return Promise.resolve();
-
-    const previous = notificationState.reconcilePromise ?? Promise.resolve();
-    const next = previous.catch((error) => {
-      this.emitError(WebBLEError.from(error), {
-        operation: 'notification.reconcile',
-        service,
-        characteristic,
-      });
-    }).then(async () => {
-      while (true) {
-        const currentState = this.notificationStates.get(serviceKey);
-        if (currentState !== notificationState) {
-          await this.deactivateNotificationState(notificationState);
-          return;
-        }
-
-        if (notificationState.callbacks.size === 0) {
-          this.detachNotificationListener(notificationState);
-
-          if (notificationState.nativeActive) {
-            notificationState.nativeActive = false;
-            await this.stopNotificationsSafely(notificationState.characteristic, {
-              operation: 'notification.stop',
-              service,
-              characteristic,
-            });
-            continue;
-          }
-
-          this.deleteNotificationStateIfIdle(serviceKey, notificationState);
-          return;
-        }
-
-        const char = notificationState.characteristic ?? await this.getCharacteristic(service, characteristic);
-        notificationState.characteristic = char;
-
-        // AIDEV-NOTE: Attach event listener BEFORE startNotifications() to avoid
-        // losing notifications that arrive between the native subscribe completing
-        // and the JS listener being attached. Safe because listener is a no-op if
-        // notifications haven't started yet.
-        if (!notificationState.listenerAttached) {
-          char.addEventListener('characteristicvaluechanged', this.handleNotification);
-          notificationState.listenerAttached = true;
-        }
-
-        if (!notificationState.nativeActive) {
-          await char.startNotifications();
-          notificationState.nativeActive = true;
-
-          if (this.notificationStates.get(serviceKey) !== notificationState) {
-            await this.deactivateNotificationState(notificationState);
-            return;
-          }
-
-          if (notificationState.callbacks.size === 0) continue;
-        }
-
-        if (notificationState.callbacks.size === 0) continue;
-        return;
-      }
-    });
-
-    const settled = next.finally(() => {
-      if (notificationState.reconcilePromise === settled) {
-        notificationState.reconcilePromise = null;
-        if (this.notificationStates.get(serviceKey) === notificationState) {
-          this.deleteNotificationStateIfIdle(serviceKey, notificationState);
-        }
-      }
-    });
-
-    notificationState.reconcilePromise = settled;
-    return settled;
-  }
-
-  private async deactivateNotificationState(notificationState: NotificationState): Promise<void> {
-    this.detachNotificationListener(notificationState);
-    if (!notificationState.nativeActive) return;
-
-    notificationState.nativeActive = false;
-    await this.stopNotificationsSafely(notificationState.characteristic, {
-      operation: 'notification.deactivate',
-    });
-  }
-
-  private detachNotificationListener(notificationState: NotificationState): void {
-    if (!notificationState.listenerAttached || !notificationState.characteristic) return;
-
-    notificationState.characteristic.removeEventListener('characteristicvaluechanged', this.handleNotification);
-    notificationState.listenerAttached = false;
-  }
-
-  private deleteNotificationStateIfIdle(serviceKey: string, notificationState: NotificationState): void {
-    if (this.notificationStates.get(serviceKey) !== notificationState) return;
-    if (notificationState.callbacks.size > 0 || notificationState.nativeActive || notificationState.reconcilePromise) return;
-    this.notificationStates.delete(serviceKey);
-  }
-
   private async withOptionalTimeout<T>(operation: Promise<T>, timeoutMs: number | undefined, message: string): Promise<T> {
     if (timeoutMs === undefined) return operation;
 
@@ -1488,70 +912,27 @@ export class WebBLEDevice {
     return timeoutMs;
   }
 
-  private validateMaxQueueSize(maxQueueSize: number): number {
-    if (!Number.isInteger(maxQueueSize) || maxQueueSize <= 0) {
-      throw new WebBLEError('INVALID_PARAMETER', `Invalid maxQueueSize: ${maxQueueSize}. Must be a positive integer.`);
-    }
-    return maxQueueSize;
-  }
-
-  private async deriveChunkSize(explicitChunkSize: number | undefined, mode: WriteOptions['mode']): Promise<number> {
-    if (explicitChunkSize !== undefined) {
-      if (!Number.isInteger(explicitChunkSize) || explicitChunkSize <= 0) {
-        throw new WebBLEError('INVALID_PARAMETER', `Invalid chunkSize: ${explicitChunkSize}. Must be a positive integer.`);
+  /**
+   * Invoke each listener with `event`, routing any listener exception to
+   * {@link emitError} tagged with `operation`. Failures are isolated so one
+   * throwing listener does not prevent the rest from running.
+   */
+  private fanout<T>(listeners: Iterable<(event: T) => void>, event: T, operation: string): void {
+    for (const listener of listeners) {
+      try {
+        listener(event);
+      } catch (error) {
+        this.emitError(WebBLEError.from(error), { operation });
       }
-      return explicitChunkSize;
     }
-
-    const limits = await this.getWriteLimits().catch(() => ({ withResponse: null, withoutResponse: null, mtu: null }));
-    const preferred = mode === 'without-response' ? limits.withoutResponse : limits.withResponse;
-    if (typeof preferred === 'number' && preferred > 0) return preferred;
-    if (typeof limits.mtu === 'number' && limits.mtu > 3) return limits.mtu - 3;
-
-    // Conservative fallback for platforms that do not expose limits.
-    return 20;
-  }
-
-  private deriveChunkSizeFromMtu(mtu: number | undefined): number | null {
-    if (mtu === undefined) return null;
-    if (!Number.isInteger(mtu) || mtu <= 3) {
-      throw new WebBLEError('INVALID_PARAMETER', `Invalid mtu: ${mtu}. Must be an integer greater than 3.`);
-    }
-    return mtu - 3;
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise((resolve) => { setTimeout(resolve, ms); });
-  }
-
-  private toUint8Array(value: BufferSource): Uint8Array {
-    if (value instanceof ArrayBuffer) return new Uint8Array(value);
-    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-  }
-
-  private errorMessage(error: unknown): string {
-    if (error instanceof Error) return error.message;
-    return String(error);
   }
 
   private emitQueueOverflow(event: QueueOverflowEvent): void {
-    for (const listener of this.queueOverflowListeners) {
-      try {
-        listener(event);
-      } catch (error) {
-        this.emitError(WebBLEError.from(error), { operation: 'device.queue-overflow-listener' });
-      }
-    }
+    this.fanout(this.queueOverflowListeners, event, 'device.queue-overflow-listener');
   }
 
   private emitSubscriptionLost(event: SubscriptionLostEvent): void {
-    for (const listener of this.subscriptionLostListeners) {
-      try {
-        listener(event);
-      } catch (error) {
-        this.emitError(WebBLEError.from(error), { operation: 'device.subscription-lost-listener' });
-      }
-    }
+    this.fanout(this.subscriptionLostListeners, event, 'device.subscription-lost-listener');
   }
 
   private emitError(error: Error, context: DeviceErrorContext): void {
@@ -1561,24 +942,6 @@ export class WebBLEDevice {
       } catch {
         // Avoid recursive error propagation from error listeners.
       }
-    }
-  }
-
-  private abortInFlightWrites(): void {
-    for (const entry of this.inFlightWrites.values()) {
-      entry.aborted = true;
-    }
-  }
-
-  private async stopNotificationsSafely(
-    characteristic: BluetoothRemoteGATTCharacteristic | null,
-    context: DeviceErrorContext,
-  ): Promise<void> {
-    if (!characteristic) return;
-    try {
-      await characteristic.stopNotifications();
-    } catch (error) {
-      this.emitError(WebBLEError.from(error), context);
     }
   }
 

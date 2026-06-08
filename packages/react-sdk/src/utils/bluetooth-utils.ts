@@ -2,56 +2,36 @@
  * Bluetooth utility functions for the React SDK
  */
 
-// Standard GATT service names (canonical lowercase UUIDs)
-const STANDARD_SERVICES: Record<string, string> = {
-  '00001800-0000-1000-8000-00805f9b34fb': 'Generic Access',
-  '00001801-0000-1000-8000-00805f9b34fb': 'Generic Attribute',
-  '0000180a-0000-1000-8000-00805f9b34fb': 'Device Information',
-  '0000180f-0000-1000-8000-00805f9b34fb': 'Battery Service',
-  '0000180d-0000-1000-8000-00805f9b34fb': 'Heart Rate',
-  '00001805-0000-1000-8000-00805f9b34fb': 'Current Time',
-  '00001812-0000-1000-8000-00805f9b34fb': 'Human Interface Device',
-  '00001802-0000-1000-8000-00805f9b34fb': 'Immediate Alert',
-  '00001803-0000-1000-8000-00805f9b34fb': 'Link Loss',
-  '00001804-0000-1000-8000-00805f9b34fb': 'Tx Power',
-  '00001809-0000-1000-8000-00805f9b34fb': 'Health Thermometer',
-  '0000181c-0000-1000-8000-00805f9b34fb': 'User Data',
-  '0000181d-0000-1000-8000-00805f9b34fb': 'Weight Scale'
-};
-
-// Standard GATT characteristic names (canonical lowercase UUIDs)
-const STANDARD_CHARACTERISTICS: Record<string, string> = {
-  '00002a00-0000-1000-8000-00805f9b34fb': 'Device Name',
-  '00002a01-0000-1000-8000-00805f9b34fb': 'Appearance',
-  '00002a04-0000-1000-8000-00805f9b34fb': 'Peripheral Preferred Connection Parameters',
-  '00002a05-0000-1000-8000-00805f9b34fb': 'Service Changed',
-  '00002a19-0000-1000-8000-00805f9b34fb': 'Battery Level',
-  '00002a37-0000-1000-8000-00805f9b34fb': 'Heart Rate Measurement',
-  '00002a38-0000-1000-8000-00805f9b34fb': 'Body Sensor Location',
-  '00002a39-0000-1000-8000-00805f9b34fb': 'Heart Rate Control Point',
-  '00002a29-0000-1000-8000-00805f9b34fb': 'Manufacturer Name String',
-  '00002a24-0000-1000-8000-00805f9b34fb': 'Model Number String',
-  '00002a25-0000-1000-8000-00805f9b34fb': 'Serial Number String',
-  '00002a26-0000-1000-8000-00805f9b34fb': 'Firmware Revision String',
-  '00002a27-0000-1000-8000-00805f9b34fb': 'Hardware Revision String',
-  '00002a28-0000-1000-8000-00805f9b34fb': 'Software Revision String',
-  '00002a50-0000-1000-8000-00805f9b34fb': 'PnP ID'
-};
+import {
+  getServiceName as coreGetServiceName,
+  getCharacteristicName as coreGetCharacteristicName,
+  getDisplayName,
+} from '@ios-web-bluetooth/core';
 
 /**
  * Get the human-readable name for a service UUID.
  * Accepts short-form (0X1800), hex (1800), or canonical UUIDs.
+ *
+ * Delegates name resolution to `@ios-web-bluetooth/core` (single source of
+ * truth) and formats the snake_case SIG name as Title Case for display. Falls
+ * back to the raw UUID for unknown services.
  */
 export function getServiceName(uuid: string): string {
-  return STANDARD_SERVICES[canonicalUUID(uuid)] || uuid;
+  const name = coreGetServiceName(canonicalUUID(uuid));
+  return name ? getDisplayName(name) : uuid;
 }
 
 /**
  * Get the human-readable name for a characteristic UUID.
  * Accepts short-form (0X2A37), hex (2a37), or canonical UUIDs.
+ *
+ * Delegates name resolution to `@ios-web-bluetooth/core` (single source of
+ * truth) and formats the snake_case SIG name as Title Case for display. Falls
+ * back to the raw UUID for unknown characteristics.
  */
 export function getCharacteristicName(uuid: string): string {
-  return STANDARD_CHARACTERISTICS[canonicalUUID(uuid)] || uuid;
+  const name = coreGetCharacteristicName(canonicalUUID(uuid));
+  return name ? getDisplayName(name) : uuid;
 }
 
 /**
@@ -159,64 +139,4 @@ export function canonicalUUID(uuid: string | number): string {
   }
 
   return uuid;
-}
-
-/**
- * Check if a device name matches a filter
- */
-export function matchesNameFilter(
-  deviceName: string | undefined,
-  filter: { name?: string; namePrefix?: string }
-): boolean {
-  if (!deviceName) return false;
-  
-  if (filter.name) {
-    return deviceName === filter.name;
-  }
-  
-  if (filter.namePrefix) {
-    return deviceName.startsWith(filter.namePrefix);
-  }
-  
-  return true;
-}
-
-/**
- * Calculate distance from RSSI (rough estimation)
- */
-export function calculateDistance(rssi: number, txPower: number = -59): number {
-  // Using path-loss formula: Distance = 10^((Measured Power - RSSI) / (10 * N))
-  // N is the path loss exponent (2 for free space)
-  const pathLossExponent = 2;
-  const distance = Math.pow(10, (txPower - rssi) / (10 * pathLossExponent));
-  return Math.round(distance * 100) / 100; // Round to 2 decimal places
-}
-
-/**
- * Format bytes to human readable string
- */
-export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
-  
-  return `${value.toFixed(2)} ${sizes[i]}`;
-}
-
-/**
- * Debounce function for event handlers
- */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  wait: number
-): (...args: Parameters<T>) => void {
-  let timeout: NodeJS.Timeout;
-  
-  return function(this: any, ...args: Parameters<T>) {
-    const context = this;
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(context, args), wait);
-  };
 }

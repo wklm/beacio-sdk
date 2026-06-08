@@ -82,8 +82,11 @@ let charNameMap: Map<string, string> | undefined;
 function getServiceNameMap(): Map<string, string> {
   if (!serviceNameMap) {
     serviceNameMap = new Map();
+    // First definition wins, so a canonical name (e.g. generic_access) beats its
+    // SIG abbreviation (gap) when multiple names map to the same UUID.
     for (const [name, hex] of Object.entries(SERVICES)) {
-      serviceNameMap.set(hexToUUID(hex), name);
+      const uuid = hexToUUID(hex);
+      if (!serviceNameMap.has(uuid)) serviceNameMap.set(uuid, name);
     }
   }
   return serviceNameMap;
@@ -92,8 +95,10 @@ function getServiceNameMap(): Map<string, string> {
 function getCharNameMap(): Map<string, string> {
   if (!charNameMap) {
     charNameMap = new Map();
+    // First definition wins (canonical name beats any SIG abbreviation alias).
     for (const [name, hex] of Object.entries(CHARACTERISTICS)) {
-      charNameMap.set(hexToUUID(hex), name);
+      const uuid = hexToUUID(hex);
+      if (!charNameMap.has(uuid)) charNameMap.set(uuid, name);
     }
   }
   return charNameMap;
@@ -263,3 +268,140 @@ export function getServiceName(uuid: string): string | undefined {
 export function getCharacteristicName(uuid: string): string | undefined {
   return getCharNameMap().get(uuid.toLowerCase());
 }
+
+/**
+ * Format a Bluetooth SIG snake_case name (e.g. `'heart_rate'`) as Title Case
+ * (e.g. `'Heart Rate'`) for display in a UI.
+ *
+ * Unknown inputs — anything that does not look like a snake_case SIG name, such
+ * as a raw UUID string or hex shorthand — are returned unchanged so callers can
+ * use the raw value as a fallback label.
+ *
+ * @param name - A snake_case SIG name, or a raw UUID/hex string.
+ * @returns Title-cased name, or the input unchanged when it is not a SIG name.
+ *
+ * @example
+ * ```typescript
+ * getDisplayName('heart_rate')             // 'Heart Rate'
+ * getDisplayName('heart_rate_measurement') // 'Heart Rate Measurement'
+ * getDisplayName('0000180d-0000-1000-8000-00805f9b34fb') // (unchanged)
+ * ```
+ */
+export function getDisplayName(name: string): string {
+  // Raw UUIDs / hex shorthand are not SIG names — return them unchanged so the
+  // caller can show the raw identifier as a fallback label.
+  if (!/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/.test(name)) return name;
+  return name
+    .split('_')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+// ---------------------------------------------------------------------------
+// BluetoothUUID — Web Bluetooth spec §4
+// https://webbluetoothcg.github.io/web-bluetooth/#bluetoothuuid
+//
+// Static methods to resolve service, characteristic, and descriptor
+// names/aliases to canonical 128-bit UUID strings.
+// ---------------------------------------------------------------------------
+
+// Descriptor name → 16-bit hex map (descriptors are not part of SERVICES/CHARACTERISTICS)
+const DESCRIPTORS: Record<string, number> = {
+  gatt_characteristic_extended_properties: 0x2900,
+  gatt_characteristic_user_description: 0x2901,
+  gatt_client_characteristic_configuration: 0x2902,
+  gatt_server_characteristic_configuration: 0x2903,
+  gatt_characteristic_presentation_format: 0x2904,
+  gatt_characteristic_aggregate_format: 0x2905,
+  valid_range: 0x2906,
+  external_report_reference: 0x2907,
+  report_reference: 0x2908,
+  number_of_digitals: 0x2909,
+  value_trigger_setting: 0x290A,
+  es_configuration: 0x290B,
+  es_measurement: 0x290C,
+  es_trigger_setting: 0x290D,
+  time_trigger_setting: 0x290E,
+  complete_br_edr_transport_block_data: 0x290F,
+};
+
+/**
+ * Convert a 16-bit or 32-bit integer alias to a canonical 128-bit UUID string.
+ * Implements `BluetoothUUID.canonicalUUID()` from the Web Bluetooth spec.
+ *
+ * @param alias - 16-bit or 32-bit unsigned integer (0 to 0xFFFFFFFF).
+ * @returns Canonical lowercase 128-bit UUID string.
+ * @throws {TypeError} If the alias is not a valid unsigned 32-bit integer.
+ *
+ * @example
+ * ```typescript
+ * canonicalUUID(0x180D) // '0000180d-0000-1000-8000-00805f9b34fb'
+ * canonicalUUID(0x2A37) // '00002a37-0000-1000-8000-00805f9b34fb'
+ * ```
+ *
+ * @see {@link resolveUUID} for resolving names and hex strings
+ */
+export function canonicalUUID(alias: number): string {
+  if (!Number.isInteger(alias) || alias < 0 || alias > 0xFFFFFFFF) {
+    throw new TypeError(
+      `Failed to execute 'canonicalUUID' on 'BluetoothUUID': ` +
+      `Value is not a valid unsigned long: ${alias}`
+    );
+  }
+  return hexToUUID(alias);
+}
+
+/**
+ * Resolve a service or characteristic name or UUID alias to a canonical
+ * 128-bit UUID. Backs `BluetoothUUID.getService()` and
+ * `BluetoothUUID.getCharacteristic()` from the Web Bluetooth spec, which share
+ * identical resolution semantics.
+ *
+ * @param name - Name (e.g. `'heart_rate'`), 16-bit integer, or UUID string.
+ * @returns Canonical 128-bit UUID string.
+ *
+ * @see {@link resolveUUID}
+ */
+function resolveServiceOrCharacteristic(name: string | number): string {
+  if (typeof name === 'number') return canonicalUUID(name);
+  return resolveUUID(name);
+}
+
+/**
+ * Resolve a descriptor name or UUID alias to a canonical 128-bit UUID.
+ * Implements `BluetoothUUID.getDescriptor()` from the Web Bluetooth spec.
+ * Supports GATT descriptor names (e.g. `'gatt_client_characteristic_configuration'`)
+ * in addition to all formats supported by {@link resolveUUID}.
+ *
+ * @param name - Descriptor name, 16-bit integer, or UUID string.
+ * @returns Canonical 128-bit UUID string.
+ *
+ * @example
+ * ```typescript
+ * getDescriptor('gatt_client_characteristic_configuration') // '00002902-...'
+ * getDescriptor(0x2902)                                     // '00002902-...'
+ * ```
+ *
+ * @see {@link resolveUUID}
+ */
+export function getDescriptor(name: string | number): string {
+  if (typeof name === 'number') return canonicalUUID(name);
+
+  const lower = name.toLowerCase();
+  const descHex = DESCRIPTORS[lower];
+  if (descHex !== undefined) return hexToUUID(descHex);
+
+  // Fall through to resolveUUID for full UUIDs and hex shorthands
+  return resolveUUID(name);
+}
+
+/**
+ * BluetoothUUID namespace object conforming to the Web Bluetooth spec.
+ * Can be assigned to `window.BluetoothUUID` for spec compliance.
+ */
+export const BluetoothUUID = {
+  canonicalUUID,
+  getService: resolveServiceOrCharacteristic,
+  getCharacteristic: resolveServiceOrCharacteristic,
+  getDescriptor,
+} as const;

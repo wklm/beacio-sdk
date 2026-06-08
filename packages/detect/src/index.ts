@@ -54,6 +54,22 @@ function dispatchInstallState(state: ExtensionInstallState): void {
 }
 
 /**
+ * Show the install banner unless explicitly disabled.
+ * No-op when `options.banner === false`.
+ */
+async function maybeShowBanner(options: IOSWebBLEOptions): Promise<void> {
+  if (options.banner === false) return;
+  const { showInstallBanner } = await import('./banner');
+  const bannerConfig = typeof options.banner === 'object' ? options.banner : {};
+  const bannerOpts: import('./banner').BannerOptions = {
+    ...bannerConfig,
+    apiKey: options.key ?? '',
+    operatorName: options.operatorName,
+  };
+  showInstallBanner(bannerOpts);
+}
+
+/**
  * Initialize WebBLE detection.
  *
  * On iOS Safari: checks if the extension is installed, dispatches events,
@@ -85,16 +101,7 @@ export async function initIOSWebBLE(options: IOSWebBLEOptions): Promise<void> {
     }
     options.onInstalledInactive?.();
 
-    if (options.banner !== false) {
-      const { showInstallBanner } = await import('./banner');
-      const bannerConfig = typeof options.banner === 'object' ? options.banner : {};
-      const bannerOpts: import('./banner').BannerOptions = {
-        ...bannerConfig,
-        apiKey: options.key ?? '',
-        operatorName: options.operatorName,
-      };
-      showInstallBanner(bannerOpts);
-    }
+    await maybeShowBanner(options);
     return;
   }
 
@@ -106,15 +113,8 @@ export async function initIOSWebBLE(options: IOSWebBLEOptions): Promise<void> {
   options.onNotInstalled?.();
 
   // Show install banner unless explicitly disabled
+  await maybeShowBanner(options);
   if (options.banner !== false) {
-    const { showInstallBanner } = await import('./banner');
-    const bannerConfig = typeof options.banner === 'object' ? options.banner : {};
-    const bannerOpts: import('./banner').BannerOptions = {
-      ...bannerConfig,
-      apiKey: options.key ?? '',
-      operatorName: options.operatorName,
-    };
-    showInstallBanner(bannerOpts);
     reportEvent(options.key ?? '', 'install_prompted');
   }
 }

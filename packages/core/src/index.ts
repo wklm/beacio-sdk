@@ -2,8 +2,15 @@ export { WebBLE } from './webble';
 export { WebBLEDevice } from './device';
 export { WebBLEError, withRetry } from './errors';
 export type { RetryOptions, WebBLEErrorCode } from './errors';
-export { resolveUUID, getServiceName, getCharacteristicName } from './uuid';
-export { BluetoothUUID, canonicalUUID, getService, getCharacteristic, getDescriptor } from './bluetooth-uuid';
+export {
+  resolveUUID,
+  getServiceName,
+  getCharacteristicName,
+  getDisplayName,
+  BluetoothUUID,
+  canonicalUUID,
+  getDescriptor,
+} from './uuid';
 export { detectPlatform, getBluetoothAPI } from './platform';
 export {
   readUint8,

@@ -815,6 +815,6 @@ useEffect(() => {
 ## Need Help?
 
 - Check the [API Documentation](./API.md)
-- See [Examples](../examples/)
-- File an [Issue](https://github.com/wklm/WebBLE-Safari-Extension/issues)
+- See [Examples](../../../examples/heart-rate-monitor/)
+- File an [Issue](https://github.com/wklm/ioswebble-sdk/issues)
 - Read the [FAQ](./FAQ.md)

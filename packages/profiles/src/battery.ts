@@ -1,4 +1,3 @@
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
 import { BaseProfile } from './base';
 
 /**
@@ -30,10 +29,6 @@ import { BaseProfile } from './base';
  */
 export class BatteryProfile extends BaseProfile {
   protected readonly service = 'battery_service';
-
-  constructor(device: WebBLEDevice) {
-    super(device);
-  }
 
   /** Read current battery level (0-100). */
   async readLevel(): Promise<number> {
