@@ -26,7 +26,7 @@
     "@types/chrome": "^0.1.40",
     "@types/jest": "^30",
     "@types/web-bluetooth": "^0.0.21",
-    "@typescript-eslint/eslint-plugin": "^8.59.4",
+    "@typescript-eslint/eslint-plugin": "^8.61.0",
     "@typescript-eslint/parser": "^8.59.4",
     "eslint": "^10.4.0",
     "jest": "^30",
