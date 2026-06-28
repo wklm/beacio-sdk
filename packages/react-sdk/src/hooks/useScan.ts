@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { WebBLEDevice, WebBLEError, getBluetoothAPI } from '@ios-web-bluetooth/core';
-import { useWebBLE } from '../core/WebBLEProvider';
+import { BeacioDevice, BeacioError, getBluetoothAPI } from '@beacio/core';
+import { useBeacio } from '../core/BeacioProvider';
 import type { UseScanReturn, ScanState, ScanOptions } from '../types';
 
 /**
@@ -8,20 +8,20 @@ import type { UseScanReturn, ScanState, ScanOptions } from '../types';
  *
  * Wraps the Web Bluetooth `requestLEScan` API with React-friendly state
  * management. Discovered devices are deduplicated by ID and accumulated
- * in the `devices` array as `WebBLEDevice` instances. The scan is
+ * in the `devices` array as `BeacioDevice` instances. The scan is
  * automatically stopped on unmount.
  *
- * Must be used inside a {@link WebBLEProvider}.
+ * Must be used inside a {@link BeacioProvider}.
  *
- * @returns Scan state, discovered devices (as WebBLEDevice[]), and control methods.
+ * @returns Scan state, discovered devices (as BeacioDevice[]), and control methods.
  */
 export function useScan(): UseScanReturn {
-  const { requestLEScan, stopScan: contextStopScan } = useWebBLE();
+  const { requestLEScan, stopScan: contextStopScan } = useBeacio();
   const [scanState, setScanState] = useState<ScanState>('idle');
-  const [devices, setDevices] = useState<WebBLEDevice[]>([]);
-  const [error, setError] = useState<WebBLEError | null>(null);
+  const [devices, setDevices] = useState<BeacioDevice[]>([]);
+  const [error, setError] = useState<BeacioError | null>(null);
   const scanRef = useRef<BluetoothLEScan | null>(null);
-  const deviceMapRef = useRef<Map<string, WebBLEDevice>>(new Map());
+  const deviceMapRef = useRef<Map<string, BeacioDevice>>(new Map());
 
   const handleAdvertisement = useCallback((event: Event) => {
     const adEvent = event as BluetoothAdvertisingEvent;
@@ -30,7 +30,7 @@ export function useScan(): UseScanReturn {
 
     let wrappedDevice = deviceMapRef.current.get(rawDevice.id);
     if (!wrappedDevice) {
-      wrappedDevice = new WebBLEDevice(rawDevice);
+      wrappedDevice = new BeacioDevice(rawDevice);
       deviceMapRef.current.set(rawDevice.id, wrappedDevice);
       setDevices(Array.from(deviceMapRef.current.values()));
     }
@@ -59,7 +59,7 @@ export function useScan(): UseScanReturn {
         setScanState('idle');
       }
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
       setScanState('idle');
     }
   }, [scanState, requestLEScan, handleAdvertisement]);

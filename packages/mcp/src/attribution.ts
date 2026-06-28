@@ -1,12 +1,12 @@
 /**
  * Attribution token — SHARED CONTRACT with the beacon + stats Workers.
  *
- * Worker regex: /^webble_\d{6}_(mcp|cdn|direct|github|npm|hn)_[a-z0-9]{1,40}$/
+ * Worker regex: /^beacio_\d{6}_(mcp|cdn|direct|github|npm|hn)_[a-z0-9]{1,40}$/
  * MCP defaults to the `mcp` channel; pass `channel` to attribute another acquisition
  * surface — e.g. `hn` (Show HN / forum outreach) or `direct` (website/SEO funnel).
- * Example: webble_202604_hn_3p9xq2k8m4r
+ * Example: beacio_202604_hn_3p9xq2k8m4r
  *
- * Format: `webble_YYYYMM_<channel>_<random>`
+ * Format: `beacio_YYYYMM_<channel>_<random>`
  *   - YYYYMM: current UTC year-month, zero-padded.
  *   - <channel>: one of CHANNELS.
  *   - <random>: 8–16 chars from [a-z0-9]. Total length ≤ 80.
@@ -14,7 +14,7 @@
 export const CHANNELS = ['mcp', 'cdn', 'direct', 'github', 'npm', 'hn'] as const;
 export type Channel = (typeof CHANNELS)[number];
 
-export const ATTRIBUTION_REGEX = /^webble_\d{6}_(mcp|cdn|direct|github|npm|hn)_[a-z0-9]{8,16}$/;
+export const ATTRIBUTION_REGEX = /^beacio_\d{6}_(mcp|cdn|direct|github|npm|hn)_[a-z0-9]{8,16}$/;
 
 const ALPHABET = 'abcdefghijklmnopqrstuvwxyz0123456789';
 
@@ -50,8 +50,8 @@ export function generateAttributionToken(opts: TokenOptions = {}): string {
   }
   const yyyy = now.getUTCFullYear().toString().padStart(4, '0');
   const mm = (now.getUTCMonth() + 1).toString().padStart(2, '0');
-  const token = `webble_${yyyy}${mm}_${channel}_${randomSuffix(suffixLength, rand)}`;
-  // Defensive: max total length 80 chars — `webble_` (7) + 6 + `_<channel>_` (≤8) + 16 = ~37, well under.
+  const token = `beacio_${yyyy}${mm}_${channel}_${randomSuffix(suffixLength, rand)}`;
+  // Defensive: max total length 80 chars — `beacio_` (7) + 6 + `_<channel>_` (≤8) + 16 = ~37, well under.
   if (token.length > 80) {
     throw new Error(`attribution token exceeds 80 chars: ${token}`);
   }

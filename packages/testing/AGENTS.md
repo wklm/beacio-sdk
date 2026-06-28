@@ -1,12 +1,12 @@
-# @ios-web-bluetooth/testing — Agent Instructions
+# @beacio/testing — Agent Instructions
 
 ## What this package does
-Mock Bluetooth API for testing `@ios-web-bluetooth/core` apps. Provides stateful fake devices,
+Mock Bluetooth API for testing `@beacio/core` apps. Provides stateful fake devices,
 simulated advertising, and a notification pump — no real Bluetooth hardware needed.
 
 ## Core pattern
 ```typescript
-import { MockBluetooth, MockDevice } from '@ios-web-bluetooth/testing';
+import { MockBluetooth, MockDevice } from '@beacio/testing';
 
 // Replace navigator.bluetooth with mock
 const mock = new MockBluetooth();
@@ -22,7 +22,7 @@ mock.addDevice(new MockDevice({
 }));
 
 // Your app code now sees the mock device
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({ filters: [{ services: ['heart_rate'] }] });
 
 // Clean up

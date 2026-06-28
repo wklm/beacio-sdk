@@ -37,9 +37,9 @@ export function runTroubleshoot(input: TroubleshootInput): TroubleshootOutput {
 }
 
 export const troubleshootTool: ToolDefinition<TroubleshootInput, TroubleshootOutput> = {
-  name: 'webble_troubleshoot',
-  title: 'WebBLE troubleshooting checklist',
+  name: 'beacio_troubleshoot',
+  title: 'Beacio troubleshooting checklist',
   description:
-    'Return a diagnostic checklist plus the single most common fix for one of four WebBLE failure modes (extension-not-detected, device-disconnects, gatt-operation-failed, notifications-not-firing).',
+    'Return a diagnostic checklist plus the single most common fix for one of four Beacio failure modes (extension-not-detected, device-disconnects, gatt-operation-failed, notifications-not-firing).',
   run: runTroubleshoot,
 };

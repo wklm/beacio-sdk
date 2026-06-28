@@ -1,12 +1,10 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "baseUrl": ".",
-    "ignoreDeprecations": "5.0",
     "rootDir": "..",
     "types": ["jest", "node"],
     "paths": {
-      "@ios-web-bluetooth/core": ["../core/src/index.ts"]
+      "@beacio/core": ["../core/src/index.ts"]
     }
   },
   "include": ["src/**/*", "tests/**/*", "../core/src/**/*"]

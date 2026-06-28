@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { WebBLEError } from '@ios-web-bluetooth/core';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
+import type { BeacioDevice } from '@beacio/core';
 import { useBluetooth } from './useBluetooth';
 import { useDevice } from './useDevice';
 import type {
@@ -8,6 +8,7 @@ import type {
   UseConnectionReturn,
   ConnectionStatus,
   ConnectionOptions,
+  BluetoothAdvertisingEvent,
 } from '../types';
 
 /**
@@ -23,7 +24,7 @@ import type {
  *
  * @example
  * ```tsx
- * import { useConnection } from '@ios-web-bluetooth/react';
+ * import { useConnection } from '@beacio/react';
  *
  * function HeartRatePanel() {
  *   const { device, status, isConnected, connect, disconnect, error } =
@@ -47,7 +48,7 @@ import type {
  */
 export function useConnection(options: UseConnectionOptions = {}): UseConnectionReturn {
   const { requestDevice } = useBluetooth();
-  const [selectedDevice, setSelectedDevice] = useState<WebBLEDevice | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<BeacioDevice | null>(null);
   // AIDEV-NOTE: 'requesting' is a local-only status covering the browser device picker
   // dialog period. It is not part of useDevice's ConnectionState.
   const [isRequesting, setIsRequesting] = useState(false);
@@ -94,10 +95,111 @@ export function useConnection(options: UseConnectionOptions = {}): UseConnection
     }
   }, [isRequesting, selectedDevice, connectionState]);
 
-  const [error, setError] = useState<WebBLEError | null>(null);
+  const [error, setError] = useState<BeacioError | null>(null);
 
   // Expose the most recent error from either the request phase or useDevice
   const activeError = error ?? deviceError;
+
+  // --- Live RSSI monitoring (opt-in) ----------------------------------------
+  // Reuses the device's watchAdvertisements() + the `advertisementreceived`
+  // event (which carries rssi), mirroring useScan's listener pattern. The
+  // monitored device + handler are tracked in a ref so teardown always targets
+  // the right device even after `selectedDevice` is cleared on disconnect.
+  const [rssi, setRssi] = useState<number | null>(null);
+  const rssiMonitorRef = useRef<{ device: BeacioDevice; handler: EventListener } | null>(null);
+  // Cancellation token for an in-flight startRssiMonitoring(). Armed BEFORE the
+  // watchAdvertisements() await so stopRssiMonitoring() can cancel a pending
+  // start WITHOUT calling unwatchAdvertisements() against a watch whose
+  // [[watchAdvertisementsState]] is still 'pending-watch' (spec-undefined
+  // ordering; see Web Bluetooth §5.2 BluetoothDevice.watchAdvertisements()).
+  const rssiStartTokenRef = useRef<{ cancelled: boolean } | null>(null);
+
+  const stopRssiMonitoring = useCallback((): void => {
+    // Cancel any in-flight start so its post-await path skips listener attach
+    // and (if the watch already resolved) unwatches the scan it just started.
+    const token = rssiStartTokenRef.current;
+    if (token) {
+      token.cancelled = true;
+      rssiStartTokenRef.current = null;
+    }
+    const active = rssiMonitorRef.current;
+    if (active) {
+      (active.device.raw as unknown as EventTarget).removeEventListener('advertisementreceived', active.handler);
+      void active.device.unwatchAdvertisements();
+      rssiMonitorRef.current = null;
+    }
+    setRssi(null);
+  }, []);
+
+  const startRssiMonitoring = useCallback(async (): Promise<void> => {
+    const device = selectedDevice;
+    if (!device || rssiMonitorRef.current || rssiStartTokenRef.current) {
+      return;
+    }
+    // Per Web Bluetooth §5.2 BluetoothDevice.watchAdvertisements(), the UA sets
+    // [[watchAdvertisementsState]] to 'pending-watch' before the scan actually
+    // starts, and may reject (NotSupportedError when "the UA doesn't support
+    // scanning for advertisements", UnknownError, AbortError via signal, …).
+    // We therefore:
+    //   1. arm a cancellation token BEFORE the await so teardown can abort a
+    //      pending start without calling unwatchAdvertisements() against an
+    //      in-flight watch (spec-undefined ordering while state is 'pending-watch');
+    //   2. attach the listener + record the ref ONLY after the await resolves
+    //      and we are still active, so a rejection never wedges the ref or
+    //      leaves a dangling listener;
+    //   3. on rejection, surface the error via the hook's error state and clear
+    //      the token so a retry is not a no-op.
+    const token = { cancelled: false };
+    rssiStartTokenRef.current = token;
+    try {
+      await device.watchAdvertisements();
+    } catch (err) {
+      if (rssiStartTokenRef.current === token) {
+        rssiStartTokenRef.current = null;
+      }
+      if (token.cancelled) {
+        // Teardown already ran while the watch was in-flight; the rejection is
+        // expected — do not surface it or overwrite a cleared state.
+        return;
+      }
+      setError(BeacioError.from(err));
+      return;
+    }
+    if (token.cancelled) {
+      // Teardown raced ahead of the await: the scan just started, but the hook
+      // is no longer interested. Stop the scan we just armed so it doesn't leak.
+      if (rssiStartTokenRef.current === token) {
+        rssiStartTokenRef.current = null;
+      }
+      void device.unwatchAdvertisements();
+      return;
+    }
+    if (rssiStartTokenRef.current === token) {
+      rssiStartTokenRef.current = null;
+    }
+    const handler: EventListener = (event) => {
+      setRssi((event as unknown as BluetoothAdvertisingEvent).rssi);
+    };
+    rssiMonitorRef.current = { device, handler };
+    (device.raw as unknown as EventTarget).addEventListener('advertisementreceived', handler);
+  }, [selectedDevice]);
+
+  // Auto start/stop while connected when monitorRssi is enabled.
+  useEffect(() => {
+    if (!options.monitorRssi) {
+      return undefined;
+    }
+    if (isConnected && selectedDevice) {
+      void startRssiMonitoring();
+    }
+    return () => {
+      stopRssiMonitoring();
+    };
+  }, [options.monitorRssi, isConnected, selectedDevice, startRssiMonitoring, stopRssiMonitoring]);
+
+  // Stop any still-running monitoring on unmount (covers the manual-start path
+  // when monitorRssi is not set).
+  useEffect(() => () => { stopRssiMonitoring(); }, [stopRssiMonitoring]);
 
   useEffect(() => {
     if (!selectedDevice || !pendingConnectAfterSelectionRef.current) {
@@ -166,7 +268,7 @@ export function useConnection(options: UseConnectionOptions = {}): UseConnection
         setSelectedDevice(device);
       });
     } catch (err) {
-      const candidate = WebBLEError.from(err);
+      const candidate = BeacioError.from(err);
       if (candidate.code !== 'USER_CANCELLED') {
         setError(candidate);
       }
@@ -184,10 +286,11 @@ export function useConnection(options: UseConnectionOptions = {}): UseConnection
   ]);
 
   const disconnect = useCallback(() => {
+    stopRssiMonitoring();
     deviceDisconnect();
     setSelectedDevice(null);
     setError(null);
-  }, [deviceDisconnect]);
+  }, [deviceDisconnect, stopRssiMonitoring]);
 
   return {
     device: selectedDevice,
@@ -197,5 +300,8 @@ export function useConnection(options: UseConnectionOptions = {}): UseConnection
     disconnect,
     services,
     error: activeError,
+    rssi,
+    startRssiMonitoring,
+    stopRssiMonitoring,
   };
 }

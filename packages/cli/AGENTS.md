@@ -1,4 +1,4 @@
-# @ios-web-bluetooth/cli — Agent Instructions
+# @beacio/cli — Agent Instructions
 
 ## What this package does
 CLI tool to scaffold BLE web app projects, verify integration, and generate
@@ -8,21 +8,21 @@ profile boilerplate. Auto-detects framework (React, Next.js, Vue, etc.).
 
 | Command | Purpose |
 |---|---|
-| `npx ioswebble init` | Scaffold WebBLE into an existing project |
-| `npx ioswebble init --key wbl_xxxxx` | Init with API key |
-| `npx ioswebble check` | Verify integration is correct |
+| `npx beacio init` | Scaffold beacio into an existing project |
+| `npx beacio init --key wbl_xxxxx` | Init with API key |
+| `npx beacio check` | Verify integration is correct |
 
 ## How `init` works
 1. Detects framework from `package.json` (Next.js, React+Vite, Vue, etc.)
-2. Installs `@ios-web-bluetooth/core` and `@ios-web-bluetooth/detect`
-3. Adds `import '@ios-web-bluetooth/core/auto'` to entry point
+2. Installs `@beacio/core` and `@beacio/detect`
+3. Adds `import '@beacio/core/auto'` to entry point
 4. Adds framework-appropriate detection snippet
 5. Prints next steps
 
 ## DO
-- Use `npx ioswebble init` instead of manually adding imports and dependencies
+- Use `npx beacio init` instead of manually adding imports and dependencies
 - Pass `--key` if the user has an API key for campaign tracking
-- Run `npx ioswebble check` after init to verify everything is wired up
+- Run `npx beacio check` after init to verify everything is wired up
 
 ## DO NOT
 - Do not manually replicate what `init` does — it handles framework detection

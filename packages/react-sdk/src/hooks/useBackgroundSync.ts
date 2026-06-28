@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { WebBLEError } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
 import type {
   BackgroundConnectionOptions,
   BackgroundRegistration,
@@ -7,12 +7,12 @@ import type {
   CharacteristicNotificationOptions,
   NotificationPermissionState,
   NotificationTemplate,
-  WebBLEBackgroundSync,
-} from '@ios-web-bluetooth/core';
-import { useWebBLE } from '../core/WebBLEProvider';
+  BeacioBackgroundSync,
+} from '@beacio/core';
+import { useBeacio } from '../core/BeacioProvider';
 import type { UseBackgroundSyncOptions, UseBackgroundSyncReturn } from '../types';
 
-const UNSUPPORTED_ERROR = new WebBLEError(
+const UNSUPPORTED_ERROR = new BeacioError(
   'GATT_OPERATION_FAILED',
   'Background sync is not supported on this platform.',
 );
@@ -20,17 +20,17 @@ const UNSUPPORTED_ERROR = new WebBLEError(
 export function useBackgroundSync(
   options: UseBackgroundSyncOptions = {},
 ): UseBackgroundSyncReturn {
-  const context = useWebBLE();
+  const context = useBeacio();
   const sync = context.core.backgroundSync;
   const autoFetch = options.autoFetch ?? false;
 
   const [permissionState, setPermissionState] = useState<NotificationPermissionState | null>(null);
   const [registrations, setRegistrations] = useState<BackgroundRegistration[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<WebBLEError | null>(null);
+  const [error, setError] = useState<BeacioError | null>(null);
 
   const mountedRef = useRef(true);
-  const syncRef = useRef<WebBLEBackgroundSync>(sync);
+  const syncRef = useRef<BeacioBackgroundSync>(sync);
 
   const isSupported = context.core.isSupported && context.core.platform === 'safari-extension';
 
@@ -93,7 +93,7 @@ export function useBackgroundSync(
       return state;
     } catch (err) {
       if (mountedRef.current) {
-        setError(WebBLEError.from(err));
+        setError(BeacioError.from(err));
         setIsLoading(false);
       }
       return null;
@@ -122,7 +122,7 @@ export function useBackgroundSync(
       return registration;
     } catch (err) {
       if (mountedRef.current) {
-        setError(WebBLEError.from(err));
+        setError(BeacioError.from(err));
         setIsLoading(false);
       }
       return null;
@@ -151,7 +151,7 @@ export function useBackgroundSync(
       return registration;
     } catch (err) {
       if (mountedRef.current) {
-        setError(WebBLEError.from(err));
+        setError(BeacioError.from(err));
         setIsLoading(false);
       }
       return null;
@@ -180,7 +180,7 @@ export function useBackgroundSync(
       return registration;
     } catch (err) {
       if (mountedRef.current) {
-        setError(WebBLEError.from(err));
+        setError(BeacioError.from(err));
         setIsLoading(false);
       }
       return null;
@@ -207,7 +207,7 @@ export function useBackgroundSync(
       return result;
     } catch (err) {
       if (mountedRef.current) {
-        setError(WebBLEError.from(err));
+        setError(BeacioError.from(err));
         setIsLoading(false);
       }
       return [];
@@ -233,7 +233,7 @@ export function useBackgroundSync(
       }
     } catch (err) {
       if (mountedRef.current) {
-        setError(WebBLEError.from(err));
+        setError(BeacioError.from(err));
         setIsLoading(false);
       }
     }
@@ -260,7 +260,7 @@ export function useBackgroundSync(
       }
     } catch (err) {
       if (mountedRef.current) {
-        setError(WebBLEError.from(err));
+        setError(BeacioError.from(err));
         setIsLoading(false);
       }
     }

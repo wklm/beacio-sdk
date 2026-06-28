@@ -7,13 +7,13 @@ describe('ExtensionDetector', () => {
 
   beforeEach(() => {
     detector = new ExtensionDetector();
-    delete (global.window as any).__webble;
+    delete (global.window as any).__beacio;
     Object.defineProperty(global.navigator, 'bluetooth', {
       value: undefined,
       writable: true,
       configurable: true
     });
-    Object.defineProperty(global.navigator, 'webble', {
+    Object.defineProperty(global.navigator, 'beacio', {
       value: undefined,
       writable: true,
       configurable: true
@@ -25,8 +25,8 @@ describe('ExtensionDetector', () => {
     });
     
     // Clean document dataset markers
-    delete document.documentElement.dataset.webbleExtension;
-    delete document.documentElement.dataset.webbleInstalled;
+    delete document.documentElement.dataset.beacioExtension;
+    delete document.documentElement.dataset.beacioInstalled;
 
     // Setup spies
     addEventListenerSpy = jest.spyOn(window, 'addEventListener');
@@ -40,15 +40,15 @@ describe('ExtensionDetector', () => {
     jest.clearAllMocks();
     jest.clearAllTimers();
     jest.useRealTimers();
-    delete (global.window as any).__webble;
-    delete document.documentElement.dataset.webbleExtension;
-    delete document.documentElement.dataset.webbleInstalled;
+    delete (global.window as any).__beacio;
+    delete document.documentElement.dataset.beacioExtension;
+    delete document.documentElement.dataset.beacioInstalled;
     Object.defineProperty(global.navigator, 'bluetooth', {
       value: undefined,
       writable: true,
       configurable: true
     });
-    Object.defineProperty(global.navigator, 'webble', {
+    Object.defineProperty(global.navigator, 'beacio', {
       value: undefined,
       writable: true,
       configurable: true
@@ -56,15 +56,15 @@ describe('ExtensionDetector', () => {
   });
 
   describe('getInstallState', () => {
-    it('should return installed-inactive when window.__webble is set with status installed', () => {
-      (global.window as any).__webble = { status: 'installed' };
+    it('should return installed-inactive when window.__beacio is set with status installed', () => {
+      (global.window as any).__beacio = { status: 'installed' };
 
       expect(detector.getInstallState()).toBe('installed-inactive');
     });
 
-    it('should return active when navigator.webble.__webble is set', () => {
-      Object.defineProperty(global.navigator, 'webble', {
-        value: { __webble: true },
+    it('should return active when navigator.beacio.__beacio is set', () => {
+      Object.defineProperty(global.navigator, 'beacio', {
+        value: { __beacio: true },
         writable: true,
         configurable: true
       });
@@ -73,22 +73,22 @@ describe('ExtensionDetector', () => {
     });
 
     it('should return installed-inactive when passive document marker exists', () => {
-      document.documentElement.dataset.webbleInstalled = 'true';
+      document.documentElement.dataset.beacioInstalled = 'true';
 
       expect(detector.getInstallState()).toBe('installed-inactive');
     });
 
-    it('should return not-installed when no __webble markers exist', () => {
+    it('should return not-installed when no __beacio markers exist', () => {
       // @ts-ignore
       delete global.navigator.bluetooth;
       // @ts-ignore
-      delete global.navigator.webble;
+      delete global.navigator.beacio;
 
       expect(detector.getInstallState()).toBe('not-installed');
     });
 
-    it('should return not-installed when navigator.webble exists but has no __webble marker', () => {
-      Object.defineProperty(global.navigator, 'webble', {
+    it('should return not-installed when navigator.beacio exists but has no __beacio marker', () => {
+      Object.defineProperty(global.navigator, 'beacio', {
         value: {},
         writable: true,
         configurable: true
@@ -98,19 +98,19 @@ describe('ExtensionDetector', () => {
     });
 
     it('should return not-installed for non-installed window marker status', () => {
-      (global.window as any).__webble = { status: 'detecting' };
+      (global.window as any).__beacio = { status: 'detecting' };
 
       expect(detector.getInstallState()).toBe('not-installed');
     });
 
-    it('should return not-installed when missing navigator bluetooth/webble markers', () => {
+    it('should return not-installed when missing navigator bluetooth/beacio markers', () => {
       expect(detector.getInstallState()).toBe('not-installed');
     });
   });
 
   describe('detect', () => {
     it('should resolve immediately if already detected', async () => {
-      (global.window as any).__webble = { status: 'installed' };
+      (global.window as any).__beacio = { status: 'installed' };
 
       // First detection sets the flag
       detector.getInstallState();
@@ -127,7 +127,7 @@ describe('ExtensionDetector', () => {
       const detectPromise = detector.detect();
       
       expect(addEventListenerSpy).toHaveBeenCalledWith(
-        'webble:extension:ready',
+        'beacio:extension:ready',
         expect.any(Function)
       );
 
@@ -138,7 +138,7 @@ describe('ExtensionDetector', () => {
       const result = await detectPromise;
       expect(result).toBe(true);
       expect(removeEventListenerSpy).toHaveBeenCalledWith(
-        'webble:extension:ready',
+        'beacio:extension:ready',
         expect.any(Function)
       );
     });
@@ -180,14 +180,14 @@ describe('ExtensionDetector', () => {
       expect(result).toBe(false);
     });
 
-    it('should detect when __webble marker becomes available during detection', async () => {
+    it('should detect when __beacio marker becomes available during detection', async () => {
       // @ts-ignore
       delete global.navigator.bluetooth;
 
       const detectPromise = detector.detect();
       
-      // Simulate extension setting the __webble marker
-      (global.window as any).__webble = { status: 'installed' };
+      // Simulate extension setting the __beacio marker
+      (global.window as any).__beacio = { status: 'installed' };
       
       // Timeout check re-reads the install state
       jest.advanceTimersByTime(3000);
@@ -198,7 +198,7 @@ describe('ExtensionDetector', () => {
     });
 
     it('should return installed-inactive state from detectInstallState when passive marker is present', async () => {
-      document.documentElement.dataset.webbleInstalled = 'true';
+      document.documentElement.dataset.beacioInstalled = 'true';
 
       await expect(detector.detectInstallState()).resolves.toBe('installed-inactive');
     });

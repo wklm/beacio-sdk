@@ -1,43 +1,43 @@
 <p align="center">
-  <a href="https://ioswebble.com"><img src="https://raw.githubusercontent.com/wklm/ioswebble-sdk/main/design-assets/brand/logo.png" alt="WebBLE" width="84" height="84"></a>
+  <a href="https://beacio.com"><img src="https://beacio.com/img/logo.png" alt="beacio" width="84" height="84"></a>
 </p>
 
-# @ios-web-bluetooth/react
+# @beacio/react
 
-[![npm version](https://img.shields.io/npm/v/@ios-web-bluetooth/react.svg)](https://www.npmjs.com/package/@ios-web-bluetooth/react)
+[![npm version](https://img.shields.io/npm/v/@beacio/react.svg)](https://www.npmjs.com/package/@beacio/react)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
 
-React hooks and components for Web Bluetooth. Works with the WebBLE Safari Extension for iOS support.
+React hooks and components for Web Bluetooth. Works with the beacio Safari Extension for iOS support.
 
 ## Installation
 
 ```bash
-npm install @ios-web-bluetooth/react @ios-web-bluetooth/core
+npm install @beacio/react @beacio/core
 ```
 
 Add the polyfill import to your app entry file:
 
 ```tsx
-import '@ios-web-bluetooth/core/auto';
+import '@beacio/core/auto';
 ```
 
 ## Quick Start
 
 ```tsx
-import { WebBLEProvider, useBluetooth, useDevice } from '@ios-web-bluetooth/react';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { BeacioProvider, useBluetooth, useDevice } from '@beacio/react';
+import type { BeacioDevice } from '@beacio/core';
 
 function App() {
   return (
-    <WebBLEProvider>
+    <BeacioProvider>
       <HeartRateMonitor />
-    </WebBLEProvider>
+    </BeacioProvider>
   );
 }
 
 function HeartRateMonitor() {
   const { requestDevice } = useBluetooth();
-  const [device, setDevice] = useState<WebBLEDevice | null>(null);
+  const [device, setDevice] = useState<BeacioDevice | null>(null);
   const { isConnected, connect, disconnect } = useDevice(device, { autoReconnect: true });
 
   const handlePair = async () => {
@@ -63,14 +63,14 @@ function HeartRateMonitor() {
 Main hook for Bluetooth availability and device requests.
 
 ```tsx
-import { useBluetooth } from '@ios-web-bluetooth/react';
+import { useBluetooth } from '@beacio/react';
 
 const {
   isAvailable,          // Web Bluetooth available?
-  isExtensionInstalled, // WebBLE extension installed?
+  isExtensionInstalled, // beacio extension installed?
   requestDevice,        // Request device (must be called from user gesture)
   getDevices,           // Get previously paired devices
-  ble,                  // Core WebBLE instance
+  ble,                  // Core beacio instance
   backgroundSync,       // Background sync API
   peripheral,           // Peripheral mode API
   error,
@@ -82,7 +82,7 @@ const {
 Manage a device's connection lifecycle with optional auto-reconnect.
 
 ```tsx
-import { useDevice } from '@ios-web-bluetooth/react';
+import { useDevice } from '@beacio/react';
 
 const {
   connectionState,   // 'disconnected' | 'connecting' | 'connected' | 'disconnecting'
@@ -111,7 +111,7 @@ const {
 Read, write, and subscribe to a BLE characteristic. All operations delegate to the core SDK.
 
 ```tsx
-import { useCharacteristic } from '@ios-web-bluetooth/react';
+import { useCharacteristic } from '@beacio/react';
 
 const {
   value,              // Latest DataView value
@@ -141,7 +141,7 @@ await subscribe((value) => {
 Subscribe to characteristic notifications with a rolling history.
 
 ```tsx
-import { useNotifications } from '@ios-web-bluetooth/react';
+import { useNotifications } from '@beacio/react';
 
 const {
   value,          // Latest DataView
@@ -162,11 +162,11 @@ const {
 Scan for nearby BLE devices.
 
 ```tsx
-import { useScan } from '@ios-web-bluetooth/react';
+import { useScan } from '@beacio/react';
 
 const {
   scanState,  // 'idle' | 'scanning' | 'stopped'
-  devices,    // WebBLEDevice[]
+  devices,    // BeacioDevice[]
   start,      // (options?: ScanOptions) => Promise<void>
   stop,
   clear,
@@ -181,22 +181,22 @@ await start({
 
 ## Components
 
-### `<WebBLEProvider>`
+### `<BeacioProvider>`
 
-Required context provider. Optionally accepts a pre-configured `WebBLE` instance.
+Required context provider. Optionally accepts a pre-configured `beacio` instance.
 
 ```tsx
-import { WebBLEProvider } from '@ios-web-bluetooth/react';
+import { BeacioProvider } from '@beacio/react';
 
-// Auto-creates WebBLE instance
-<WebBLEProvider config={{ apiKey: 'wbl_xxxxx', operatorName: 'MyApp' }}>
+// Auto-creates beacio instance
+<BeacioProvider config={{ apiKey: 'wbl_xxxxx', operatorName: 'MyApp' }}>
   <App />
-</WebBLEProvider>
+</BeacioProvider>
 
 // Or pass an existing instance (useful for testing)
-<WebBLEProvider ble={existingBleInstance}>
+<BeacioProvider ble={existingBleInstance}>
   <App />
-</WebBLEProvider>
+</BeacioProvider>
 ```
 
 ### `<DeviceScanner>`
@@ -204,7 +204,7 @@ import { WebBLEProvider } from '@ios-web-bluetooth/react';
 Device selection UI with scan controls.
 
 ```tsx
-import { DeviceScanner } from '@ios-web-bluetooth/react';
+import { DeviceScanner } from '@beacio/react';
 
 <DeviceScanner
   filters={[{ services: ['heart_rate'] }]}
@@ -215,22 +215,12 @@ import { DeviceScanner } from '@ios-web-bluetooth/react';
 />
 ```
 
-### `<ConnectionStatus>`
-
-Connection state indicator dot.
-
-```tsx
-import { ConnectionStatus } from '@ios-web-bluetooth/react';
-
-<ConnectionStatus device={device} className="status-dot" />
-```
-
 ### `<InstallationWizard>`
 
-Guides users through WebBLE extension installation on Safari iOS.
+Guides users through beacio extension installation on Safari iOS.
 
 ```tsx
-import { InstallationWizard } from '@ios-web-bluetooth/react';
+import { InstallationWizard } from '@beacio/react';
 
 <InstallationWizard
   onComplete={() => console.log('Extension installed!')}
@@ -239,7 +229,7 @@ import { InstallationWizard } from '@ios-web-bluetooth/react';
 
 ## Error Handling
 
-All hooks return a `WebBLEError` with `.code` and `.suggestion` fields:
+All hooks return a `BeacioError` with `.code` and `.suggestion` fields:
 
 ```tsx
 const { error } = useDevice(device);
@@ -252,18 +242,18 @@ if (error) {
 
 ## TypeScript
 
-Types are re-exported from `@ios-web-bluetooth/core` for convenience:
+Types are re-exported from `@beacio/core` for convenience:
 
 ```tsx
-import type { WebBLEDevice, WebBLEError, RequestDeviceOptions } from '@ios-web-bluetooth/react';
-import type { ConnectionState, UseDeviceReturn } from '@ios-web-bluetooth/react';
+import type { BeacioDevice, BeacioError, RequestDeviceOptions } from '@beacio/react';
+import type { ConnectionState, UseDeviceReturn } from '@beacio/react';
 ```
 
 ## Browser Support
 
 | Browser | Support | Notes |
 |---------|---------|-------|
-| Safari iOS | Full | Requires WebBLE Extension |
+| Safari iOS | Full | Requires beacio Extension |
 | Chrome 56+ | Full | Native Web Bluetooth |
 | Edge 79+ | Full | Native Web Bluetooth |
 

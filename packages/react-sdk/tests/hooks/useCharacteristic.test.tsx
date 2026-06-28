@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { WebBLEProvider } from '../../src/core/WebBLEProvider';
+import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useCharacteristic } from '../../src/hooks/useCharacteristic';
 
 function createMockDevice() {
@@ -53,7 +53,7 @@ function createMockDevice() {
 
 describe('useCharacteristic', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <WebBLEProvider>{children}</WebBLEProvider>
+    <BeacioProvider>{children}</BeacioProvider>
   );
 
   it('resolves the characteristic from device and uuids', () => {

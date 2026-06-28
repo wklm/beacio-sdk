@@ -1,24 +1,70 @@
 /**
- * Runtime platform where WebBLE is executing.
+ * Runtime platform where Beacio is executing.
  *
- * - `'safari-extension'` -- iOS Safari with the WebBLE extension installed
+ * - `'safari-extension'` -- iOS Safari with the Beacio extension installed
  * - `'native'` -- Browser with built-in Web Bluetooth (Chrome, Edge, etc.)
  * - `'unsupported'` -- No Web Bluetooth capability detected
  */
 export type Platform = 'safari-extension' | 'native' | 'unsupported';
 
-/** Configuration options for the {@link WebBLE} constructor. */
-export interface WebBLEOptions {
+/** Configuration options for the {@link Beacio} constructor. */
+export interface BeacioOptions {
   /** Force a specific platform instead of auto-detecting via {@link detectPlatform}. */
   platform?: Platform;
-  /** Maximum concurrently connected SDK-managed devices for this WebBLE instance. Throws `CONNECTION_LIMIT_REACHED` when exceeded. */
+  /** Maximum concurrently connected SDK-managed devices for this Beacio instance. Throws `CONNECTION_LIMIT_REACHED` when exceeded. */
   maxConnections?: number;
+  /**
+   * Service UUIDs to seed the instance-wide optionalServices registry once, so
+   * they are merged into every {@link Beacio.requestDevice} call's effective
+   * `optionalServices` without per-call boilerplate. Accepts names (`'battery_service'`),
+   * 4/8-hex, or full 128-bit UUIDs — each is resolved via {@link resolveUUID} and
+   * de-duped. Equivalent to calling {@link Beacio.registerServices} in the constructor.
+   * This NEVER widens the device picker (it does not touch `filters` or synthesize
+   * `acceptAllDevices`) — it only declares post-connection GATT access intent.
+   */
+  defaultOptionalServices?: string[];
+}
+
+/**
+ * Declarative native periodic-write keep-warm request (SB-NAT-04).
+ *
+ * Poll-driven devices (e.g. S&B Venty/Veazy) emit no unsolicited notifications —
+ * their telemetry only advances because the page writes a status-request frame
+ * every ~500 ms. A backgrounded Safari tab issues no writes, so the session goes
+ * stale. Declaring this lets the native iOS side re-issue the frame on a
+ * **best-effort, battery-safe CLAMPED cadence** while it holds the connection in
+ * the background, then route the reply through the same condition pipeline as a
+ * pushed notification. The page only DECLARES intent — the cadence floor and
+ * frame interpretation live in the native layer (a BLE invariant).
+ */
+export interface PeriodicWriteOptions {
+  /** GATT service UUID owning the writable control characteristic. Accepts names, 4/8-hex, or full 128-bit UUIDs. */
+  serviceUUID: BluetoothServiceUUID;
+  /** Writable characteristic the keep-warm frame is written to. Accepts names, 4/8-hex, or full 128-bit UUIDs. */
+  characteristicUUID: BluetoothCharacteristicUUID;
+  /** Exact bytes to write each tick (e.g. the device's status-request command). An empty array is a no-op. */
+  payload: number[];
+  /**
+   * Requested interval in milliseconds. NOTE: the native side clamps any
+   * sub-floor value UP to a battery-safe minimum and only polls within the
+   * granted iOS background window, so the page's foreground cadence (e.g. 500 ms)
+   * is **never guaranteed** in the background — this is a best-effort poll, not a
+   * real-time loop.
+   */
+  intervalMs: number;
 }
 
 /** Options for registering a background keep-alive connection. */
 export interface BackgroundConnectionOptions {
-  /** Unique identifier of the device to maintain a background connection to (from `WebBLEDevice.id`). */
+  /** Unique identifier of the device to maintain a background connection to (from `BeacioDevice.id`). */
   deviceId: string;
+  /**
+   * Optional native periodic-write keep-warm poll (SB-NAT-04). Omit to hold the
+   * connection passively (the native side relays only values the device pushes).
+   * Supply it for poll-driven devices so telemetry keeps advancing while Safari
+   * is backgrounded, on a clamped best-effort cadence (see {@link PeriodicWriteOptions}).
+   */
+  periodicWrite?: PeriodicWriteOptions;
 }
 
 /**
@@ -72,6 +118,27 @@ export type ConditionOperator = 'gt' | 'lt' | 'gte' | 'lte' | 'eq' | 'neq' | 'ch
 export type NotificationCondition = {
   /** How to decode the raw characteristic bytes into a number. */
   decode: ConditionDecoder;
+  /**
+   * Byte offset into the characteristic value where the scalar is decoded.
+   * Defaults to `0`. Lets a condition read past the start of a vendor frame —
+   * e.g. the S&B Venty/Veazy CMD `0x01` reply puts the settings bitmask at
+   * byte 14 and the auto-shutoff countdown at byte 9.
+   */
+  byteOffset?: number;
+  /**
+   * Optional bitwise-AND mask applied to the decoded **integer** before the
+   * comparison, to isolate a single status bit in a packed flags byte. For
+   * example, `{ decode: 'uint8', byteOffset: 14, mask: 0x02, operator: 'eq',
+   * threshold: 2 }` fires on Venty/Veazy "setpoint reached" (byte 14, bit 1).
+   * Ignored for the `float32*` decoders.
+   */
+  mask?: number;
+  /**
+   * Optional multiplier applied to the decoded value before the comparison, so
+   * a raw integer can be compared in engineering units (e.g. a uint16 that is
+   * `÷10 = °C` uses `scale: 0.1`, letting `threshold` be a real temperature).
+   */
+  scale?: number;
 } & (
   {
     /** Comparison operator for edge-triggered notifications that do not compare against a fixed threshold. */
@@ -89,7 +156,7 @@ export type NotificationCondition = {
  * When the condition is met, an iOS notification is delivered using the template.
  */
 export interface CharacteristicNotificationOptions {
-  /** Device identifier (from `WebBLEDevice.id`). */
+  /** Device identifier (from `BeacioDevice.id`). */
   deviceId: string;
   /** GATT service UUID containing the characteristic. Accepts names, 4/8-hex, or full 128-bit UUIDs. */
   serviceUUID: BluetoothServiceUUID;
@@ -159,7 +226,7 @@ export interface BackgroundRegistration {
  * Falls back to a stub that throws `BLUETOOTH_UNAVAILABLE` when Bluetooth is unavailable
  * or `GATT_OPERATION_FAILED` when the extension runtime is missing.
  */
-export interface WebBLEBackgroundSync {
+export interface BeacioBackgroundSync {
   /** Request iOS notification permission. Must be granted before registering notification-based syncs. */
   requestPermission(): Promise<NotificationPermissionState>;
   /** Register a keep-alive background connection to a device. */
@@ -187,11 +254,11 @@ export interface WebBLEBackgroundSync {
 }
 
 /** Options for starting BLE peripheral advertising. */
-export interface WebBLEPeripheralAdvertisingOptions {
+export interface BeacioPeripheralAdvertisingOptions {
   /** Local name included in advertisement data. */
   localName?: string;
   /** Services to register before advertising begins. */
-  services?: WebBLEPeripheralServiceDefinition[];
+  services?: BeacioPeripheralServiceDefinition[];
   /** Service UUIDs to include in advertisement packets. */
   serviceUUIDs?: BluetoothServiceUUID[];
   /** Manufacturer-specific data included in advertisements. */
@@ -215,7 +282,7 @@ export interface WebBLEPeripheralAdvertisingOptions {
 }
 
 /** Incoming write request from a connected central device. */
-export interface WebBLEPeripheralWriteRequest {
+export interface BeacioPeripheralWriteRequest {
   /** Platform device identifier of the central. */
   deviceId?: string;
   /** CoreBluetooth central UUID. */
@@ -233,7 +300,7 @@ export interface WebBLEPeripheralWriteRequest {
 }
 
 /** Connection state change event from a central device. */
-export interface WebBLEPeripheralConnectionStateChange {
+export interface BeacioPeripheralConnectionStateChange {
   /** Platform device identifier of the central. */
   deviceId?: string;
   /** CoreBluetooth central UUID. */
@@ -245,7 +312,7 @@ export interface WebBLEPeripheralConnectionStateChange {
 }
 
 /** Subscription (notify/indicate) state change from a central device. */
-export interface WebBLEPeripheralSubscriptionChange {
+export interface BeacioPeripheralSubscriptionChange {
   /** Platform device identifier of the central. */
   deviceId?: string;
   /** CoreBluetooth central UUID. */
@@ -261,7 +328,7 @@ export interface WebBLEPeripheralSubscriptionChange {
 }
 
 /** Options for sending a notification/indication to subscribed centrals. */
-export interface WebBLEPeripheralSendOptions {
+export interface BeacioPeripheralSendOptions {
   /** Service UUID containing the characteristic. */
   serviceUuid: string;
   /** Characteristic UUID to send the value update on. */
@@ -274,7 +341,7 @@ export interface WebBLEPeripheralSendOptions {
  * GATT characteristic property for peripheral-mode services.
  * Determines which operations centrals can perform on the characteristic.
  */
-export type WebBLEPeripheralCharacteristicProperty =
+export type BeacioPeripheralCharacteristicProperty =
   | 'read'
   | 'write'
   | 'writeWithoutResponse'
@@ -282,13 +349,13 @@ export type WebBLEPeripheralCharacteristicProperty =
   | 'indicate';
 
 /** Definition of a characteristic within a peripheral-mode GATT service. */
-export interface WebBLEPeripheralCharacteristicDefinition {
+export interface BeacioPeripheralCharacteristicDefinition {
   /** Characteristic UUID. Mutually exclusive with `uuid` (provide one). */
   characteristicUuid?: BluetoothCharacteristicUUID;
   /** Characteristic UUID (alias). Mutually exclusive with `characteristicUuid`. */
   uuid?: BluetoothCharacteristicUUID;
   /** Supported operations. Array form or object form (`{ read: true, notify: true }`). */
-  properties?: WebBLEPeripheralCharacteristicProperty[] | Partial<Record<WebBLEPeripheralCharacteristicProperty, boolean>>;
+  properties?: BeacioPeripheralCharacteristicProperty[] | Partial<Record<BeacioPeripheralCharacteristicProperty, boolean>>;
   /** ATT permission set. Accepts synonyms: `'writeable'`/`'writable'` are equivalent to `'write'`. */
   permissions?: Array<'read' | 'readable' | 'write' | 'writeable' | 'writable'>;
   /** Initial static value for read requests before any writes occur. */
@@ -296,7 +363,7 @@ export interface WebBLEPeripheralCharacteristicDefinition {
 }
 
 /** Definition of a GATT service to register in peripheral mode. */
-export interface WebBLEPeripheralServiceDefinition {
+export interface BeacioPeripheralServiceDefinition {
   /** Service UUID. Mutually exclusive with `uuid` (provide one). */
   serviceUuid?: BluetoothServiceUUID;
   /** Service UUID (alias). Mutually exclusive with `serviceUuid`. */
@@ -304,11 +371,11 @@ export interface WebBLEPeripheralServiceDefinition {
   /** Whether this is a primary service. Defaults to true. */
   isPrimary?: boolean;
   /** Characteristics to include in this service. */
-  characteristics?: WebBLEPeripheralCharacteristicDefinition[];
+  characteristics?: BeacioPeripheralCharacteristicDefinition[];
 }
 
 /** Snapshot of a registered peripheral characteristic at a point in time. */
-export interface WebBLEPeripheralCharacteristicRecord {
+export interface BeacioPeripheralCharacteristicRecord {
   /** Canonical service UUID this characteristic belongs to. */
   serviceUuid: string;
   /** Canonical characteristic UUID. */
@@ -324,17 +391,17 @@ export interface WebBLEPeripheralCharacteristicRecord {
 }
 
 /** Snapshot of a registered peripheral service at a point in time. */
-export interface WebBLEPeripheralServiceRecord {
+export interface BeacioPeripheralServiceRecord {
   /** Canonical service UUID. */
   serviceUuid: string;
   /** Whether this is a primary service. */
   isPrimary: boolean;
   /** Characteristics registered within this service. */
-  characteristics: WebBLEPeripheralCharacteristicRecord[];
+  characteristics: BeacioPeripheralCharacteristicRecord[];
 }
 
 /** Result of sending a notification/indication to subscribed centrals. */
-export interface WebBLEPeripheralSendResult {
+export interface BeacioPeripheralSendResult {
   /** Whether the update was accepted by the platform (passed initial validation). */
   accepted: boolean;
   /** Whether the value was immediately transmitted to at least one central. */
@@ -352,21 +419,21 @@ export interface WebBLEPeripheralSendResult {
 }
 
 /** Event type map for the peripheral `addEventListener` interface. */
-export interface WebBLEPeripheralEventMap {
+export interface BeacioPeripheralEventMap {
   /** Fired when a connected central writes to a characteristic. */
-  writerequest: CustomEvent<WebBLEPeripheralWriteRequest>;
+  writerequest: CustomEvent<BeacioPeripheralWriteRequest>;
   /** Fired when a central subscribes to or unsubscribes from notifications. */
-  subscriptionchange: CustomEvent<WebBLEPeripheralSubscriptionChange>;
+  subscriptionchange: CustomEvent<BeacioPeripheralSubscriptionChange>;
   /** Fired when a central connects or disconnects. */
-  connectionstatechange: CustomEvent<WebBLEPeripheralConnectionStateChange>;
+  connectionstatechange: CustomEvent<BeacioPeripheralConnectionStateChange>;
   /** Fired when advertising state changes (started/stopped). */
   advertisingstatechange: CustomEvent<{ advertising?: boolean; localName?: string | null; serviceUUIDs?: string[] }>;
   /** Fired when a queued notification has been delivered and the characteristic is ready for more. */
-  notificationready: CustomEvent<WebBLEPeripheralNotificationReady>;
+  notificationready: CustomEvent<BeacioPeripheralNotificationReady>;
 }
 
 /** Detail payload for the `notificationready` event. */
-export interface WebBLEPeripheralNotificationReady {
+export interface BeacioPeripheralNotificationReady {
   /** Service UUID of the characteristic that became ready. */
   serviceUuid?: string;
   /** Characteristic UUID that is ready to accept more notifications. */
@@ -380,39 +447,39 @@ export interface WebBLEPeripheralNotificationReady {
  * Access via `ble.peripheral`. Supports service registration, advertising, and notification delivery.
  * Falls back to a stub that throws `GATT_OPERATION_FAILED` on unsupported platforms.
  */
-export interface WebBLEPeripheral {
+export interface BeacioPeripheral {
   /** Whether the peripheral is currently advertising. */
   readonly advertising: boolean;
   /** Start advertising with the given options. Registers any included services first. */
-  advertise(options?: WebBLEPeripheralAdvertisingOptions): Promise<void>;
+  advertise(options?: BeacioPeripheralAdvertisingOptions): Promise<void>;
   /** Alias for {@link advertise}. */
-  startAdvertising(options?: WebBLEPeripheralAdvertisingOptions): Promise<void>;
+  startAdvertising(options?: BeacioPeripheralAdvertisingOptions): Promise<void>;
   /** Register a GATT service. Must be called before advertising if not included in advertise options. */
-  addService(service: WebBLEPeripheralServiceDefinition): Promise<WebBLEPeripheralServiceRecord>;
+  addService(service: BeacioPeripheralServiceDefinition): Promise<BeacioPeripheralServiceRecord>;
   /** Alias for {@link addService}. */
-  registerService(service: WebBLEPeripheralServiceDefinition): Promise<WebBLEPeripheralServiceRecord>;
+  registerService(service: BeacioPeripheralServiceDefinition): Promise<BeacioPeripheralServiceRecord>;
   /** Stop advertising. Does not unregister services. */
   stopAdvertising(): Promise<void>;
   /** Send a notification/indication value update to all subscribed centrals. */
-  send(options: WebBLEPeripheralSendOptions): Promise<WebBLEPeripheralSendResult>;
+  send(options: BeacioPeripheralSendOptions): Promise<BeacioPeripheralSendResult>;
   /** Alias for {@link send}. */
-  sendNotification(options: WebBLEPeripheralSendOptions): Promise<WebBLEPeripheralSendResult>;
+  sendNotification(options: BeacioPeripheralSendOptions): Promise<BeacioPeripheralSendResult>;
   /** Release all resources, stop advertising, and unregister services. */
   destroy(): void;
-  /** Register an event listener. See {@link WebBLEPeripheralEventMap} for event types. */
+  /** Register an event listener. See {@link BeacioPeripheralEventMap} for event types. */
   addEventListener(type: string, listener: EventListenerOrEventListenerObject | null, options?: boolean | AddEventListenerOptions): void;
   /** Remove a previously registered event listener. */
   removeEventListener(type: string, listener: EventListenerOrEventListenerObject | null, options?: boolean | EventListenerOptions): void;
   /** Called when a central writes to a characteristic. */
-  onwriterequest: ((this: WebBLEPeripheral, ev: Event) => unknown) | null;
+  onwriterequest: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
   /** Called when a central subscribes to or unsubscribes from notifications. */
-  onsubscriptionchange: ((this: WebBLEPeripheral, ev: Event) => unknown) | null;
+  onsubscriptionchange: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
   /** Called when a central connects or disconnects. */
-  onconnectionstatechange: ((this: WebBLEPeripheral, ev: Event) => unknown) | null;
+  onconnectionstatechange: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
   /** Called when advertising state changes. */
-  onadvertisingstatechange: ((this: WebBLEPeripheral, ev: Event) => unknown) | null;
+  onadvertisingstatechange: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
   /** Called when a queued notification has been delivered and the characteristic is ready for more. */
-  onnotificationready: ((this: WebBLEPeripheral, ev: Event) => unknown) | null;
+  onnotificationready: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
 }
 
 /**
@@ -475,6 +542,36 @@ export interface QueueOverflowEvent {
   droppedCount: number;
 }
 
+/**
+ * Eviction metadata for a NATIVE notification-queue overflow, decoded from the
+ * `beacio:overflow` CustomEvent the polyfill dispatches on a
+ * `BluetoothRemoteGATTCharacteristic` when Safari's bounded Swift `EventQueue`
+ * evicts notifications under sustained high-frequency load.
+ *
+ * **Distinct from {@link QueueOverflowEvent}.** That event describes the *JS*
+ * `device.notifications()` async-iterator queue overflowing (a client-side
+ * backpressure mechanism the page configures). This event describes the
+ * *native* bridge's own bounded queue dropping samples before they ever reach
+ * JS — so the page learns it has a silent gap in its
+ * `characteristicvaluechanged` stream and can re-read to resynchronise. The
+ * fields differ accordingly; do not conflate the two.
+ *
+ * Each field is `undefined` only if the native bridge omitted it from the
+ * signal (a forward-compat guard); a conforming bridge always supplies all four.
+ *
+ * @see {@link BeacioDevice.onCharacteristicOverflow}
+ */
+export interface NativeOverflowEvent {
+  /** Number of notifications the native queue evicted in this overflow. */
+  evictedCount?: number;
+  /** Capacity of the native bounded queue that was exceeded. */
+  queueCapacity?: number;
+  /** Next expected notification sequence number, so the page can quantify the gap. */
+  seq?: number;
+  /** Epoch-millis timestamp the native bridge stamped on the overflow. */
+  timestamp?: number;
+}
+
 /** Context information attached to device-level error events. */
 export interface DeviceErrorContext {
   /** The operation that triggered the error (e.g. `'device.subscribe.onError'`, `'notification.recover'`). */
@@ -512,6 +609,35 @@ export interface AutoReconnectOptions {
   maxDelayMs?: number;
   /** Backoff multiplier applied after each failed attempt. Defaults to 2. */
   backoffMultiplier?: number;
+}
+
+/**
+ * Configuration for the transparent foreground auto-reconnect supervisor that
+ * `@beacio/core/auto` layers over the polyfilled `navigator.bluetooth` (SB-SDK-13).
+ *
+ * Unlike {@link AutoReconnectOptions}, this is read by the auto-install shim — NOT
+ * by {@link ConnectOptions} — so raw-`navigator.bluetooth` consumers get foreground
+ * reconnection + subscription recovery WITHOUT instantiating `Beacio` or rewriting
+ * `requestDevice`. The supervisor is **default-on for the beacio runtime** and a
+ * no-op everywhere else (native Chrome/Edge, the unsupported stub).
+ *
+ * Set it before the first `requestDevice()` by assigning `window.beacioAutoReconnect`:
+ * ```js
+ * // tune the backoff
+ * window.beacioAutoReconnect = { initialDelayMs: 500, maxDelayMs: 10000 };
+ * // or opt out entirely
+ * window.beacioAutoReconnect = { enabled: false };
+ * ```
+ *
+ * @see {@link AutoReconnectOptions} for the backoff-field semantics
+ */
+export interface RawAutoReconnectConfig extends AutoReconnectOptions {
+  /**
+   * Master switch for the auto-install supervisor. Defaults to `true` (on for the
+   * beacio runtime). Set `false` to keep the legacy raw behavior (the app's own
+   * `gattserverdisconnected` handler runs and nothing reconnects for it).
+   */
+  enabled?: boolean;
 }
 
 /**
@@ -647,7 +773,7 @@ export interface WriteAutoResult extends WriteFragmentedResult {
  * Platform-reported write payload limits and negotiated ATT MTU.
  * Fields are `null` when the platform does not expose that information.
  *
- * @see {@link WebBLEDevice.getWriteLimits}
+ * @see {@link BeacioDevice.getWriteLimits}
  */
 export interface WriteLimits {
   /** Maximum payload bytes for write-with-response, or `null` if unknown. */
@@ -690,8 +816,8 @@ export interface NotificationOptions {
 /**
  * Options for `device.subscribe()` and `device.subscribeAsync()`.
  *
- * @see {@link WebBLEDevice.subscribe}
- * @see {@link WebBLEDevice.subscribeAsync}
+ * @see {@link BeacioDevice.subscribe}
+ * @see {@link BeacioDevice.subscribeAsync}
  */
 export interface SubscribeOptions {
   /** Automatically re-subscribe after reconnection. Defaults to `true`. */

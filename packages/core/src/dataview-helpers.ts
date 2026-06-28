@@ -8,17 +8,44 @@
  *
  * @example
  * ```typescript
- * import { readUint8, readUint16LE, readUtf8 } from '@ios-web-bluetooth/core'
+ * import { readUint8, readUint16LE, readUtf8 } from '@beacio/core'
  *
  * const battery = await device.read('battery_service', 'battery_level')
  * const level = readUint8(battery) // 0-100
  *
- * const name = await device.read('generic_access', 'device_name')
+ * const name = await device.read('generic_access', 'gap.device_name')
  * console.log(readUtf8(name)) // "My Device"
  * ```
  *
- * @see {@link WebBLEDevice.read} for reading characteristic values
+ * @see {@link BeacioDevice.read} for reading characteristic values
  */
+import { BeacioError } from './errors';
+
+/**
+ * Validate that `size` bytes can be read from `dv` starting at `offset`.
+ *
+ * BLE peripherals (or a torn notification frame) can deliver a payload that is
+ * shorter than the width a decoder expects. A bare `DataView.getX()` would throw
+ * a raw `RangeError` ("Offset is outside the bounds of the DataView") in that
+ * case, which callers cannot distinguish from a programming bug. This converts
+ * that into a typed {@link BeacioError} (`INVALID_PARAMETER`) so it can be
+ * caught and handled programmatically.
+ *
+ * @param reader - Name of the calling reader, for a descriptive message.
+ * @param dv - Source DataView.
+ * @param offset - Requested byte offset.
+ * @param size - Number of bytes the reader will consume.
+ * @throws {BeacioError} INVALID_PARAMETER if the offset is invalid or the read
+ *   would run past the end of the DataView.
+ */
+function assertReadable(reader: string, dv: DataView, offset: number, size: number): void {
+  if (!Number.isInteger(offset) || offset < 0 || offset + size > dv.byteLength) {
+    throw new BeacioError(
+      'INVALID_PARAMETER',
+      `${reader}: cannot read ${size} byte${size === 1 ? '' : 's'} at offset ${offset} of a ${dv.byteLength}-byte DataView (value too short).`,
+    );
+  }
+}
 
 /**
  * Read an unsigned 8-bit integer from the DataView.
@@ -26,8 +53,10 @@
  * @param dv - Source DataView from a characteristic read or notification.
  * @param offset - Byte offset to read from. Defaults to 0.
  * @returns Unsigned integer in range [0, 255].
+ * @throws {BeacioError} INVALID_PARAMETER if the DataView is too short for the read.
  */
 export function readUint8(dv: DataView, offset = 0): number {
+  assertReadable('readUint8', dv, offset, 1);
   return dv.getUint8(offset);
 }
 
@@ -38,8 +67,10 @@ export function readUint8(dv: DataView, offset = 0): number {
  * @param dv - Source DataView.
  * @param offset - Byte offset to read from. Defaults to 0.
  * @returns Unsigned integer in range [0, 65535].
+ * @throws {BeacioError} INVALID_PARAMETER if the DataView is too short for the read.
  */
 export function readUint16LE(dv: DataView, offset = 0): number {
+  assertReadable('readUint16LE', dv, offset, 2);
   return dv.getUint16(offset, true);
 }
 
@@ -49,8 +80,10 @@ export function readUint16LE(dv: DataView, offset = 0): number {
  * @param dv - Source DataView.
  * @param offset - Byte offset to read from. Defaults to 0.
  * @returns Unsigned integer in range [0, 65535].
+ * @throws {BeacioError} INVALID_PARAMETER if the DataView is too short for the read.
  */
 export function readUint16BE(dv: DataView, offset = 0): number {
+  assertReadable('readUint16BE', dv, offset, 2);
   return dv.getUint16(offset, false);
 }
 
@@ -61,8 +94,10 @@ export function readUint16BE(dv: DataView, offset = 0): number {
  * @param dv - Source DataView.
  * @param offset - Byte offset to read from. Defaults to 0.
  * @returns Signed integer in range [-32768, 32767].
+ * @throws {BeacioError} INVALID_PARAMETER if the DataView is too short for the read.
  */
 export function readInt16LE(dv: DataView, offset = 0): number {
+  assertReadable('readInt16LE', dv, offset, 2);
   return dv.getInt16(offset, true);
 }
 
@@ -72,8 +107,10 @@ export function readInt16LE(dv: DataView, offset = 0): number {
  * @param dv - Source DataView.
  * @param offset - Byte offset to read from. Defaults to 0.
  * @returns Unsigned integer in range [0, 4294967295].
+ * @throws {BeacioError} INVALID_PARAMETER if the DataView is too short for the read.
  */
 export function readUint32LE(dv: DataView, offset = 0): number {
+  assertReadable('readUint32LE', dv, offset, 4);
   return dv.getUint32(offset, true);
 }
 
@@ -83,8 +120,10 @@ export function readUint32LE(dv: DataView, offset = 0): number {
  * @param dv - Source DataView.
  * @param offset - Byte offset to read from. Defaults to 0.
  * @returns 32-bit floating point number.
+ * @throws {BeacioError} INVALID_PARAMETER if the DataView is too short for the read.
  */
 export function readFloat32LE(dv: DataView, offset = 0): number {
+  assertReadable('readFloat32LE', dv, offset, 4);
   return dv.getFloat32(offset, true);
 }
 
@@ -97,7 +136,7 @@ export function readFloat32LE(dv: DataView, offset = 0): number {
  *
  * @example
  * ```typescript
- * const name = await device.read('generic_access', 'device_name')
+ * const name = await device.read('generic_access', 'gap.device_name')
  * console.log(readUtf8(name)) // "Polar H10"
  * ```
  */

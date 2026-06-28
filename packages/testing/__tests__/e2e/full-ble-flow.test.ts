@@ -145,7 +145,7 @@ describe('E2E: Full BLE Flow', () => {
       const mfgValue = await mfgChar.readValue();
       const bytes = new Uint8Array(mfgValue.buffer);
       const name = String.fromCharCode(...bytes);
-      expect(name).toBe('WebBLE Test Corp');
+      expect(name).toBe('Beacio Test Corp');
     });
 
     test('two peers can advertise independently while one remains connected', async () => {

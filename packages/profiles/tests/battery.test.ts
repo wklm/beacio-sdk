@@ -1,11 +1,11 @@
 import { BatteryProfile } from '../src/battery';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import type { BeacioDevice } from '@beacio/core';
 
 function makeDataView(bytes: number[]): DataView {
   return new DataView(new Uint8Array(bytes).buffer);
 }
 
-function createMockDevice(readResult: DataView): WebBLEDevice {
+function createMockDevice(readResult: DataView): BeacioDevice {
   return {
     connect: jest.fn().mockResolvedValue(undefined),
     read: jest.fn().mockResolvedValue(readResult),
@@ -14,7 +14,7 @@ function createMockDevice(readResult: DataView): WebBLEDevice {
     subscribe: jest.fn().mockReturnValue(jest.fn()),
     getWriteLimits: jest.fn().mockResolvedValue({ withResponse: 512, withoutResponse: 512 }),
     getMtu: jest.fn().mockResolvedValue(23),
-  } as unknown as WebBLEDevice;
+  } as unknown as BeacioDevice;
 }
 
 describe('BatteryProfile', () => {
@@ -82,7 +82,7 @@ describe('BatteryProfile', () => {
       const device = {
         ...createMockDevice(makeDataView([0])),
         subscribe: jest.fn().mockReturnValue(mockUnsub),
-      } as unknown as WebBLEDevice;
+      } as unknown as BeacioDevice;
       const battery = new BatteryProfile(device);
       const unsub = battery.onLevelChange(jest.fn());
       expect(typeof unsub).toBe('function');
@@ -107,7 +107,7 @@ describe('BatteryProfile', () => {
       const device = {
         ...createMockDevice(makeDataView([0])),
         subscribe: jest.fn().mockReturnValue(mockUnsub),
-      } as unknown as WebBLEDevice;
+      } as unknown as BeacioDevice;
       const battery = new BatteryProfile(device);
       battery.onLevelChange(jest.fn());
       battery.stop();

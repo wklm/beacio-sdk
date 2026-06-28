@@ -1,17 +1,17 @@
 # Core SDK
 
-`@ios-web-bluetooth/core` is the main SDK package. It gives you a cross-browser BLE API and transparently enables Safari iOS support.
+`@beacio/core` is the main SDK package. It gives you a cross-browser BLE API and transparently enables Safari iOS support.
 
 ## Install
 
 ```bash
-npm install @ios-web-bluetooth/core
+npm install @beacio/core
 ```
 
 ## Recommended Polyfill Entry
 
 ```typescript
-import '@ios-web-bluetooth/core/auto';
+import '@beacio/core/auto';
 ```
 
 That enables `navigator.bluetooth` on Safari iOS and stays a no-op on browsers with native Web Bluetooth support.
@@ -19,9 +19,9 @@ That enables `navigator.bluetooth` on Safari iOS and stays a no-op on browsers w
 ## Explicit API
 
 ```typescript
-import { WebBLE } from '@ios-web-bluetooth/core';
+import { beacio } from '@beacio/core';
 
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }],
 });
@@ -77,12 +77,12 @@ await device.read('heart_rate', 'heart_rate_measurement');
 ## Error Handling
 
 ```typescript
-import { WebBLEError } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
 
 try {
   await device.connect();
 } catch (err) {
-  if (err instanceof WebBLEError) {
+  if (err instanceof BeacioError) {
     console.error(err.code, err.suggestion);
   }
 }
@@ -96,5 +96,5 @@ try {
 
 ## More Detail
 
-- Core package README: <https://github.com/wklm/ioswebble-sdk/blob/main/packages/core/README.md>
-- Hosted docs: <https://ioswebble.com/docs#core-package>
+- Core package README: <https://github.com/wklm/beacio-sdk/blob/main/packages/core/README.md>
+- Hosted docs: <https://beacio.com/docs#core-package>

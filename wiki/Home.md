@@ -1,8 +1,8 @@
-# iOSWebBLE SDK Wiki
+# iOSbeacio SDK Wiki
 
-Welcome to the public wiki for [`wklm/ioswebble-sdk`](https://github.com/wklm/ioswebble-sdk).
+Welcome to the public wiki for [`wklm/beacio-sdk`](https://github.com/wklm/beacio-sdk).
 
-iOSWebBLE is the SDK layer that makes Web Bluetooth work in Safari on iPhone while staying compatible with native Web Bluetooth in Chrome and Edge.
+iOSbeacio is the SDK layer that makes Web Bluetooth work in Safari on iPhone while staying compatible with native Web Bluetooth in Chrome and Edge.
 
 ## Start Here
 
@@ -18,31 +18,31 @@ iOSWebBLE is the SDK layer that makes Web Bluetooth work in Safari on iPhone whi
 
 | Package | Purpose |
 |---|---|
-| `@ios-web-bluetooth/core` | Core BLE SDK and Safari iOS polyfill |
-| `@ios-web-bluetooth/detect` | iOS Safari detection and install banners |
-| `@ios-web-bluetooth/react` | React hooks and UI components |
-| `@ios-web-bluetooth/profiles` | Typed device profiles for common BLE services |
-| `@ios-web-bluetooth/testing` | Mock BLE tools for tests |
-| `@ios-web-bluetooth/mcp` | MCP server for AI coding agents |
+| `@beacio/core` | Core BLE SDK and Safari iOS polyfill |
+| `@beacio/detect` | iOS Safari detection and install banners |
+| `@beacio/react` | React hooks and UI components |
+| `@beacio/profiles` | Typed device profiles for common BLE services |
+| `@beacio/testing` | Mock BLE tools for tests |
+| `@beacio/mcp` | MCP server for AI coding agents |
 
 ## Quick Start
 
 ```bash
-npm install @ios-web-bluetooth/core @ios-web-bluetooth/detect
+npm install @beacio/core @beacio/detect
 ```
 
 ```typescript
-import { initIOSWebBLE, isIOSSafari } from '@ios-web-bluetooth/detect';
-import { WebBLE } from '@ios-web-bluetooth/core';
+import { initBeacio, isIOSSafari } from '@beacio/detect';
+import { beacio } from '@beacio/core';
 
 if (isIOSSafari()) {
-  await initIOSWebBLE({
+  await initBeacio({
     operatorName: 'MyApp',
     banner: { mode: 'sheet' },
   });
 }
 
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }],
 });
@@ -54,9 +54,9 @@ console.log(value.getUint8(1));
 
 ## Key Links
 
-- Website docs: <https://ioswebble.com/docs>
-- Install page: <https://ioswebble.com/install>
-- Repo README: <https://github.com/wklm/ioswebble-sdk/blob/main/README.md>
-- Core README: <https://github.com/wklm/ioswebble-sdk/blob/main/packages/core/README.md>
-- Detect README: <https://github.com/wklm/ioswebble-sdk/blob/main/packages/detect/README.md>
-- React README: <https://github.com/wklm/ioswebble-sdk/blob/main/packages/react-sdk/README.md>
+- Website docs: <https://beacio.com/docs>
+- Install page: <https://beacio.com/install>
+- Repo README: <https://github.com/wklm/beacio-sdk/blob/main/README.md>
+- Core README: <https://github.com/wklm/beacio-sdk/blob/main/packages/core/README.md>
+- Detect README: <https://github.com/wklm/beacio-sdk/blob/main/packages/detect/README.md>
+- React README: <https://github.com/wklm/beacio-sdk/blob/main/packages/react-sdk/README.md>

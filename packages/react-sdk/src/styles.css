@@ -1,9 +1,9 @@
 /**
- * @ios-web-bluetooth/react — default component styles
+ * @beacio/react — default component styles
  *
- * Opt-in via: import '@ios-web-bluetooth/react/styles.css';
+ * Opt-in via: import '@beacio/react/styles.css';
  *
- * All selectors target [data-webble-*] attributes so they compose cleanly
+ * All selectors target [data-beacio-*] attributes so they compose cleanly
  * with any CSS framework. Override with higher-specificity selectors or
  * className props.
  */
@@ -12,67 +12,67 @@
  * Shared tokens
  * ------------------------------------------------------------------------- */
 :root {
-  --webble-color-connected: #22c55e;
-  --webble-color-connecting: #f59e0b;
-  --webble-color-disconnected: #ef4444;
-  --webble-color-idle: #6b7280;
-  --webble-color-primary: #3b82f6;
-  --webble-color-primary-hover: #2563eb;
-  --webble-color-danger: #ef4444;
-  --webble-color-danger-hover: #dc2626;
-  --webble-color-bg: #ffffff;
-  --webble-color-bg-subtle: #f9fafb;
-  --webble-color-border: #e5e7eb;
-  --webble-color-text: #111827;
-  --webble-color-text-muted: #6b7280;
-  --webble-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --webble-radius: 8px;
-  --webble-spacing-xs: 4px;
-  --webble-spacing-sm: 8px;
-  --webble-spacing-md: 12px;
-  --webble-spacing-lg: 16px;
-  --webble-spacing-xl: 24px;
+  --beacio-color-connected: #22c55e;
+  --beacio-color-connecting: #f59e0b;
+  --beacio-color-disconnected: #ef4444;
+  --beacio-color-idle: #6b7280;
+  --beacio-color-primary: #3b82f6;
+  --beacio-color-primary-hover: #2563eb;
+  --beacio-color-danger: #ef4444;
+  --beacio-color-danger-hover: #dc2626;
+  --beacio-color-bg: #ffffff;
+  --beacio-color-bg-subtle: #f9fafb;
+  --beacio-color-border: #e5e7eb;
+  --beacio-color-text: #111827;
+  --beacio-color-text-muted: #6b7280;
+  --beacio-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --beacio-radius: 8px;
+  --beacio-spacing-xs: 4px;
+  --beacio-spacing-sm: 8px;
+  --beacio-spacing-md: 12px;
+  --beacio-spacing-lg: 16px;
+  --beacio-spacing-xl: 24px;
 }
 
 /* ---------------------------------------------------------------------------
  * ConnectionStatus
  * ------------------------------------------------------------------------- */
-[data-webble-status] {
+[data-beacio-status] {
   display: inline-flex;
   align-items: center;
-  gap: var(--webble-spacing-sm);
-  font-family: var(--webble-font-family);
+  gap: var(--beacio-spacing-sm);
+  font-family: var(--beacio-font-family);
   font-size: 14px;
-  color: var(--webble-color-text);
+  color: var(--beacio-color-text);
 }
 
-[data-webble-status-indicator] {
+[data-beacio-status-indicator] {
   width: 10px;
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-[data-webble-state="connected"] > [data-webble-status-indicator] {
-  background-color: var(--webble-color-connected);
-  box-shadow: 0 0 4px var(--webble-color-connected);
+[data-beacio-state="connected"] > [data-beacio-status-indicator] {
+  background-color: var(--beacio-color-connected);
+  box-shadow: 0 0 4px var(--beacio-color-connected);
 }
 
-[data-webble-state="connecting"] > [data-webble-status-indicator],
-[data-webble-state="disconnecting"] > [data-webble-status-indicator] {
-  background-color: var(--webble-color-connecting);
-  animation: webble-pulse 1.2s ease-in-out infinite;
+[data-beacio-state="connecting"] > [data-beacio-status-indicator],
+[data-beacio-state="disconnecting"] > [data-beacio-status-indicator] {
+  background-color: var(--beacio-color-connecting);
+  animation: beacio-pulse 1.2s ease-in-out infinite;
 }
 
-[data-webble-state="disconnected"] > [data-webble-status-indicator] {
-  background-color: var(--webble-color-disconnected);
+[data-beacio-state="disconnected"] > [data-beacio-status-indicator] {
+  background-color: var(--beacio-color-disconnected);
 }
 
-[data-webble-status-label] {
+[data-beacio-status-label] {
   text-transform: capitalize;
 }
 
-@keyframes webble-pulse {
+@keyframes beacio-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
@@ -80,365 +80,365 @@
 /* ---------------------------------------------------------------------------
  * DeviceScanner
  * ------------------------------------------------------------------------- */
-[data-webble-scanner] {
-  font-family: var(--webble-font-family);
-  color: var(--webble-color-text);
-  border: 1px solid var(--webble-color-border);
-  border-radius: var(--webble-radius);
-  padding: var(--webble-spacing-lg);
-  background: var(--webble-color-bg);
+[data-beacio-scanner] {
+  font-family: var(--beacio-font-family);
+  color: var(--beacio-color-text);
+  border: 1px solid var(--beacio-color-border);
+  border-radius: var(--beacio-radius);
+  padding: var(--beacio-spacing-lg);
+  background: var(--beacio-color-bg);
 }
 
-[data-webble-scanner-header] {
+[data-beacio-scanner-header] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--webble-spacing-md);
+  margin-bottom: var(--beacio-spacing-md);
 }
 
-[data-webble-scanner-header] h2 {
+[data-beacio-scanner-header] h2 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-[data-webble-scanner-status] {
+[data-beacio-scanner-status] {
   font-size: 13px;
-  color: var(--webble-color-text-muted);
+  color: var(--beacio-color-text-muted);
 }
 
-[data-webble-scanner-controls] {
+[data-beacio-scanner-controls] {
   display: flex;
-  gap: var(--webble-spacing-sm);
-  margin-bottom: var(--webble-spacing-md);
+  gap: var(--beacio-spacing-sm);
+  margin-bottom: var(--beacio-spacing-md);
 }
 
-[data-webble-scanner-controls] button {
-  padding: var(--webble-spacing-sm) var(--webble-spacing-lg);
+[data-beacio-scanner-controls] button {
+  padding: var(--beacio-spacing-sm) var(--beacio-spacing-lg);
   border: none;
-  border-radius: var(--webble-radius);
+  border-radius: var(--beacio-radius);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 
-[data-webble-scanner-controls] .scan-button.start {
-  background: var(--webble-color-primary);
+[data-beacio-scanner-controls] .scan-button.start {
+  background: var(--beacio-color-primary);
   color: #fff;
 }
 
-[data-webble-scanner-controls] .scan-button.start:hover {
-  background: var(--webble-color-primary-hover);
+[data-beacio-scanner-controls] .scan-button.start:hover {
+  background: var(--beacio-color-primary-hover);
 }
 
-[data-webble-scanner-controls] .scan-button.stop {
-  background: var(--webble-color-danger);
+[data-beacio-scanner-controls] .scan-button.stop {
+  background: var(--beacio-color-danger);
   color: #fff;
 }
 
-[data-webble-scanner-controls] .scan-button.stop:hover {
-  background: var(--webble-color-danger-hover);
+[data-beacio-scanner-controls] .scan-button.stop:hover {
+  background: var(--beacio-color-danger-hover);
 }
 
-[data-webble-scanner-controls] .scan-button.clear {
-  background: var(--webble-color-bg-subtle);
-  color: var(--webble-color-text);
-  border: 1px solid var(--webble-color-border);
+[data-beacio-scanner-controls] .scan-button.clear {
+  background: var(--beacio-color-bg-subtle);
+  color: var(--beacio-color-text);
+  border: 1px solid var(--beacio-color-border);
 }
 
-[data-webble-scanner-error] {
+[data-beacio-scanner-error] {
   display: flex;
   align-items: center;
-  gap: var(--webble-spacing-sm);
-  padding: var(--webble-spacing-sm) var(--webble-spacing-md);
-  margin-bottom: var(--webble-spacing-md);
+  gap: var(--beacio-spacing-sm);
+  padding: var(--beacio-spacing-sm) var(--beacio-spacing-md);
+  margin-bottom: var(--beacio-spacing-md);
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: var(--webble-radius);
-  color: var(--webble-color-danger);
+  border-radius: var(--beacio-radius);
+  color: var(--beacio-color-danger);
   font-size: 14px;
 }
 
-[data-webble-device-list] {
+[data-beacio-device-list] {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--webble-spacing-xs);
+  gap: var(--beacio-spacing-xs);
 }
 
-[data-webble-device] {
+[data-beacio-device] {
   list-style: none;
 }
 
-[data-webble-device-button] {
+[data-beacio-device-button] {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: var(--webble-spacing-md);
-  border: 1px solid var(--webble-color-border);
-  border-radius: var(--webble-radius);
-  background: var(--webble-color-bg);
+  padding: var(--beacio-spacing-md);
+  border: 1px solid var(--beacio-color-border);
+  border-radius: var(--beacio-radius);
+  background: var(--beacio-color-bg);
   cursor: pointer;
   text-align: left;
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-[data-webble-device-button]:hover {
-  border-color: var(--webble-color-primary);
-  background: var(--webble-color-bg-subtle);
+[data-beacio-device-button]:hover {
+  border-color: var(--beacio-color-primary);
+  background: var(--beacio-color-bg-subtle);
 }
 
-[data-webble-device][data-webble-state="connected"] [data-webble-device-button] {
-  border-color: var(--webble-color-connected);
+[data-beacio-device][data-beacio-state="connected"] [data-beacio-device-button] {
+  border-color: var(--beacio-color-connected);
   background: #f0fdf4;
 }
 
-[data-webble-device][data-webble-state="connecting"] [data-webble-device-button] {
-  border-color: var(--webble-color-connecting);
+[data-beacio-device][data-beacio-state="connecting"] [data-beacio-device-button] {
+  border-color: var(--beacio-color-connecting);
   background: #fffbeb;
 }
 
-[data-webble-device-info] {
+[data-beacio-device-info] {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-[data-webble-device-name] {
+[data-beacio-device-name] {
   font-weight: 500;
   font-size: 14px;
 }
 
-[data-webble-device-id] {
+[data-beacio-device-id] {
   font-size: 12px;
-  color: var(--webble-color-text-muted);
+  color: var(--beacio-color-text-muted);
   font-family: monospace;
 }
 
-[data-webble-device-status] {
+[data-beacio-device-status] {
   font-size: 12px;
   font-weight: 500;
-  color: var(--webble-color-connected);
+  color: var(--beacio-color-connected);
 }
 
-[data-webble-scanner-empty] {
+[data-beacio-scanner-empty] {
   text-align: center;
-  padding: var(--webble-spacing-xl);
-  color: var(--webble-color-text-muted);
+  padding: var(--beacio-spacing-xl);
+  color: var(--beacio-color-text-muted);
   font-size: 14px;
 }
 
-[data-webble-scanner-animation] {
+[data-beacio-scanner-animation] {
   display: flex;
   justify-content: center;
-  gap: var(--webble-spacing-sm);
-  margin-bottom: var(--webble-spacing-md);
+  gap: var(--beacio-spacing-sm);
+  margin-bottom: var(--beacio-spacing-md);
 }
 
-[data-webble-scanner-animation] .pulse {
+[data-beacio-scanner-animation] .pulse {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--webble-color-primary);
-  animation: webble-pulse 1.4s ease-in-out infinite;
+  background: var(--beacio-color-primary);
+  animation: beacio-pulse 1.4s ease-in-out infinite;
 }
 
-[data-webble-scanner-animation] .pulse:nth-child(2) {
+[data-beacio-scanner-animation] .pulse:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-[data-webble-scanner-animation] .pulse:nth-child(3) {
+[data-beacio-scanner-animation] .pulse:nth-child(3) {
   animation-delay: 0.4s;
 }
 
 /* ---------------------------------------------------------------------------
  * ServiceExplorer
  * ------------------------------------------------------------------------- */
-[data-webble-explorer] {
-  font-family: var(--webble-font-family);
-  color: var(--webble-color-text);
-  border: 1px solid var(--webble-color-border);
-  border-radius: var(--webble-radius);
-  padding: var(--webble-spacing-lg);
-  background: var(--webble-color-bg);
+[data-beacio-explorer] {
+  font-family: var(--beacio-font-family);
+  color: var(--beacio-color-text);
+  border: 1px solid var(--beacio-color-border);
+  border-radius: var(--beacio-radius);
+  padding: var(--beacio-spacing-lg);
+  background: var(--beacio-color-bg);
 }
 
-[data-webble-explorer-header] {
+[data-beacio-explorer-header] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--webble-spacing-md);
+  margin-bottom: var(--beacio-spacing-md);
 }
 
-[data-webble-explorer-header] h2 {
+[data-beacio-explorer-header] h2 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-[data-webble-explorer-controls] {
+[data-beacio-explorer-controls] {
   display: flex;
-  gap: var(--webble-spacing-sm);
-  margin-bottom: var(--webble-spacing-md);
+  gap: var(--beacio-spacing-sm);
+  margin-bottom: var(--beacio-spacing-md);
 }
 
-[data-webble-explorer-controls] button {
-  padding: var(--webble-spacing-sm) var(--webble-spacing-lg);
+[data-beacio-explorer-controls] button {
+  padding: var(--beacio-spacing-sm) var(--beacio-spacing-lg);
   border: none;
-  border-radius: var(--webble-radius);
+  border-radius: var(--beacio-radius);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 
-[data-webble-explorer-controls] .connection-button.connect {
-  background: var(--webble-color-primary);
+[data-beacio-explorer-controls] .connection-button.connect {
+  background: var(--beacio-color-primary);
   color: #fff;
 }
 
-[data-webble-explorer-controls] .connection-button.disconnect {
-  background: var(--webble-color-danger);
+[data-beacio-explorer-controls] .connection-button.disconnect {
+  background: var(--beacio-color-danger);
   color: #fff;
 }
 
-[data-webble-explorer-controls] .connection-button.connecting {
-  background: var(--webble-color-connecting);
+[data-beacio-explorer-controls] .connection-button.connecting {
+  background: var(--beacio-color-connecting);
   color: #fff;
   cursor: wait;
 }
 
-[data-webble-explorer-error] {
+[data-beacio-explorer-error] {
   display: flex;
   align-items: center;
-  gap: var(--webble-spacing-sm);
-  padding: var(--webble-spacing-sm) var(--webble-spacing-md);
-  margin-bottom: var(--webble-spacing-md);
+  gap: var(--beacio-spacing-sm);
+  padding: var(--beacio-spacing-sm) var(--beacio-spacing-md);
+  margin-bottom: var(--beacio-spacing-md);
   background: #fef2f2;
   border: 1px solid #fecaca;
-  border-radius: var(--webble-radius);
-  color: var(--webble-color-danger);
+  border-radius: var(--beacio-radius);
+  color: var(--beacio-color-danger);
   font-size: 14px;
 }
 
-[data-webble-explorer-empty] {
+[data-beacio-explorer-empty] {
   text-align: center;
-  padding: var(--webble-spacing-xl);
-  color: var(--webble-color-text-muted);
+  padding: var(--beacio-spacing-xl);
+  color: var(--beacio-color-text-muted);
   font-size: 14px;
 }
 
-[data-webble-services-container] {
-  margin-top: var(--webble-spacing-md);
+[data-beacio-services-container] {
+  margin-top: var(--beacio-spacing-md);
 }
 
-[data-webble-services-summary] {
+[data-beacio-services-summary] {
   font-size: 13px;
-  color: var(--webble-color-text-muted);
-  margin-bottom: var(--webble-spacing-sm);
+  color: var(--beacio-color-text-muted);
+  margin-bottom: var(--beacio-spacing-sm);
 }
 
-[data-webble-service-list] {
+[data-beacio-service-list] {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--webble-spacing-xs);
+  gap: var(--beacio-spacing-xs);
 }
 
-[data-webble-service] {
+[data-beacio-service] {
   list-style: none;
-  border: 1px solid var(--webble-color-border);
-  border-radius: var(--webble-radius);
+  border: 1px solid var(--beacio-color-border);
+  border-radius: var(--beacio-radius);
   overflow: hidden;
 }
 
-[data-webble-service-header] {
+[data-beacio-service-header] {
   display: flex;
   align-items: center;
-  gap: var(--webble-spacing-sm);
+  gap: var(--beacio-spacing-sm);
   width: 100%;
-  padding: var(--webble-spacing-md);
+  padding: var(--beacio-spacing-md);
   border: none;
-  background: var(--webble-color-bg-subtle);
+  background: var(--beacio-color-bg-subtle);
   cursor: pointer;
   text-align: left;
   font-size: 14px;
 }
 
-[data-webble-service-name] {
+[data-beacio-service-name] {
   font-weight: 500;
   flex: 1;
 }
 
-[data-webble-service-type] {
+[data-beacio-service-type] {
   font-size: 12px;
-  color: var(--webble-color-text-muted);
+  color: var(--beacio-color-text-muted);
 }
 
-[data-webble-characteristic] {
+[data-beacio-characteristic] {
   list-style: none;
-  padding: var(--webble-spacing-md);
-  border-top: 1px solid var(--webble-color-border);
+  padding: var(--beacio-spacing-md);
+  border-top: 1px solid var(--beacio-color-border);
 }
 
-[data-webble-characteristic-header] {
+[data-beacio-characteristic-header] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--webble-spacing-sm);
+  margin-bottom: var(--beacio-spacing-sm);
 }
 
-[data-webble-characteristic-name] {
+[data-beacio-characteristic-name] {
   font-size: 13px;
   font-weight: 500;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  color: var(--webble-color-primary);
+  color: var(--beacio-color-primary);
 }
 
-[data-webble-characteristic-props] {
+[data-beacio-characteristic-props] {
   display: flex;
-  gap: var(--webble-spacing-xs);
+  gap: var(--beacio-spacing-xs);
 }
 
-[data-webble-characteristic-props] .property {
+[data-beacio-characteristic-props] .property {
   font-size: 11px;
   font-weight: 600;
   padding: 1px 4px;
   border-radius: 3px;
-  background: var(--webble-color-bg-subtle);
-  border: 1px solid var(--webble-color-border);
-  color: var(--webble-color-text-muted);
+  background: var(--beacio-color-bg-subtle);
+  border: 1px solid var(--beacio-color-border);
+  color: var(--beacio-color-text-muted);
 }
 
 /* ---------------------------------------------------------------------------
  * InstallationWizard
  * ------------------------------------------------------------------------- */
-[data-webble-wizard] {
+[data-beacio-wizard] {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
 }
 
-[data-webble-wizard-action] {
+[data-beacio-wizard-action] {
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
-[data-webble-wizard-action]:active {
+[data-beacio-wizard-action]:active {
   transform: scale(0.98);
 }
 
-[data-webble-wizard-dismiss] {
+[data-beacio-wizard-dismiss] {
   transition: color 0.15s ease;
 }
 
-[data-webble-wizard-dismiss]:hover {
+[data-beacio-wizard-dismiss]:hover {
   color: #636366;
 }
 
@@ -446,23 +446,23 @@
  * Responsive
  * ------------------------------------------------------------------------- */
 @media (max-width: 480px) {
-  [data-webble-scanner],
-  [data-webble-explorer] {
-    padding: var(--webble-spacing-md);
+  [data-beacio-scanner],
+  [data-beacio-explorer] {
+    padding: var(--beacio-spacing-md);
     border-radius: 0;
     border-left: none;
     border-right: none;
   }
 
-  [data-webble-scanner-header],
-  [data-webble-explorer-header] {
+  [data-beacio-scanner-header],
+  [data-beacio-explorer-header] {
     flex-direction: column;
     align-items: flex-start;
-    gap: var(--webble-spacing-sm);
+    gap: var(--beacio-spacing-sm);
   }
 
-  [data-webble-scanner-controls],
-  [data-webble-explorer-controls] {
+  [data-beacio-scanner-controls],
+  [data-beacio-explorer-controls] {
     flex-wrap: wrap;
   }
 }

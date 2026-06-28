@@ -35,9 +35,9 @@ export function runFindExamples(input: FindExamplesInput): FindExamplesOutput {
 }
 
 export const findExamplesTool: ToolDefinition<FindExamplesInput, FindExamplesOutput> = {
-  name: 'webble_dev_find_examples',
-  title: 'Find code examples in the WebBLE monorepo',
+  name: 'beacio_dev_find_examples',
+  title: 'Find code examples in the Beacio monorepo',
   description:
-    'Search a curated index of key source files in the WebBLE monorepo. Returns ranked matches with file path, line number, and category.',
+    'Search a curated index of key source files in the Beacio monorepo. Returns ranked matches with file path, line number, and category.',
   run: runFindExamples,
 };

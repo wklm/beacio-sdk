@@ -1,9 +1,9 @@
 {
-  "name": "@ios-web-bluetooth/cli",
-  "version": "0.1.1",
-  "description": "CLI for WebBLE — init, check, scaffold BLE profiles for web apps",
+  "name": "@beacio/cli",
+  "version": "1.0.0",
+  "description": "CLI for beacio — init, check, scaffold BLE profiles for web apps",
   "bin": {
-    "ioswebble": "./dist/index.js"
+    "beacio": "./dist/index.js"
   },
   "types": "./dist/index.d.ts",
   "exports": {
@@ -20,6 +20,7 @@
   "scripts": {
     "build": "tsup src/index.ts --format cjs --dts",
     "dev": "tsup src/index.ts --format cjs --watch",
+    "test": "vitest run",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -30,7 +31,7 @@
     "web-bluetooth",
     "webbluetooth",
     "cli",
-    "webble",
+    "beacio",
     "gatt",
     "scaffold",
     "ai",
@@ -43,12 +44,12 @@
   "author": "wklm",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wklm/ioswebble-sdk.git",
+    "url": "https://github.com/wklm/beacio-sdk.git",
     "directory": "packages/cli"
   },
-  "homepage": "https://ioswebble.com",
+  "homepage": "https://beacio.com",
   "bugs": {
-    "url": "https://github.com/wklm/ioswebble-sdk/issues"
+    "url": "https://github.com/wklm/beacio-sdk/issues"
   },
   "publishConfig": {
     "access": "public"
@@ -58,11 +59,12 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@ios-web-bluetooth/detect": "^0.1.1"
+    "@beacio/detect": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node": "^25",
+    "@types/node": "^26.0.1",
     "tsup": "^8.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Framework auto-detection for WebBLE CLI
+ * Framework auto-detection for Beacio CLI
  */
 
 import * as fs from 'fs';
@@ -48,9 +48,13 @@ export function detectFramework(projectPath: string): DetectionResult {
   const pkg = readPackageJson(projectPath);
   const packageManager = detectPackageManager(projectPath);
 
+  // Static-HTML entry candidates. Covers a vendored-jQuery app served from the repo
+  // root, a public/ dir, or an app/ dir (the Storz & Bickel shape, SB-SDK-04 AC#2).
+  const HTML_ENTRY_CANDIDATES = ['index.html', 'public/index.html', 'app/index.html', 'src/index.html'];
+
   if (!pkg) {
     // Check for plain HTML
-    const htmlFile = findFile(projectPath, ['index.html', 'public/index.html']);
+    const htmlFile = findFile(projectPath, HTML_ENTRY_CANDIDATES);
     return {
       framework: htmlFile ? 'html' : 'generic',
       entryFile: htmlFile,
@@ -148,8 +152,10 @@ export function detectFramework(projectPath: string): DetectionResult {
     return { framework: 'angular', entryFile: appModule, packageManager };
   }
 
-  // Plain HTML
-  const htmlFile = findFile(projectPath, ['index.html', 'public/index.html']);
+  // Plain HTML — including a vendored-library (e.g. jQuery) static app that carries a
+  // package.json with NO framework dependency. Its entry HTML may live at the repo root,
+  // under public/, or under app/ (the Storz & Bickel layout). SB-SDK-04 AC#2.
+  const htmlFile = findFile(projectPath, HTML_ENTRY_CANDIDATES);
   if (htmlFile) {
     return { framework: 'html', entryFile: htmlFile, packageManager };
   }

@@ -1,6 +1,6 @@
 # Power Management
 
-`@ios-web-bluetooth/core` works in foreground browser tabs, but BLE radio use still costs battery on both the phone and the peripheral. Treat power usage as part of the API contract when you design scans, subscriptions, and reconnect logic.
+`@beacio/core` works in foreground browser tabs, but BLE radio use still costs battery on both the phone and the peripheral. Treat power usage as part of the API contract when you design scans, subscriptions, and reconnect logic.
 
 ## Rules of thumb
 

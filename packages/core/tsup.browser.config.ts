@@ -5,7 +5,7 @@ export default defineConfig({
   // that subpath is reserved for Navigator type augmentation imports.
   entry: { browser: 'src/index.ts' },
   format: ['iife'],
-  globalName: 'WebBLECore',
+  globalName: 'BeacioCore',
   clean: false,
   minify: true,
   sourcemap: true,

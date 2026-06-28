@@ -1,6 +1,6 @@
 {
-  "name": "@ios-web-bluetooth/profiles",
-  "version": "1.0.0-beta.2",
+  "name": "@beacio/profiles",
+  "version": "1.0.0",
   "description": "Pre-built BLE device profiles — heart rate, battery, device info. Typed parsers for Bluetooth GATT characteristics",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -25,6 +25,21 @@
       "types": "./dist/device-info.d.ts",
       "import": "./dist/device-info.mjs",
       "require": "./dist/device-info.js"
+    },
+    "./nordic-uart": {
+      "types": "./dist/nordic-uart.d.ts",
+      "import": "./dist/nordic-uart.mjs",
+      "require": "./dist/nordic-uart.js"
+    },
+    "./serial-ffe0": {
+      "types": "./dist/serial-ffe0.d.ts",
+      "import": "./dist/serial-ffe0.mjs",
+      "require": "./dist/serial-ffe0.js"
+    },
+    "./storz-bickel": {
+      "types": "./dist/storz-bickel.d.ts",
+      "import": "./dist/storz-bickel.mjs",
+      "require": "./dist/storz-bickel.js"
     }
   },
   "files": [
@@ -46,7 +61,7 @@
     "profiles",
     "heart-rate",
     "battery",
-    "webble",
+    "beacio",
     "webbluetooth",
     "gatt",
     "device-info",
@@ -66,18 +81,18 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wklm/ioswebble-sdk.git",
+    "url": "https://github.com/wklm/beacio-sdk.git",
     "directory": "packages/profiles"
   },
-  "homepage": "https://ioswebble.com/docs#profiles-package",
+  "homepage": "https://beacio.com/docs#profiles-package",
   "bugs": {
-    "url": "https://github.com/wklm/ioswebble-sdk/issues"
+    "url": "https://github.com/wklm/beacio-sdk/issues"
   },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@ios-web-bluetooth/core": ">=2.0.0-beta.2"
+    "@beacio/core": "^1.0.0"
   },
   "dependencies": {},
   "devDependencies": {
@@ -86,7 +101,7 @@
     "jest-environment-jsdom": "^30",
     "ts-jest": "^29",
     "tsup": "^8.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=18"

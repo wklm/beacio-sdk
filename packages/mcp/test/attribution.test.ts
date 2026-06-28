@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { ATTRIBUTION_REGEX, generateAttributionToken } from '../src/attribution.js';
-
-// The SAME regex the Wave I.2 beacon Worker uses when accepting attribution. If this
-// assertion ever starts failing, the beacon Worker will reject every MCP-minted token.
-const WORKER_REGEX = /^webble_\d{6}_(mcp|cdn|direct|github|npm|hn)_[a-z0-9]{1,40}$/;
+import { ATTRIBUTION_TOKEN_REGEX } from '../../../cloudflare/shared/attribution.ts';
+// PR-REVIEW.md §3 M3: import the REAL deployed Worker validator instead of a
+// hardcoded local copy. The previous `const WORKER_REGEX = /^beacio_.../` was a
+// false green — it was the author's *assumption* of what the Worker validates,
+// not the Worker's actual regex (which used to be `webble_`-only and dropped
+// every `beacio_` token). Asserting against the genuine shared validator means
+// any future producer/validator drift fails this test instead of silently
+// losing 100% of MCP attribution in production.
+const WORKER_REGEX = ATTRIBUTION_TOKEN_REGEX;
 
 describe('generateAttributionToken', () => {
   it('matches the MCP regex and the Worker regex', () => {
@@ -21,7 +26,7 @@ describe('generateAttributionToken', () => {
       now: new Date(Date.UTC(2026, 0, 15)), // January 2026 → 202601
       random: () => 0,
     });
-    expect(token.startsWith('webble_202601_mcp_')).toBe(true);
+    expect(token.startsWith('beacio_202601_mcp_')).toBe(true);
   });
 
   it('rejects out-of-range suffix length', () => {
@@ -35,14 +40,14 @@ describe('generateAttributionToken', () => {
       now: new Date(Date.UTC(2026, 3, 1)),
       random: () => 0.5,
     });
-    expect(token.startsWith('webble_202604_hn_')).toBe(true);
+    expect(token.startsWith('beacio_202604_hn_')).toBe(true);
     expect(token).toMatch(ATTRIBUTION_REGEX);
     expect(token).toMatch(WORKER_REGEX);
   });
 
   it('defaults to the mcp channel when none is given', () => {
     const token = generateAttributionToken({ now: new Date(Date.UTC(2026, 3, 1)), random: () => 0 });
-    expect(token.startsWith('webble_202604_mcp_')).toBe(true);
+    expect(token.startsWith('beacio_202604_mcp_')).toBe(true);
   });
 
   it('rejects an unknown channel', () => {

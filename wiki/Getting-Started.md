@@ -1,27 +1,27 @@
 # Getting Started
 
-This page covers the shortest path to using iOSWebBLE in a web app.
+This page covers the shortest path to using iOSbeacio in a web app.
 
 ## Choose Your Setup
 
-- Plain Web Bluetooth support across Safari iOS, Chrome, and Edge: install `@ios-web-bluetooth/core`
-- iOS Safari install prompts and extension detection: add `@ios-web-bluetooth/detect`
-- React hooks and components: add `@ios-web-bluetooth/react`
+- Plain Web Bluetooth support across Safari iOS, Chrome, and Edge: install `@beacio/core`
+- iOS Safari install prompts and extension detection: add `@beacio/detect`
+- React hooks and components: add `@beacio/react`
 
 ## Install
 
 ```bash
-npm install @ios-web-bluetooth/core @ios-web-bluetooth/detect
+npm install @beacio/core @beacio/detect
 ```
 
 ## Minimal iOS Safari Flow
 
 ```typescript
-import { initIOSWebBLE, isIOSSafari } from '@ios-web-bluetooth/detect';
-import { WebBLE, WebBLEError } from '@ios-web-bluetooth/core';
+import { initBeacio, isIOSSafari } from '@beacio/detect';
+import { beacio, BeacioError } from '@beacio/core';
 
 if (isIOSSafari()) {
-  await initIOSWebBLE({
+  await initBeacio({
     operatorName: 'MyApp',
     banner: { mode: 'sheet', dismissDays: 14 },
     onReady: () => console.log('Extension ready'),
@@ -29,7 +29,7 @@ if (isIOSSafari()) {
   });
 }
 
-const ble = new WebBLE();
+const ble = new beacio();
 
 async function connect() {
   try {
@@ -41,7 +41,7 @@ async function connect() {
     const value = await device.read('heart_rate', 'heart_rate_measurement');
     console.log('Heart rate:', value.getUint8(1));
   } catch (err) {
-    if (err instanceof WebBLEError) {
+    if (err instanceof BeacioError) {
       console.error(err.code, err.suggestion);
     }
   }
@@ -59,7 +59,7 @@ document.getElementById('connect')?.addEventListener('click', connect);
 If you are not using a bundler, load the hosted script:
 
 ```html
-<script src="https://ioswebble.com/webble.js"></script>
+<script src="https://beacio.com/beacio.js"></script>
 ```
 
 ## Where To Go Next
@@ -67,4 +67,4 @@ If you are not using a bundler, load the hosted script:
 - BLE API walkthrough: [Core SDK](Core-SDK)
 - Install prompts and detection: [Extension Detection](Extension-Detection)
 - React apps: [React SDK](React-SDK)
-- Hosted docs: <https://ioswebble.com/docs>
+- Hosted docs: <https://beacio.com/docs>

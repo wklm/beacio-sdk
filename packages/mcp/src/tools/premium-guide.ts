@@ -27,14 +27,16 @@ export interface PremiumGuideOutput {
 type Entry = { description: string; example: string; requires_app_store: boolean };
 const DATA = premiumData as Record<PremiumApi, Entry>;
 
-// Every premium API maps into premium.md; whiteLabel has no dedicated anchor.
-const HASHES: Record<PremiumApi, string | undefined> = {
-  backgroundSync: 'background-sync---windowwebbleiosbackgroundsync',
+// Every premium API maps to a real heading anchor in premium.md (the
+// "every premium API source_url anchor resolves to a real heading" test in
+// test/tools.test.ts guards this — a dead/bare anchor fails the gate).
+const HASHES: Record<PremiumApi, string> = {
+  backgroundSync: 'background-sync---windowbeacioiosbackgroundsync',
   notifications: 'registercharacteristicnotificationsoptions--the-notifications-premium-api',
   liveActivity: 'live-activities',
   beacons: 'registerbeaconscanningoptions--the-beacons-premium-api',
-  peripheral: 'peripheral-mode--windowwebbleiosperipheral',
-  whiteLabel: undefined,
+  peripheral: 'peripheral-mode--windowbeacioiosperipheral',
+  whiteLabel: 'white-label--your-brand-in-the-app-store',
 };
 
 export function runPremiumGuide(input: PremiumGuideInput): PremiumGuideOutput {
@@ -54,8 +56,8 @@ export function runPremiumGuide(input: PremiumGuideInput): PremiumGuideOutput {
 }
 
 export const premiumGuideTool: ToolDefinition<PremiumGuideInput, PremiumGuideOutput> = {
-  name: 'webble_premium_guide',
-  title: 'WebBLE premium API guide',
+  name: 'beacio_premium_guide',
+  title: 'Beacio premium API guide',
   description:
     'Explain one of the iOS-only premium surfaces (backgroundSync, notifications, liveActivity, beacons, peripheral, whiteLabel) with a runnable code example and App Store requirement.',
   run: runPremiumGuide,

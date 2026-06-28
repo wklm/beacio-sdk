@@ -1,6 +1,7 @@
 import { z, type ZodRawShape } from 'zod';
 import type { ParsedFlags } from './modes.js';
 import { installPlanTool, runInstallPlan, FRAMEWORKS, PACKAGE_MANAGERS } from './tools/install-plan.js';
+import { patchExistingAppTool, runPatchExistingApp } from './tools/patch-existing-app.js';
 import { verifyIntegrationTool, runVerifyIntegration } from './tools/verify-integration.js';
 import { exampleTool, runExample, PROFILES } from './tools/example.js';
 import { detectIOSSupportTool, runDetectIOSSupport } from './tools/detect-ios-support.js';
@@ -30,9 +31,19 @@ const installPlanSchema = z.object({
   include_premium: z.boolean().optional(),
 });
 
+const patchExistingAppSchema = z.object({
+  entry_html: z.string().min(1).describe('Full text of the app entry HTML (e.g. the served index.html).'),
+  entry_js: z.string().min(1).describe('Full text of the JS module that runs the requestDevice() flow.'),
+  html_path: z.string().min(1).describe('Repo-relative path of the entry HTML the edits target.'),
+  js_path: z.string().min(1).describe('Repo-relative path of the requestDevice() JS module the edits target.'),
+});
+
 const verifyIntegrationSchema = z.object({
   framework: z.enum(FRAMEWORKS),
   package_manager: z.enum(PACKAGE_MANAGERS).optional(),
+  mode: z.enum(['greenfield', 'brownfield']).optional().describe(
+    'greenfield (default): scaffolded-app correctness. brownfield: an already-written app — checks iOS-branch optionalServices, bootstrap-before-gate ordering, and no active-path third-party-browser string.',
+  ),
 });
 
 const exampleSchema = z.object({ profile: z.enum(PROFILES) });
@@ -73,6 +84,17 @@ export const ALL_TOOLS: ToolEntry[] = [
     description: installPlanTool.description,
     inputSchema: installPlanSchema.shape,
     run: (input) => runInstallPlan(installPlanSchema.parse(input)),
+    mode: 'consumer',
+    isReadOnly: true,
+    isLocalOnly: false,
+    isExperimental: false,
+  },
+  {
+    name: patchExistingAppTool.name,
+    title: patchExistingAppTool.title,
+    description: patchExistingAppTool.description,
+    inputSchema: patchExistingAppSchema.shape,
+    run: (input) => runPatchExistingApp(patchExistingAppSchema.parse(input)),
     mode: 'consumer',
     isReadOnly: true,
     isLocalOnly: false,
@@ -216,7 +238,7 @@ export function filterTools(tools: ToolEntry[], flags: ParsedFlags): ToolEntry[]
 
   if (filtered.length === 0) {
     throw new Error(
-      `[webble-mcp] No tools match the current filter (mode=${flags.mode}, readOnly=${flags.readOnly}, localOnly=${flags.localOnly}). ` +
+      `[beacio-mcp] No tools match the current filter (mode=${flags.mode}, readOnly=${flags.readOnly}, localOnly=${flags.localOnly}). ` +
         'Cannot start an MCP server with zero tools. Adjust flags or use --developer mode.',
     );
   }

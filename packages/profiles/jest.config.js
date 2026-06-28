@@ -10,6 +10,6 @@ module.exports = {
     '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
   },
   moduleNameMapper: {
-    '^@ios-web-bluetooth/core$': '<rootDir>/../core/src/index.ts',
+    '^@beacio/core$': '<rootDir>/../core/src/index.ts',
   },
 };

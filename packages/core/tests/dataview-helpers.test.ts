@@ -1,3 +1,4 @@
+import { describe, expect, it } from '@jest/globals';
 import {
   readUint8,
   readUint16LE,
@@ -7,7 +8,8 @@ import {
   readFloat32LE,
   readUtf8,
   readBytes,
-} from '../dataview-helpers';
+} from '../src/dataview-helpers';
+import { BeacioError } from '../src/errors';
 
 function makeDataView(bytes: number[]): DataView {
   return new DataView(new Uint8Array(bytes).buffer);
@@ -188,5 +190,77 @@ describe('readBytes', () => {
     const dv = new DataView(backing.buffer, 2, 3);
     const result = readBytes(dv);
     expect(Array.from(result)).toEqual([5, 6, 7]);
+  });
+});
+
+describe('bounds checking — typed BeacioError, not raw RangeError', () => {
+  // A short/torn BLE payload must surface a TYPED domain error so callers can
+  // catch it programmatically, NOT leak a raw DataView RangeError ("Offset is
+  // outside the bounds of the DataView").
+
+  it('readUint8 throws a typed BeacioError on an empty DataView', () => {
+    let thrown: unknown;
+    try {
+      readUint8(makeDataView([]));
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(BeacioError);
+    expect(thrown).not.toBeInstanceOf(RangeError);
+    expect((thrown as BeacioError).code).toBe('INVALID_PARAMETER');
+  });
+
+  it('readUint16LE throws a typed BeacioError on a 1-byte DataView (truncated uint16)', () => {
+    let thrown: unknown;
+    try {
+      readUint16LE(makeDataView([0x1e]));
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(BeacioError);
+    expect((thrown as BeacioError).code).toBe('INVALID_PARAMETER');
+    expect((thrown as Error).message).toMatch(/readUint16LE/);
+    expect((thrown as Error).message).toMatch(/1-byte DataView/);
+  });
+
+  it('readUint16BE throws a typed BeacioError on a 1-byte DataView', () => {
+    expect(() => readUint16BE(makeDataView([0x00]))).toThrow(BeacioError);
+  });
+
+  it('readInt16LE throws a typed BeacioError on a 1-byte DataView', () => {
+    expect(() => readInt16LE(makeDataView([0x00]))).toThrow(BeacioError);
+  });
+
+  it('readUint32LE throws a typed BeacioError on a 3-byte DataView', () => {
+    expect(() => readUint32LE(makeDataView([0, 0, 0]))).toThrow(BeacioError);
+  });
+
+  it('readFloat32LE throws a typed BeacioError on a 3-byte DataView', () => {
+    expect(() => readFloat32LE(makeDataView([0, 0, 0]))).toThrow(BeacioError);
+  });
+
+  it('throws when an explicit offset runs past the end of the DataView', () => {
+    // 2-byte view, but reading a uint16 at offset 1 needs bytes [1,2] -> out of bounds
+    let thrown: unknown;
+    try {
+      readUint16LE(makeDataView([0x01, 0x02]), 1);
+    } catch (e) {
+      thrown = e;
+    }
+    expect(thrown).toBeInstanceOf(BeacioError);
+    expect((thrown as BeacioError).code).toBe('INVALID_PARAMETER');
+  });
+
+  it('throws on a negative offset', () => {
+    expect(() => readUint8(makeDataView([1, 2, 3]), -1)).toThrow(BeacioError);
+  });
+
+  it('throws on a non-integer offset', () => {
+    expect(() => readUint8(makeDataView([1, 2, 3]), 1.5)).toThrow(BeacioError);
+  });
+
+  it('still reads valid in-bounds values at an explicit offset (guard does not break the happy path)', () => {
+    expect(readUint16LE(makeDataView([0xff, 0x34, 0x12]), 1)).toBe(0x1234);
+    expect(readUint8(makeDataView([10, 20, 30]), 2)).toBe(30);
   });
 });

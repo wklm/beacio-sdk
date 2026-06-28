@@ -1,6 +1,6 @@
 import { DeviceInfoProfile } from '../src/device-info';
 import type { DeviceInfo } from '../src/device-info';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import type { BeacioDevice } from '@beacio/core';
 
 function stringToDataView(str: string): DataView {
   const encoder = new TextEncoder();
@@ -12,7 +12,7 @@ function makeDataView(bytes: number[]): DataView {
   return new DataView(new Uint8Array(bytes).buffer);
 }
 
-function createMockDevice(readMap: Record<string, DataView>): WebBLEDevice {
+function createMockDevice(readMap: Record<string, DataView>): BeacioDevice {
   return {
     connect: jest.fn().mockResolvedValue(undefined),
     read: jest.fn().mockImplementation((_service: string, characteristic: string) => {
@@ -26,7 +26,7 @@ function createMockDevice(readMap: Record<string, DataView>): WebBLEDevice {
     subscribe: jest.fn().mockReturnValue(jest.fn()),
     getWriteLimits: jest.fn().mockResolvedValue({ withResponse: 512, withoutResponse: 512 }),
     getMtu: jest.fn().mockResolvedValue(23),
-  } as unknown as WebBLEDevice;
+  } as unknown as BeacioDevice;
 }
 
 describe('DeviceInfoProfile', () => {

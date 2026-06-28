@@ -1,7 +1,11 @@
-export { WebBLE } from './webble';
-export { WebBLEDevice } from './device';
-export { WebBLEError, withRetry } from './errors';
-export type { RetryOptions, WebBLEErrorCode } from './errors';
+export { Beacio } from './beacio';
+export { BeacioDevice } from './device';
+export { chunkSize, clampChunkSize } from './write-chunker';
+export type { ChunkSize } from './write-chunker';
+export { percent, clampPercent } from './units';
+export type { Percentage } from './units';
+export { BeacioError, withRetry } from './errors';
+export type { RetryOptions, BeacioErrorCode } from './errors';
 export {
   resolveUUID,
   getServiceName,
@@ -12,6 +16,9 @@ export {
   getDescriptor,
 } from './uuid';
 export { detectPlatform, getBluetoothAPI } from './platform';
+export { SETUP_URL } from './urls';
+export { BEACIO_EVENTS } from './events';
+export type { BeacioEventName } from './events';
 export {
   readUint8,
   readUint16LE,
@@ -35,11 +42,12 @@ export type {
   ConditionDecoder,
   ConditionOperator,
   Platform,
-  WebBLEOptions,
+  BeacioOptions,
   RequestDeviceOptions,
   BluetoothLEScanFilter,
   DeviceErrorContext,
   DisconnectReason,
+  NativeOverflowEvent,
   NotificationCallback,
   SubscribeOptions,
   NotificationOptions,
@@ -51,21 +59,21 @@ export type {
   NotificationTemplate,
   ReplyActionConfig,
   SubscriptionLostEvent,
-  WebBLEBackgroundSync,
-  WebBLEPeripheral,
-  WebBLEPeripheralAdvertisingOptions,
-  WebBLEPeripheralCharacteristicDefinition,
-  WebBLEPeripheralCharacteristicProperty,
-  WebBLEPeripheralCharacteristicRecord,
-  WebBLEPeripheralConnectionStateChange,
-  WebBLEPeripheralEventMap,
-  WebBLEPeripheralNotificationReady,
-  WebBLEPeripheralServiceDefinition,
-  WebBLEPeripheralServiceRecord,
-  WebBLEPeripheralSendOptions,
-  WebBLEPeripheralSendResult,
-  WebBLEPeripheralSubscriptionChange,
-  WebBLEPeripheralWriteRequest,
+  BeacioBackgroundSync,
+  BeacioPeripheral,
+  BeacioPeripheralAdvertisingOptions,
+  BeacioPeripheralCharacteristicDefinition,
+  BeacioPeripheralCharacteristicProperty,
+  BeacioPeripheralCharacteristicRecord,
+  BeacioPeripheralConnectionStateChange,
+  BeacioPeripheralEventMap,
+  BeacioPeripheralNotificationReady,
+  BeacioPeripheralServiceDefinition,
+  BeacioPeripheralServiceRecord,
+  BeacioPeripheralSendOptions,
+  BeacioPeripheralSendResult,
+  BeacioPeripheralSubscriptionChange,
+  BeacioPeripheralWriteRequest,
   WriteMode,
   WriteAutoOptions,
   WriteAutoResult,

@@ -1,6 +1,6 @@
 {
   "description": "Web Bluetooth SDK for iOS Safari",
-  "name": "ioswebble-sdk",
+  "name": "beacio-sdk",
   "private": true,
   "workspaces": [
     "packages/cli",
@@ -16,26 +16,26 @@
     "build:packages": "npm run build -w packages/detect && npm run build -w packages/core && npm run build -w packages/profiles && npm run build -w packages/react-sdk && npm run build -w packages/testing && npm run build -w packages/cli && npm run build -w packages/mcp",
     "test:packages": "npm test -w packages/core -w packages/profiles -w packages/react-sdk -w packages/testing -w packages/detect -w packages/cli -w packages/mcp -w packages/skill --if-present",
     "typecheck:packages": "npm run typecheck --workspaces --if-present",
-    "publish:packages": "npm run build:packages && npm publish -w packages/detect && npm publish --tag beta -w packages/core && npm publish --tag beta -w packages/profiles && npm publish --tag beta -w packages/react-sdk && npm publish -w packages/mcp && npm publish -w packages/cli && npm publish -w packages/skill && npm publish --tag beta -w packages/testing",
-    "publish:dry": "npm run build:packages && npm publish --dry-run -w packages/detect && npm publish --dry-run --tag beta -w packages/core && npm publish --dry-run --tag beta -w packages/profiles && npm publish --dry-run --tag beta -w packages/react-sdk && npm publish --dry-run -w packages/mcp && npm publish --dry-run -w packages/cli && npm publish --dry-run -w packages/skill && npm publish --dry-run --tag beta -w packages/testing"
+    "publish:packages": "npm run build:packages && npm publish --provenance -w packages/detect && npm publish --provenance --tag beta -w packages/core && npm publish --provenance --tag beta -w packages/profiles && npm publish --provenance --tag beta -w packages/react-sdk && npm publish --provenance -w packages/mcp && npm publish --provenance -w packages/cli && npm publish --provenance -w packages/skill && npm publish --provenance --tag beta -w packages/testing",
+    "publish:dry": "npm run build:packages && npm publish --provenance --dry-run -w packages/detect && npm publish --provenance --dry-run --tag beta -w packages/core && npm publish --provenance --dry-run --tag beta -w packages/profiles && npm publish --provenance --dry-run --tag beta -w packages/react-sdk && npm publish --provenance --dry-run -w packages/mcp && npm publish --provenance --dry-run -w packages/cli && npm publish --provenance --dry-run -w packages/skill && npm publish --provenance --dry-run --tag beta -w packages/testing"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.11.2",
+    "@axe-core/playwright": "^4.11.3",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "^1.61.0",
     "@types/chrome": "^0.1.43",
     "@types/jest": "^30",
     "@types/web-bluetooth": "^0.0.21",
-    "@typescript-eslint/eslint-plugin": "^8.61.0",
-    "@typescript-eslint/parser": "^8.59.4",
-    "eslint": "^10.4.1",
-    "jest": "^30",
-    "jest-environment-jsdom": "^30",
+    "@typescript-eslint/eslint-plugin": "^8.62.0",
+    "@typescript-eslint/parser": "^8.61.1",
+    "eslint": "^10.5.0",
+    "globals": "^17.7.0",
+    "jest": "^30.4.2",
+    "jest-environment-jsdom": "^30.4.1",
     "ts-jest": "^29",
-    "ts-loader": "^9.5.7",
-    "typescript": "^5.9.3",
-    "webpack": "^5.106.2",
-    "webpack-cli": "^7.0.2"
-  },
-  "dependencies": {}
+    "ts-loader": "^9.6.2",
+    "typescript": "^6.0.3",
+    "webpack": "^5.107.2",
+    "webpack-cli": "^7.0.3"
+  }
 }

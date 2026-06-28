@@ -1,14 +1,14 @@
-# @ios-web-bluetooth/profiles — Agent Instructions
+# @beacio/profiles — Agent Instructions
 
 ## What this package does
-Typed device profiles that wrap `@ios-web-bluetooth/core` with parsed, structured data
+Typed device profiles that wrap `@beacio/core` with parsed, structured data
 instead of raw `DataView` bytes. Each profile knows its service UUID,
 characteristic UUIDs, and binary parsing format per the Bluetooth SIG spec.
 
 ## When to use profiles vs raw GATT
 - **Use a profile** when a built-in one exists — it handles binary parsing,
   flags, endianness, and edge cases correctly.
-- **Use raw GATT** (`device.read`/`device.subscribe` from `@ios-web-bluetooth/core`) only
+- **Use raw GATT** (`device.read`/`device.subscribe` from `@beacio/core`) only
   for custom or proprietary BLE devices with no matching profile.
 - **Use `defineProfile()`** to create a reusable typed profile for a custom device.
 
@@ -21,14 +21,14 @@ characteristic UUIDs, and binary parsing format per the Bluetooth SIG spec.
 | `DeviceInfoProfile` | `device_information` | `readManufacturer()`, `readModel()`, `readAll()` |
 
 ## Safari iOS Support
-Add `import '@ios-web-bluetooth/core/auto'` to your app entry point for transparent Safari iOS support.
+Add `import '@beacio/core/auto'` to your app entry point for transparent Safari iOS support.
 
 ## Core pattern
 ```typescript
-import { HeartRateProfile } from '@ios-web-bluetooth/profiles';
-import { WebBLE } from '@ios-web-bluetooth/core';
+import { HeartRateProfile } from '@beacio/profiles';
+import { beacio } from '@beacio/core';
 
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({ filters: [{ services: ['heart_rate'] }] });
 
 const hr = new HeartRateProfile(device);
@@ -42,7 +42,7 @@ const unsub = hr.onHeartRate(({ bpm, contact, rrIntervals }) => {
 
 ## Custom profiles with defineProfile()
 ```typescript
-import { defineProfile } from '@ios-web-bluetooth/profiles';
+import { defineProfile } from '@beacio/profiles';
 
 const EnvironmentProfile = defineProfile({
   name: 'Environment',
@@ -70,7 +70,7 @@ const unsub = env.subscribeChar('humidity', (pct) => console.log(`${pct}%`));
 ### Use Profiles Instead of Raw Parsing
 ```typescript
 // CORRECT — use built-in profile
-import { HeartRateProfile } from '@ios-web-bluetooth/profiles'
+import { HeartRateProfile } from '@beacio/profiles'
 const profile = new HeartRateProfile(device)
 const unsub = profile.onHeartRate((data) => console.log(data.bpm))
 

@@ -1,4 +1,4 @@
-import { WebBLEError } from './errors';
+import { BeacioError } from './errors';
 import { resolveUUID } from './uuid';
 import type {
   DeviceErrorContext,
@@ -20,7 +20,7 @@ export type NotificationState = {
   reconcilePromise: Promise<void> | null;
 };
 
-// AIDEV-NOTE: Auto-recovery registry entry. Owned by WebBLEDevice and passed to
+// AIDEV-NOTE: Auto-recovery registry entry. Owned by BeacioDevice and passed to
 // the manager BY REFERENCE — the device must keep reading/clearing it across
 // connect()/disconnect(), so both objects share the same Map instance.
 export type RecoveryEntry = { service: string; characteristic: string; callbacks: Set<NotificationCallback> };
@@ -28,7 +28,7 @@ export type RecoveryEntry = { service: string; characteristic: string; callbacks
 type ReconnectGate = { promise: Promise<void>; resolve: () => void };
 
 /**
- * Dependencies injected by {@link WebBLEDevice}. The device retains ownership of
+ * Dependencies injected by {@link BeacioDevice}. The device retains ownership of
  * the GATT connection, the recovery registry, the characteristic cache, and the
  * reconnect-gate lifecycle; the manager reaches into those via these bindings so
  * the gate's create-before-fire / resolve-in-finally timing is unchanged.
@@ -38,7 +38,7 @@ export type NotificationManagerDeps = {
   emitError: (error: Error, context: DeviceErrorContext) => void;
   emitSubscriptionLost: (event: SubscriptionLostEvent) => void;
   emitQueueOverflow: (event: QueueOverflowEvent) => void;
-  // Shared by reference with WebBLEDevice.
+  // Shared by reference with BeacioDevice.
   recoveryRegistry: Map<string, RecoveryEntry>;
   charCache: Map<string, BluetoothRemoteGATTCharacteristic>;
   // Live reads of the device's reconnect-gate / disconnect intent.
@@ -52,7 +52,7 @@ export type NotificationManagerDeps = {
  * auto-recovery after reconnect.
  *
  * AIDEV-NOTE: Extracted from device.ts (cleanup item 144). Behavior is
- * byte-identical to the former WebBLEDevice methods. The reconcilePromise
+ * byte-identical to the former BeacioDevice methods. The reconcilePromise
  * serialization chain and reconnect-gate await semantics are preserved exactly.
  */
 export class NotificationManager {
@@ -64,7 +64,7 @@ export class NotificationManager {
 
   constructor(private readonly deps: NotificationManagerDeps) {}
 
-  /** Read-only access for WebBLEDevice.getActiveSubscriptions(). */
+  /** Read-only access for BeacioDevice.getActiveSubscriptions(). */
   getNotificationStates(): ReadonlyMap<string, NotificationState> {
     return this.notificationStates;
   }
@@ -72,11 +72,11 @@ export class NotificationManager {
   subscribe(service: string, characteristic: string, callback: NotificationCallback, options?: SubscribeOptions): () => void {
     const { unsubscribe, ready } = this.registerNotificationConsumer(service, characteristic, callback);
     void ready.catch((error) => {
-      const normalizedError = WebBLEError.from(error);
+      const normalizedError = BeacioError.from(error);
       try {
         options?.onError?.(normalizedError);
       } catch (listenerError) {
-        this.deps.emitError(WebBLEError.from(listenerError), {
+        this.deps.emitError(BeacioError.from(listenerError), {
           operation: 'device.subscribe.onError',
           service,
           characteristic,
@@ -115,7 +115,7 @@ export class NotificationManager {
     try {
       await ready;
     } catch (error) {
-      const normalizedError = WebBLEError.from(error);
+      const normalizedError = BeacioError.from(error);
       // AIDEV-NOTE: Unlike sync subscribe(), subscribeAsync surfaces errors via throw only.
       // Calling onError here would double-report since the caller already gets the rejection.
 
@@ -173,7 +173,7 @@ export class NotificationManager {
           try {
             options?.onOverflow?.(overflowEvent);
           } catch (error) {
-            this.deps.emitError(WebBLEError.from(error), {
+            this.deps.emitError(BeacioError.from(error), {
               operation: 'device.notifications.onOverflow',
               service,
               characteristic,
@@ -181,7 +181,7 @@ export class NotificationManager {
           }
 
           if (overflowStrategy === 'error') {
-            const overflowError = new WebBLEError(
+            const overflowError = new BeacioError(
               'GATT_OPERATION_FAILED',
               `Notification queue overflowed (maxQueueSize=${maxQueueSize}). Increase queue size or consume faster.`,
             );
@@ -273,7 +273,7 @@ export class NotificationManager {
           try {
             cb(value);
           } catch (error) {
-            this.deps.emitError(WebBLEError.from(error), {
+            this.deps.emitError(BeacioError.from(error), {
               operation: 'device.notification-callback',
               service,
               characteristic,
@@ -322,7 +322,7 @@ export class NotificationManager {
         // Characteristic may no longer exist after firmware update or
         // service change — remove the stale entry from the registry.
         this.deps.recoveryRegistry.delete(key);
-        const recoveredError = WebBLEError.from(error);
+        const recoveredError = BeacioError.from(error);
         this.deps.emitSubscriptionLost({
           service: entry.service,
           characteristic: entry.characteristic,
@@ -380,7 +380,7 @@ export class NotificationManager {
 
     const previous = notificationState.reconcilePromise ?? Promise.resolve();
     const next = previous.catch((error) => {
-      this.deps.emitError(WebBLEError.from(error), {
+      this.deps.emitError(BeacioError.from(error), {
         operation: 'notification.reconcile',
         service,
         characteristic,
@@ -477,7 +477,7 @@ export class NotificationManager {
 
   private validateMaxQueueSize(maxQueueSize: number): number {
     if (!Number.isInteger(maxQueueSize) || maxQueueSize <= 0) {
-      throw new WebBLEError('INVALID_PARAMETER', `Invalid maxQueueSize: ${maxQueueSize}. Must be a positive integer.`);
+      throw new BeacioError('INVALID_PARAMETER', `Invalid maxQueueSize: ${maxQueueSize}. Must be a positive integer.`);
     }
     return maxQueueSize;
   }
@@ -490,7 +490,7 @@ export class NotificationManager {
     try {
       await characteristic.stopNotifications();
     } catch (error) {
-      this.deps.emitError(WebBLEError.from(error), context);
+      this.deps.emitError(BeacioError.from(error), context);
     }
   }
 

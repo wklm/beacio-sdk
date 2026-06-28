@@ -1,23 +1,23 @@
 import { useCallback, useMemo } from 'react';
-import { useWebBLE } from '../core/WebBLEProvider';
-import { WebBLEError } from '@ios-web-bluetooth/core';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { useBeacio } from '../core/BeacioProvider';
+import { BeacioError } from '@beacio/core';
+import type { BeacioDevice } from '@beacio/core';
 import type { UseBluetoothReturn, RequestDeviceOptions } from '../types';
 
 /**
  * Primary hook for Web Bluetooth operations.
  *
  * Provides simplified access to Bluetooth device requesting, availability
- * checking, and extension detection. Wraps the {@link WebBLEProvider}
+ * checking, and extension detection. Wraps the {@link BeacioProvider}
  * context with convenience methods and automatic error handling.
  *
- * Must be used inside a {@link WebBLEProvider}.
+ * Must be used inside a {@link BeacioProvider}.
  *
  * @returns An object with availability flags, device request methods, and error state.
  *
  * @example
  * ```tsx
- * import { useBluetooth } from '@ios-web-bluetooth/react';
+ * import { useBluetooth } from '@beacio/react';
  *
  * function HeartRateButton() {
  *   const { isAvailable, isSupported, requestDevice, error } = useBluetooth();
@@ -44,7 +44,7 @@ import type { UseBluetoothReturn, RequestDeviceOptions } from '../types';
  * ```
  */
 export function useBluetooth(): UseBluetoothReturn {
-  const context = useWebBLE();
+  const context = useBeacio();
   const ble = context.core as UseBluetoothReturn['ble'];
 
   const isSupported = useMemo(() => ble.isSupported, [ble]);
@@ -52,11 +52,11 @@ export function useBluetooth(): UseBluetoothReturn {
   const peripheral = useMemo(() => ble.peripheral, [ble]);
 
   // Wrapper for requestDevice with simplified error handling
-  const requestDevice = useCallback(async (options: RequestDeviceOptions = { acceptAllDevices: true }): Promise<WebBLEDevice | null> => {
+  const requestDevice = useCallback(async (options: RequestDeviceOptions = { acceptAllDevices: true }): Promise<BeacioDevice | null> => {
     try {
       return await context.requestDevice(options);
     } catch (error) {
-      const candidate = WebBLEError.from(error);
+      const candidate = BeacioError.from(error);
       if (candidate.code === 'USER_CANCELLED') {
         return null;
       }

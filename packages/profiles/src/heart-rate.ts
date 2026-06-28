@@ -1,4 +1,14 @@
+import { readUint8, readUint16LE, resolveUUID } from '@beacio/core';
 import { BaseProfile } from './base';
+
+/**
+ * Service UUIDs a Heart Rate device may reach after connection (the SIG Heart
+ * Rate Service, 0x180D). Canonical 128-bit form (resolved from the SIG alias via
+ * the core registry — single source of truth). Use with `optionalServices` /
+ * `Beacio.registerServices`, or via {@link deriveOptionalServices} given
+ * {@link HeartRateProfile}.
+ */
+export const HEART_RATE_SERVICES: readonly string[] = [resolveUUID('heart_rate')];
 
 /**
  * Parsed heart rate measurement data from the Heart Rate Measurement
@@ -31,7 +41,7 @@ export interface HeartRateData {
  *
  * @example
  * ```ts
- * import { HeartRateProfile } from '@ios-web-bluetooth/profiles';
+ * import { HeartRateProfile } from '@beacio/profiles';
  *
  * const hr = new HeartRateProfile(device);
  * await hr.connect();
@@ -56,6 +66,9 @@ export interface HeartRateData {
  * ```
  */
 export class HeartRateProfile extends BaseProfile {
+  /** Services this profile's device may reach after connection (Heart Rate, 0x180D). Read by {@link deriveOptionalServices}. */
+  static readonly services = HEART_RATE_SERVICES;
+
   protected readonly service = 'heart_rate';
 
   /** Subscribe to heart rate measurements. Returns unsubscribe function. */
@@ -68,7 +81,7 @@ export class HeartRateProfile extends BaseProfile {
   /** Read body sensor location (0=Other, 1=Chest, 2=Wrist, ...) */
   async readSensorLocation(): Promise<number> {
     const dv = await this.read('body_sensor_location');
-    return dv.getUint8(0);
+    return readUint8(dv);
   }
 
   /** Reset energy expended counter */
@@ -90,7 +103,7 @@ export class HeartRateProfile extends BaseProfile {
  *
  * @example
  * ```ts
- * import { parseHeartRate } from '@ios-web-bluetooth/profiles';
+ * import { parseHeartRate } from '@beacio/profiles';
  *
  * // Manually parse a DataView from a notification
  * const data = parseHeartRate(characteristicValue);
@@ -98,12 +111,12 @@ export class HeartRateProfile extends BaseProfile {
  * ```
  */
 export function parseHeartRate(dv: DataView): HeartRateData {
-  const flags = dv.getUint8(0);
+  const flags = readUint8(dv, 0);
   let offset = 1;
 
   // Bit 0: Heart Rate Format — 0=UINT8, 1=UINT16
   const is16bit = (flags & 0x01) !== 0;
-  const bpm = is16bit ? dv.getUint16(offset, true) : dv.getUint8(offset);
+  const bpm = is16bit ? readUint16LE(dv, offset) : readUint8(dv, offset);
   offset += is16bit ? 2 : 1;
 
   // Bits 1-2: Sensor Contact
@@ -113,16 +126,18 @@ export function parseHeartRate(dv: DataView): HeartRateData {
   // Bit 3: Energy Expended present
   let energyExpended: number | null = null;
   if (flags & 0x08) {
-    energyExpended = dv.getUint16(offset, true);
+    energyExpended = readUint16LE(dv, offset);
     offset += 2;
   }
 
   // Bit 4: RR-Interval present
   const rrIntervals: number[] = [];
   if (flags & 0x10) {
-    while (offset + 1 < dv.byteLength) {
+    // Consume only complete 2-byte RR pairs; a stray trailing byte (malformed
+    // frame) is dropped rather than triggering an out-of-bounds read.
+    while (offset + 2 <= dv.byteLength) {
       // RR intervals are in 1/1024 seconds units, convert to seconds
-      rrIntervals.push(dv.getUint16(offset, true) / 1024);
+      rrIntervals.push(readUint16LE(dv, offset) / 1024);
       offset += 2;
     }
   }

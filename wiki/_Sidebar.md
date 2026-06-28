@@ -1,4 +1,4 @@
-### iOSWebBLE SDK
+### iOSbeacio SDK
 
 - [Home](Home)
 - [Getting Started](Getting-Started)

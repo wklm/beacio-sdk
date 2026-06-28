@@ -1,3 +1,4 @@
+import { readUint8 } from '@beacio/core';
 import { BaseProfile } from './base';
 
 /**
@@ -8,7 +9,7 @@ import { BaseProfile } from './base';
  *
  * @example
  * ```ts
- * import { BatteryProfile } from '@ios-web-bluetooth/profiles';
+ * import { BatteryProfile } from '@beacio/profiles';
  *
  * const battery = new BatteryProfile(device);
  * await battery.connect();
@@ -33,13 +34,13 @@ export class BatteryProfile extends BaseProfile {
   /** Read current battery level (0-100). */
   async readLevel(): Promise<number> {
     const dv = await this.read('battery_level');
-    return dv.getUint8(0);
+    return readUint8(dv);
   }
 
   /** Subscribe to battery level changes. Returns unsubscribe function. */
   onLevelChange(callback: (level: number) => void): () => void {
     return this.subscribe('battery_level', (dv) => {
-      callback(dv.getUint8(0));
+      callback(readUint8(dv));
     });
   }
 }

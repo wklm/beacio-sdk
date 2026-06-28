@@ -16,8 +16,8 @@
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
     "paths": {
-      "@ios-web-bluetooth/core": ["../core/src/index.ts"],
-      "@ios-web-bluetooth/detect": ["../detect/src/index.ts"]
+      "@beacio/core": ["../core/src/index.ts"],
+      "@beacio/detect": ["../detect/src/index.ts"]
     },
     "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
     "types": ["web-bluetooth", "jest", "node"]

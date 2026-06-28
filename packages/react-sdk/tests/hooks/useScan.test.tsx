@@ -1,11 +1,11 @@
 import { renderHook, act } from '@testing-library/react';
 import { useScan } from '../../src/hooks/useScan';
-import { useWebBLE } from '../../src/core/WebBLEProvider';
-import { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { useBeacio } from '../../src/core/BeacioProvider';
+import { BeacioDevice } from '@beacio/core';
 
-// Mock the useWebBLE hook
-jest.mock('../../src/core/WebBLEProvider', () => ({
-  useWebBLE: jest.fn()
+// Mock the useBeacio hook
+jest.mock('../../src/core/BeacioProvider', () => ({
+  useBeacio: jest.fn()
 }));
 
 describe('useScan', () => {
@@ -21,7 +21,7 @@ describe('useScan', () => {
       stop: mockStopScan
     };
 
-    (useWebBLE as jest.Mock).mockReturnValue({
+    (useBeacio as jest.Mock).mockReturnValue({
       requestLEScan: mockRequestLEScan,
       stopScan: jest.fn()
     });
@@ -122,7 +122,7 @@ describe('useScan', () => {
       mockScan.active = true;
       mockRequestLEScan.mockResolvedValue(mockScan);
       
-      (useWebBLE as jest.Mock).mockReturnValue({
+      (useBeacio as jest.Mock).mockReturnValue({
         requestLEScan: mockRequestLEScan,
         stopScan: jest.fn()
       });
@@ -197,8 +197,8 @@ describe('useScan', () => {
       });
 
       expect(result.current.devices).toHaveLength(1);
-      expect(result.current.devices[0]).toBeInstanceOf(WebBLEDevice);
-      expect((result.current.devices[0] as WebBLEDevice).raw).toBe(mockDevice as any);
+      expect(result.current.devices[0]).toBeInstanceOf(BeacioDevice);
+      expect((result.current.devices[0] as BeacioDevice).raw).toBe(mockDevice as any);
     });
 
     it('should prevent duplicate devices', async () => {
@@ -296,7 +296,7 @@ describe('useScan', () => {
       mockScan.active = true;
       mockRequestLEScan.mockResolvedValue(mockScan);
       
-      (useWebBLE as jest.Mock).mockReturnValue({
+      (useBeacio as jest.Mock).mockReturnValue({
         requestLEScan: mockRequestLEScan,
         stopScan: jest.fn()
       });

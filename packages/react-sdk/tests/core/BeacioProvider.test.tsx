@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { WebBLEProvider, useWebBLE } from '../../src/core/WebBLEProvider';
-import { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { BeacioProvider, useBeacio } from '../../src/core/BeacioProvider';
+import { BeacioDevice } from '@beacio/core';
 
 const mockBluetooth = (navigator as Navigator & { bluetooth: {
   getAvailability: jest.Mock;
@@ -10,7 +10,7 @@ const mockBluetooth = (navigator as Navigator & { bluetooth: {
   requestLEScan: jest.Mock;
 } }).bluetooth;
 
-describe('WebBLEProvider', () => {
+describe('BeacioProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockBluetooth.getAvailability = jest.fn().mockResolvedValue(true);
@@ -21,41 +21,41 @@ describe('WebBLEProvider', () => {
 
   it('renders children and provides context', async () => {
     const TestComponent = () => {
-      const context = useWebBLE();
+      const context = useBeacio();
       return <div>{context.isLoading ? 'Loading' : 'Ready'}</div>;
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <div>Child</div>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     expect(screen.getByText('Child')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText('Ready')).toBeInTheDocument());
   });
 
-  it('tracks requested devices with WebBLEDevice wrappers', async () => {
+  it('tracks requested devices with BeacioDevice wrappers', async () => {
     const rawDevice = new (((globalThis as unknown) as { BluetoothDevice: new () => { id: string; name: string; gatt?: unknown } }).BluetoothDevice)();
     rawDevice.id = 'device-1';
     rawDevice.name = 'Wrapped';
     mockBluetooth.requestDevice = jest.fn().mockResolvedValue(rawDevice);
 
     const TestComponent = () => {
-      const { requestDevice, devices } = useWebBLE();
+      const { requestDevice, devices } = useBeacio();
 
       React.useEffect(() => {
         void requestDevice({ acceptAllDevices: true });
       }, [requestDevice]);
 
-      return <div>{devices[0] instanceof WebBLEDevice ? 'Wrapped device' : 'Missing device'}</div>;
+      return <div>{devices[0] instanceof BeacioDevice ? 'Wrapped device' : 'Missing device'}</div>;
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(screen.getByText('Wrapped device')).toBeInTheDocument());
@@ -67,10 +67,10 @@ describe('WebBLEProvider', () => {
     rawDevice.name = 'Cached';
     mockBluetooth.getDevices = jest.fn().mockResolvedValue([rawDevice, rawDevice]);
 
-    const seen: WebBLEDevice[][] = [];
+    const seen: BeacioDevice[][] = [];
 
     const TestComponent = () => {
-      const { getDevices } = useWebBLE();
+      const { getDevices } = useBeacio();
 
       React.useEffect(() => {
         void getDevices().then((devices) => {
@@ -82,9 +82,9 @@ describe('WebBLEProvider', () => {
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(seen[0]).toBeDefined());
@@ -95,36 +95,36 @@ describe('WebBLEProvider', () => {
     mockBluetooth.getAvailability = jest.fn().mockRejectedValue(new Error('Bluetooth unavailable'));
 
     const TestComponent = () => {
-      const { isAvailable, isLoading } = useWebBLE();
+      const { isAvailable, isLoading } = useBeacio();
       if (isLoading) return <div>Loading</div>;
       return <div>{isAvailable ? 'Available' : 'Unavailable'}</div>;
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(screen.getByText('Unavailable')).toBeInTheDocument());
   });
 
   it('does not expose error when getAvailability rejects (core swallows)', async () => {
-    // WebBLE.getAvailability() catches internally and returns false, so
+    // Beacio.getAvailability() catches internally and returns false, so
     // the provider's catch block never fires and error remains null.
     mockBluetooth.getAvailability = jest.fn().mockRejectedValue(new Error('fail'));
 
     let capturedError: unknown = 'sentinel';
     const TestComponent = () => {
-      const { error, isLoading } = useWebBLE();
+      const { error, isLoading } = useBeacio();
       if (!isLoading) capturedError = error;
       return <div>{isLoading ? 'Loading' : 'Done'}</div>;
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(screen.getByText('Done')).toBeInTheDocument());
@@ -134,9 +134,9 @@ describe('WebBLEProvider', () => {
   it('returns null and sets error when requestDevice fails', async () => {
     mockBluetooth.requestDevice = jest.fn().mockRejectedValue(new Error('GATT operation failed'));
 
-    let capturedResult: WebBLEDevice | null | undefined;
+    let capturedResult: BeacioDevice | null | undefined;
     const TestComponent = () => {
-      const { requestDevice, error } = useWebBLE();
+      const { requestDevice, error } = useBeacio();
 
       React.useEffect(() => {
         void requestDevice({ acceptAllDevices: true }).then((result) => {
@@ -148,9 +148,9 @@ describe('WebBLEProvider', () => {
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(screen.getByText(/Error:/)).toBeInTheDocument());
@@ -164,7 +164,7 @@ describe('WebBLEProvider', () => {
 
     let capturedError: unknown = 'not-set';
     const TestComponent = () => {
-      const { requestDevice, error } = useWebBLE();
+      const { requestDevice, error } = useBeacio();
 
       React.useEffect(() => {
         void requestDevice({ acceptAllDevices: true }).then(() => {
@@ -176,9 +176,9 @@ describe('WebBLEProvider', () => {
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     // Give time for the request to resolve and re-render
@@ -202,7 +202,7 @@ describe('WebBLEProvider', () => {
     });
 
     const TestComponent = () => {
-      const { requestDevice, devices } = useWebBLE();
+      const { requestDevice, devices } = useBeacio();
 
       React.useEffect(() => {
         void (async () => {
@@ -215,9 +215,9 @@ describe('WebBLEProvider', () => {
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(screen.getByText('Count: 2')).toBeInTheDocument());
@@ -230,7 +230,7 @@ describe('WebBLEProvider', () => {
     mockBluetooth.requestDevice = jest.fn().mockResolvedValue(rawDevice);
 
     const TestComponent = () => {
-      const { requestDevice, devices } = useWebBLE();
+      const { requestDevice, devices } = useBeacio();
 
       React.useEffect(() => {
         void (async () => {
@@ -243,9 +243,9 @@ describe('WebBLEProvider', () => {
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(mockBluetooth.requestDevice).toHaveBeenCalledTimes(2));
@@ -253,26 +253,26 @@ describe('WebBLEProvider', () => {
   });
 
   it('provides a stable context reference across re-renders', async () => {
-    const snapshots: ReturnType<typeof useWebBLE>[] = [];
+    const snapshots: ReturnType<typeof useBeacio>[] = [];
 
     const TestComponent = () => {
-      const context = useWebBLE();
+      const context = useBeacio();
       snapshots.push(context);
       return <div>Render {snapshots.length}</div>;
     };
 
     const { rerender } = render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(screen.getByText(/Render/)).toBeInTheDocument());
 
     rerender(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(snapshots.length).toBeGreaterThanOrEqual(2));
@@ -283,9 +283,9 @@ describe('WebBLEProvider', () => {
     expect(last.stopScan).toBe(prev.stopScan);
   });
 
-  it('throws when useWebBLE is used outside of WebBLEProvider', () => {
+  it('throws when useBeacio is used outside of BeacioProvider', () => {
     const TestComponent = () => {
-      useWebBLE();
+      useBeacio();
       return <div>Should not render</div>;
     };
 
@@ -294,7 +294,7 @@ describe('WebBLEProvider', () => {
 
     expect(() => {
       render(<TestComponent />);
-    }).toThrow('useWebBLE must be used within a WebBLEProvider');
+    }).toThrow('useBeacio must be used within a BeacioProvider');
 
     spy.mockRestore();
   });
@@ -304,16 +304,16 @@ describe('WebBLEProvider', () => {
     const removeSpy = jest.spyOn(window, 'removeEventListener');
 
     const { unmount } = render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <div>Child</div>
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
-    await waitFor(() => expect(addSpy).toHaveBeenCalledWith('webble:extension:ready', expect.any(Function)));
+    await waitFor(() => expect(addSpy).toHaveBeenCalledWith('beacio:extension:ready', expect.any(Function)));
 
     unmount();
 
-    expect(removeSpy).toHaveBeenCalledWith('webble:extension:ready', expect.any(Function));
+    expect(removeSpy).toHaveBeenCalledWith('beacio:extension:ready', expect.any(Function));
 
     addSpy.mockRestore();
     removeSpy.mockRestore();
@@ -327,7 +327,7 @@ describe('WebBLEProvider', () => {
 
     let errorMessage = '';
     const TestComponent = () => {
-      const { requestDevice, getDevices, devices, error } = useWebBLE();
+      const { requestDevice, getDevices, devices, error } = useBeacio();
 
       React.useEffect(() => {
         void (async () => {
@@ -344,9 +344,9 @@ describe('WebBLEProvider', () => {
     };
 
     render(
-      <WebBLEProvider>
+      <BeacioProvider>
         <TestComponent />
-      </WebBLEProvider>,
+      </BeacioProvider>,
     );
 
     await waitFor(() => expect(screen.getByText(/Err: Network error/)).toBeInTheDocument());

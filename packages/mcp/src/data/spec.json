@@ -9,14 +9,14 @@
         "Requires a secure context (HTTPS).",
         "Declare every service you plan to access in filters or optionalServices — anything else is blocked with SecurityError.",
         "Cannot combine acceptAllDevices:true with filters.",
-        "On WebBLE, the chooser UI is driven by the Safari Web Extension; styling cannot be customised from the page."
+        "On beacio, the chooser UI is driven by the Safari Web Extension; styling cannot be customised from the page."
       ]
     },
     "navigator.bluetooth.getAvailability": {
       "fragment": "#dom-bluetooth-getavailability",
-      "summary": "Reports whether the browser has a usable Bluetooth radio and (on WebBLE) whether the extension is reachable on the current origin. Returns Promise<boolean>.",
+      "summary": "Reports whether the browser has a usable Bluetooth radio and (on beacio) whether the extension is reachable on the current origin. Returns Promise<boolean>.",
       "caveats": [
-        "On WebBLE, false may mean the extension is installed but disabled or not granted permission on this origin — not necessarily that the radio is off.",
+        "On beacio, false may mean the extension is installed but disabled or not granted permission on this origin — not necessarily that the radio is off.",
         "Always check before calling requestDevice() to show a helpful message rather than a generic rejection."
       ]
     },
@@ -75,7 +75,7 @@
       "caveats": [
         "Requires char.properties.notify or char.properties.indicate.",
         "Call stopNotifications() to unsubscribe; on disconnect the subscription is torn down automatically and must be re-established after reconnect.",
-        "Safari foreground only unless a window.webbleIOS.backgroundSync registration keeps the channel alive."
+        "Safari foreground only unless a window.beacioIOS.backgroundSync registration keeps the channel alive."
       ]
     }
   }

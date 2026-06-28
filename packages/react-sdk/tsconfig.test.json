@@ -3,7 +3,6 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "ignoreDeprecations": "5.0",
     "rootDir": ".",
     "types": ["web-bluetooth", "jest", "node"]
   },

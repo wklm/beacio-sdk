@@ -1,32 +1,32 @@
-# @ios-web-bluetooth/react — Agent Instructions
+# @beacio/react — Agent Instructions
 
 ## What this package does
-React SDK for Web Bluetooth. Provides `WebBLEProvider` (context), hooks for
+React SDK for Web Bluetooth. Provides `BeacioProvider` (context), hooks for
 device discovery/connection/notifications, and pre-built UI components.
-Optionally integrates with `@ios-web-bluetooth/core`, `@ios-web-bluetooth/profiles`, and
-`@ios-web-bluetooth/detect`.
+Optionally integrates with `@beacio/core`, `@beacio/profiles`, and
+`@beacio/detect`.
 
 ## Safari iOS Support
-Add `import '@ios-web-bluetooth/core/auto'` to your app entry point for transparent Safari iOS support. This is separate from the React hooks below.
+Add `import '@beacio/core/auto'` to your app entry point for transparent Safari iOS support. This is separate from the React hooks below.
 
 ## Provider setup
-Wrap your app in `WebBLEProvider`. All hooks require this context.
+Wrap your app in `BeacioProvider`. All hooks require this context.
 
 ```tsx
-import { WebBLEProvider } from '@ios-web-bluetooth/react';
+import { BeacioProvider } from '@beacio/react';
 
 function App() {
   return (
-    <WebBLEProvider config={{ apiKey: 'wbl_xxxxx' }}>
+    <BeacioProvider config={{ apiKey: 'wbl_xxxxx' }}>
       <MyBLEApp />
-    </WebBLEProvider>
+    </BeacioProvider>
   );
 }
 ```
 
 Config options: `autoConnect`, `cacheTimeout`, `retryAttempts`, `apiKey`,
 `operatorName`, `appStoreUrl`. The `apiKey` enables automatic iOS Safari
-install prompts via `@ios-web-bluetooth/detect`.
+install prompts via `@beacio/detect`.
 
 ## Hook reference
 
@@ -35,15 +35,15 @@ install prompts via `@ios-web-bluetooth/detect`.
 | `useBluetooth()` | Main entry — availability, device requests | `isAvailable`, `isSupported`, `requestDevice`, `getDevices`, `error` |
 | `useDevice(device)` | Manage a specific device | `isConnected`, `isConnecting`, `connect`, `disconnect`, `services`, `error` |
 | `useScan()` | BLE scanning | `startScan`, `stopScan`, `isScanning`, `devices` |
-| `useProfile(ProfileClass, device)` | Bind a `@ios-web-bluetooth/profiles` profile to a device | `profile`, `connect`, `error` |
+| `useProfile(ProfileClass, device)` | Bind a `@beacio/profiles` profile to a device | `profile`, `connect`, `error` |
 | `useNotifications()` | Characteristic notifications | subscribe/unsubscribe helpers |
 | `useCharacteristic()` | Read/write a single characteristic | `read`, `write`, `value`, `error` |
 | `useConnection()` | Connection state management | connection lifecycle helpers |
 
 ## Core pattern
 ```tsx
-import { WebBLEProvider, useBluetooth, useDevice, useProfile } from '@ios-web-bluetooth/react';
-import { HeartRateProfile } from '@ios-web-bluetooth/profiles';
+import { BeacioProvider, useBluetooth, useDevice, useProfile } from '@beacio/react';
+import { HeartRateProfile } from '@beacio/profiles';
 
 function HeartRateMonitor() {
   const { requestDevice } = useBluetooth();
@@ -70,7 +70,6 @@ function HeartRateMonitor() {
 ## Pre-built components
 - `<DeviceScanner />` — device discovery UI
 - `<ServiceExplorer />` — browse GATT services/characteristics
-- `<ConnectionStatus />` — connection state indicator
 - `<InstallationWizard />` — iOS extension install guide
 
 ## Common Mistakes
@@ -121,28 +120,28 @@ useEffect(() => {
 // CORRECT — Provider at app root
 function App() {
   return (
-    <WebBLEProvider>
+    <BeacioProvider>
       <MyBLEComponent />
-    </WebBLEProvider>
+    </BeacioProvider>
   )
 }
 
 // WRONG — hook without Provider
 function App() {
-  const { isAvailable } = useBluetooth() // throws: no WebBLEProvider
+  const { isAvailable } = useBluetooth() // throws: no BeacioProvider
   return <div>{isAvailable ? 'Yes' : 'No'}</div>
 }
 ```
 
 ## DO
-- Wrap your app in `<WebBLEProvider>` before using any hooks
+- Wrap your app in `<BeacioProvider>` before using any hooks
 - Use `useProfile` for standard device types (heart rate, battery) instead of manual GATT calls
 - Clean up subscriptions — hooks handle this automatically on unmount
 - Use `useBluetooth().isAvailable` to conditionally render BLE UI
 - Pass `apiKey` in config to enable iOS Safari extension install prompts
 
 ## DO NOT
-- Do not call `useWebBLE()` or any hook outside of `<WebBLEProvider>` — throws an error
+- Do not call `usebeacio()` or any hook outside of `<BeacioProvider>` — throws an error
 - Do not use raw `addEventListener` for BLE events — use the provided hooks
 - Do not forget the Provider — all hooks throw if context is missing
 - Do not mix `useDevice` manual connection with `useProfile` connection — pick one approach

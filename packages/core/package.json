@@ -1,11 +1,11 @@
 {
-  "name": "@ios-web-bluetooth/core",
-  "version": "2.0.0-beta.2",
+  "name": "@beacio/core",
+  "version": "1.0.0",
   "description": "The only Web Bluetooth polyfill for Safari iOS — make navigator.bluetooth work on iPhone. Scan, connect, read/write BLE devices from any browser",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
-  "unpkg": "dist/browser.global.js",
-  "jsdelivr": "dist/browser.global.js",
+  "unpkg": "dist/browser-auto.global.js",
+  "jsdelivr": "dist/browser-auto.global.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
@@ -18,6 +18,9 @@
       "import": "./dist/auto.mjs",
       "require": "./dist/auto.js"
     },
+    "./browser-auto": {
+      "default": "./dist/browser-auto.global.js"
+    },
     "./global": {
       "types": "./dist/global.d.ts",
       "import": "./dist/global.mjs",
@@ -26,21 +29,22 @@
   },
   "sideEffects": [
     "./dist/auto.mjs",
-    "./dist/auto.js"
+    "./dist/auto.js",
+    "./dist/browser-auto.global.js"
   ],
   "files": [
     "dist",
     "README.md",
     "CHANGELOG.md",
     "POWER_MANAGEMENT.md",
-    "AGENTS.md",
-    "CONTEXT.md"
+    "AGENTS.md"
   ],
   "scripts": {
-    "build": "tsup && tsup --config tsup.browser.config.ts",
+    "build": "tsup && tsup --config tsup.browser.config.ts && tsup --config tsup.browser-auto.config.ts && node scripts/generate-integrity.mjs",
     "dev": "tsup --watch",
     "test": "jest",
     "typecheck": "tsc --noEmit",
+    "integrity": "node scripts/generate-integrity.mjs",
     "prepublishOnly": "npm run build && npm run typecheck"
   },
   "keywords": [
@@ -48,7 +52,7 @@
     "ble",
     "web-bluetooth",
     "webbluetooth",
-    "webble",
+    "beacio",
     "safari",
     "sdk",
     "ios",
@@ -71,24 +75,25 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wklm/ioswebble-sdk.git",
+    "url": "https://github.com/wklm/beacio-sdk.git",
     "directory": "packages/core"
   },
-  "homepage": "https://ioswebble.com/docs#core-package",
+  "homepage": "https://beacio.com/docs#core-package",
   "bugs": {
-    "url": "https://github.com/wklm/ioswebble-sdk/issues"
+    "url": "https://github.com/wklm/beacio-sdk/issues"
   },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
+    "@beacio/detect": "^1.0.0",
     "@types/jest": "^30",
     "@types/web-bluetooth": "^0.0.21",
     "jest": "^30",
     "jest-environment-jsdom": "^30",
     "ts-jest": "^29",
     "tsup": "^8.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=18"

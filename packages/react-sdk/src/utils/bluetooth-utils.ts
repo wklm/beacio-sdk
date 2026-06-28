@@ -6,13 +6,13 @@ import {
   getServiceName as coreGetServiceName,
   getCharacteristicName as coreGetCharacteristicName,
   getDisplayName,
-} from '@ios-web-bluetooth/core';
+} from '@beacio/core';
 
 /**
  * Get the human-readable name for a service UUID.
  * Accepts short-form (0X1800), hex (1800), or canonical UUIDs.
  *
- * Delegates name resolution to `@ios-web-bluetooth/core` (single source of
+ * Delegates name resolution to `@beacio/core` (single source of
  * truth) and formats the snake_case SIG name as Title Case for display. Falls
  * back to the raw UUID for unknown services.
  */
@@ -25,7 +25,7 @@ export function getServiceName(uuid: string): string {
  * Get the human-readable name for a characteristic UUID.
  * Accepts short-form (0X2A37), hex (2a37), or canonical UUIDs.
  *
- * Delegates name resolution to `@ios-web-bluetooth/core` (single source of
+ * Delegates name resolution to `@beacio/core` (single source of
  * truth) and formats the snake_case SIG name as Title Case for display. Falls
  * back to the raw UUID for unknown characteristics.
  */

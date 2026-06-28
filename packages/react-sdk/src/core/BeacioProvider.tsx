@@ -1,64 +1,64 @@
 import React, { useContext, useEffect, useState, useCallback, useMemo, ReactNode, useRef } from 'react';
-import { WebBLE, WebBLEDevice, WebBLEError } from '@ios-web-bluetooth/core';
-import type { RequestDeviceOptions } from '@ios-web-bluetooth/core';
+import { Beacio, BeacioDevice, BeacioError, BEACIO_EVENTS } from '@beacio/core';
+import type { RequestDeviceOptions } from '@beacio/core';
 import { ExtensionDetector } from './ExtensionDetector';
-import type { WebBLEConfig } from '../types';
-import { WebBLEContext, type WebBLEContextValue } from './WebBLEContext';
+import type { BeacioConfig } from '../types';
+import { BeacioContext, type BeacioContextValue } from './BeacioContext';
 
 function reportBLEEvent(apiKey: string | undefined, event: string) {
   if (!apiKey) return;
-  import('@ios-web-bluetooth/detect').then(m => m.reportEvent(apiKey, event)).catch(() => {});
+  import('@beacio/detect').then(m => m.reportEvent(apiKey, event)).catch(() => {});
 }
 
-interface WebBLEProviderProps {
+interface BeacioProviderProps {
   children: ReactNode;
-  config?: WebBLEConfig;
-  ble?: WebBLE;
+  config?: BeacioConfig;
+  ble?: Beacio;
 }
 
 /**
- * Context provider that initialises the WebBLE client and makes Bluetooth
+ * Context provider that initialises the Beacio client and makes Bluetooth
  * state and methods available to all descendant components via
- * {@link useWebBLE} and the convenience hooks (`useBluetooth`, `useDevice`,
+ * {@link useBeacio} and the convenience hooks (`useBluetooth`, `useDevice`,
  * `useScan`, `useProfile`).
  *
  * Place this near the root of your application. It handles:
  * - Bluetooth availability detection
- * - Safari Web Extension detection (via `webble:extension:ready` event)
- * - Optional iOS install prompt (when `apiKey` is provided and `@ios-web-bluetooth/detect` is installed)
- * - Core WebBLE instance creation and delegation
+ * - Safari Web Extension detection (via `beacio:extension:ready` event)
+ * - Optional iOS install prompt (when `apiKey` is provided and `@beacio/detect` is installed)
+ * - Core Beacio instance creation and delegation
  *
  * @param props.children - React children to render inside the provider.
  * @param props.config - Optional configuration (auto-connect, retry, API key, etc.).
  *
  * @example
  * ```tsx
- * import { WebBLEProvider } from '@ios-web-bluetooth/react';
+ * import { BeacioProvider } from '@beacio/react';
  *
  * function App() {
  *   return (
- *     <WebBLEProvider config={{ retryAttempts: 3 }}>
+ *     <BeacioProvider config={{ retryAttempts: 3 }}>
  *       <MyBluetoothApp />
- *     </WebBLEProvider>
+ *     </BeacioProvider>
  *   );
  * }
  * ```
  */
-export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
+export function BeacioProvider({ children, config, ble }: BeacioProviderProps) {
   const [isAvailable, setIsAvailable] = useState(false);
   const [isExtensionInstalled, setIsExtensionInstalled] = useState(false);
   const [extensionInstallState, setExtensionInstallState] = useState<'not-installed' | 'installed-inactive' | 'active'>('not-installed');
   const [isLoading, setIsLoading] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
-  const [devices, setDevices] = useState<WebBLEDevice[]>([]);
-  const [error, setError] = useState<WebBLEError | null>(null);
+  const [devices, setDevices] = useState<BeacioDevice[]>([]);
+  const [error, setError] = useState<BeacioError | null>(null);
   const [currentScan, setCurrentScan] = useState<BluetoothLEScan | null>(null);
-  const deviceMapRef = useRef<Map<string, WebBLEDevice>>(new Map());
+  const deviceMapRef = useRef<Map<string, BeacioDevice>>(new Map());
 
-  const coreInstance = useMemo(() => ble ?? new WebBLE(), [ble]);
+  const coreInstance = useMemo(() => ble ?? new Beacio(), [ble]);
   const detector = useMemo(() => new ExtensionDetector(), []);
 
-  const cacheDevice = useCallback((device: WebBLEDevice): WebBLEDevice => {
+  const cacheDevice = useCallback((device: BeacioDevice): BeacioDevice => {
     const existing = deviceMapRef.current.get(device.id);
     if (existing) {
       return existing;
@@ -68,7 +68,7 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
     return device;
   }, []);
 
-  const syncDevices = useCallback((nextDevices: WebBLEDevice[]) => {
+  const syncDevices = useCallback((nextDevices: BeacioDevice[]) => {
     const cachedDevices = nextDevices.map(cacheDevice);
     setDevices(cachedDevices);
     return cachedDevices;
@@ -83,7 +83,7 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
         const available = await coreInstance.getAvailability();
         setIsAvailable(available);
       } catch (err) {
-        setError(WebBLEError.from(err));
+        setError(BeacioError.from(err));
         setIsAvailable(false);
       } finally {
         setIsLoading(false);
@@ -105,10 +105,10 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
     setIsExtensionInstalled(currentInstallState !== 'not-installed');
 
     // Listen for extension ready event
-    window.addEventListener('webble:extension:ready', handleExtensionReady);
+    window.addEventListener(BEACIO_EVENTS.EXTENSION_READY, handleExtensionReady);
 
     return () => {
-      window.removeEventListener('webble:extension:ready', handleExtensionReady);
+      window.removeEventListener(BEACIO_EVENTS.EXTENSION_READY, handleExtensionReady);
     };
   }, [detector]);
 
@@ -119,9 +119,9 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
     let cancelled = false;
     (async () => {
       try {
-        const detect = await import('@ios-web-bluetooth/detect');
+        const detect = await import('@beacio/detect');
         if (cancelled) return;
-        await detect.initIOSWebBLE({
+        await detect.initBeacio({
           key: config?.apiKey ?? '',
           operatorName: config.operatorName,
           banner: config.startOnboardingUrl || config.appStoreUrl
@@ -141,7 +141,7 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
           },
         });
       } catch {
-        // @ios-web-bluetooth/detect not installed -- silent fallback
+        // @beacio/detect not installed -- silent fallback
       }
     })();
 
@@ -156,11 +156,11 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
       setDevices((prev) => prev.some((current) => current.id === device.id) ? prev : [...prev, device]);
       return device;
     } catch (err) {
-      const webbleError = WebBLEError.from(err);
-      const isUserCancellation = webbleError.code === 'USER_CANCELLED'
+      const beacioError = BeacioError.from(err);
+      const isUserCancellation = beacioError.code === 'USER_CANCELLED'
         || (err instanceof Error && err.name === 'NotFoundError');
       if (!isUserCancellation) {
-        setError(webbleError);
+        setError(beacioError);
       }
       return null;
     }
@@ -171,7 +171,7 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
       setError(null);
       return syncDevices(await coreInstance.getDevices());
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
       return devices;
     }
   }, [cacheDevice, devices, syncDevices]);
@@ -184,7 +184,7 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
         currentScan.stop();
       }
 
-      const scan = await (coreInstance as WebBLE & {
+      const scan = await (coreInstance as Beacio & {
         requestLEScan?: (options?: BluetoothLEScanOptions) => Promise<BluetoothLEScan | null>;
       }).requestLEScan?.(options) ?? null;
       if (scan) {
@@ -193,7 +193,7 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
       }
       return scan;
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
       return null;
     }
   }, [coreInstance, currentScan]);
@@ -206,7 +206,7 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
     setIsScanning(false);
   }, [currentScan]);
 
-  const contextValue = useMemo<WebBLEContextValue>(() => ({
+  const contextValue = useMemo<BeacioContextValue>(() => ({
     isAvailable,
     isExtensionInstalled,
     extensionInstallState,
@@ -235,27 +235,27 @@ export function WebBLEProvider({ children, config, ble }: WebBLEProviderProps) {
   ]);
 
   return (
-    <WebBLEContext.Provider value={contextValue}>
+    <BeacioContext.Provider value={contextValue}>
       {children}
-    </WebBLEContext.Provider>
+    </BeacioContext.Provider>
   );
 }
 
 /**
- * Hook to access the {@link WebBLEProvider} context directly.
+ * Hook to access the {@link BeacioProvider} context directly.
  *
  * Returns the full context value including availability state, device list,
  * scanning state, and all Bluetooth methods. Throws if used outside a
- * {@link WebBLEProvider}.
+ * {@link BeacioProvider}.
  *
- * @returns The full WebBLE context value.
- * @throws Error if called outside a {@link WebBLEProvider}.
+ * @returns The full Beacio context value.
+ * @throws Error if called outside a {@link BeacioProvider}.
  */
-export function useWebBLE() {
-  const context = useContext(WebBLEContext);
+export function useBeacio() {
+  const context = useContext(BeacioContext);
 
   if (!context) {
-    throw new Error('useWebBLE must be used within a WebBLEProvider');
+    throw new Error('useBeacio must be used within a BeacioProvider');
   }
 
   return context;

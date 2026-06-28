@@ -36,8 +36,8 @@ export function runExample(input: ExampleInput): ExampleOutput {
 }
 
 export const exampleTool: ToolDefinition<ExampleInput, ExampleOutput> = {
-  name: 'webble_example',
-  title: 'WebBLE code example',
+  name: 'beacio_example',
+  title: 'Beacio code example',
   description:
     'Return a ready-to-paste code snippet for a canonical BLE profile (heart-rate, battery, cgm, lock, beacon, peripheral-chat) with preconditions and spec citations.',
   run: runExample,

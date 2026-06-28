@@ -1,10 +1,10 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { WebBLEProvider } from '../../src/core/WebBLEProvider';
+import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useNotifications } from '../../src/hooks/useNotifications';
 
 /**
- * Factory for creating mock WebBLEDevice objects.
+ * Factory for creating mock BeacioDevice objects.
  * The new useNotifications API: useNotifications(device, service, characteristic, options?)
  * uses device.subscribe(service, characteristic, callback) which returns an unsub fn.
  */
@@ -28,7 +28,7 @@ function createMockDevice(overrides: Record<string, any> = {}) {
 
 describe('useNotifications Hook', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <WebBLEProvider>{children}</WebBLEProvider>
+    <BeacioProvider>{children}</BeacioProvider>
   );
 
   const SERVICE = 'heart_rate';

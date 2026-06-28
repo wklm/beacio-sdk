@@ -1,7 +1,7 @@
 /**
- * Public programmatic API for @ios-web-bluetooth/mcp.
+ * Public programmatic API for @beacio/mcp.
  *
- * CLI consumers use `webble-mcp` (bin); library consumers import from here.
+ * CLI consumers use `beacio-mcp` (bin); library consumers import from here.
  */
 export { buildServer, SERVER_NAME, SERVER_VERSION } from './server.js';
 export type { BuildServerOptions } from './server.js';

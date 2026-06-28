@@ -2,7 +2,7 @@
  * Shared tool types + data loaders.
  *
  * Each tool exports:
- *   - `name`: the MCP tool name (matches `webble_*`).
+ *   - `name`: the MCP tool name (matches `beacio_*`).
  *   - `schema`: a plain JSON Schema fragment (input shape).
  *   - `run(input)`: pure function producing the typed response.
  *
@@ -23,7 +23,7 @@ export class ToolInputError extends Error {
   }
 }
 
-const DOCS_BASE = 'https://ioswebble.com/docs-md';
+const DOCS_BASE = 'https://beacio.com/docs-md';
 
 export function docsUrl(path: string, hash?: string): string {
   const normalized = path.startsWith('/') ? path : `/${path}`;

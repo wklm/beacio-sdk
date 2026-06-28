@@ -1,8 +1,8 @@
 # Migration Guide
 
-## Migrating from Vanilla Web Bluetooth to @ios-web-bluetooth/react
+## Migrating from Vanilla Web Bluetooth to @beacio/react
 
-This guide helps you migrate existing Web Bluetooth code to use the @ios-web-bluetooth/react SDK.
+This guide helps you migrate existing Web Bluetooth code to use the @beacio/react SDK.
 
 ## Quick Comparison
 
@@ -38,26 +38,31 @@ function handleValue(event) {
 }
 ```
 
-### @ios-web-bluetooth/react
+### @beacio/react
 
 ```tsx
-import { WebBLE } from '@ios-web-bluetooth/react';
+import { useBluetooth, useDevice, useNotifications } from '@beacio/react';
+import type { BeacioDevice } from '@beacio/react';
 
 function HeartRateMonitor() {
-  const { requestDevice } = WebBLE.useBluetooth();
-  const [deviceId, setDeviceId] = useState<string>();
-  const { device, connect } = WebBLE.useDevice(deviceId);
-  const { value, startNotifications } = WebBLE.useNotifications('heart_rate_measurement');
+  const { requestDevice } = useBluetooth();
+  const [device, setDevice] = useState<BeacioDevice | null>(null);
+  const { connect } = useDevice(device);
+  const { value, subscribe } = useNotifications(
+    device,
+    'heart_rate',
+    'heart_rate_measurement',
+  );
   
   const handleConnect = async () => {
     try {
-      const device = await requestDevice({
+      const paired = await requestDevice({
         filters: [{ services: ['heart_rate'] }]
       });
-      if (device) {
-        setDeviceId(device.id);
+      if (paired) {
+        setDevice(paired);
         await connect();
-        await startNotifications();
+        await subscribe();
       }
     } catch (error) {
       console.error('Error:', error);
@@ -82,19 +87,19 @@ function HeartRateMonitor() {
 First, install the SDK:
 
 ```bash
-npm install @ios-web-bluetooth/react
+npm install @beacio/react
 ```
 
 Wrap your app with the provider:
 
 ```tsx
-import { WebBLE } from '@ios-web-bluetooth/react';
+import { BeacioProvider } from '@beacio/react';
 
 function App() {
   return (
-    <WebBLE.Provider>
+    <BeacioProvider>
       <YourApp />
-    </WebBLE.Provider>
+    </BeacioProvider>
   );
 }
 ```
@@ -121,25 +126,25 @@ async function requestDevice() {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
 function Component() {
-  const { requestDevice } = WebBLE.useBluetooth();
-  const [device, setDevice] = useState<BluetoothDevice>();
+  const { requestDevice } = useBluetooth();
+  const [device, setDevice] = useState<BeacioDevice | null>(null);
   
   const handleRequest = async () => {
     try {
-      const device = await requestDevice({
+      const paired = await requestDevice({
         filters: [{ services: ['battery_service'] }],
         optionalServices: ['device_information']
       });
-      if (device) {
-        setDevice(device);
-        console.log('Device:', device.name);
+      if (paired) {
+        setDevice(paired);
+        console.log('Device:', paired.name);
       }
     } catch (error) {
-      if (error.name === 'NotFoundError') {
+      if (error instanceof Error && error.name === 'NotFoundError') {
         console.log('User cancelled');
       }
     }
@@ -172,11 +177,14 @@ function onDisconnected() {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
-function Component() {
-  const { device, connect, disconnect, isConnected } = WebBLE.useDevice(deviceId);
+function Component({ device }: { device: BeacioDevice | null }) {
+  const { connect, disconnect, isConnected } = useDevice(device, {
+    autoReconnect: true,
+    reconnectAttempts: 5,
+  });
   
   useEffect(() => {
     if (device && !isConnected) {
@@ -184,13 +192,8 @@ function Component() {
     }
   }, [device]);
   
-  // Auto-reconnection is handled by the SDK when configured
+  // Auto-reconnection is handled by useDevice when `autoReconnect` is set.
 }
-
-// Or with auto-reconnect configuration:
-<WebBLE.Provider config={{ autoReconnect: true, reconnectAttempts: 5 }}>
-  <App />
-</WebBLE.Provider>
 ```
 
 ### 4. Service Discovery
@@ -216,11 +219,11 @@ async function discoverServices() {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
-function Component() {
-  const { services } = WebBLE.useDevice(deviceId);
+function Component({ device }: { device: BeacioDevice | null }) {
+  const { services } = useDevice(device);
   
   // Services are automatically discovered after connection
   useEffect(() => {
@@ -252,14 +255,18 @@ async function readBatteryLevel() {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
-function BatteryLevel() {
-  const { value, readValue, error } = WebBLE.useCharacteristic('battery_level');
+function BatteryLevel({ device }: { device: BeacioDevice | null }) {
+  const { value, read, error } = useCharacteristic(
+    device,
+    'battery_service',
+    'battery_level',
+  );
   
   useEffect(() => {
-    readValue();
+    read();
   }, []);
   
   if (error) {
@@ -271,7 +278,7 @@ function BatteryLevel() {
   return (
     <div>
       {batteryLevel !== null ? `Battery: ${batteryLevel}%` : 'Loading...'}
-      <button onClick={readValue}>Refresh</button>
+      <button onClick={() => read()}>Refresh</button>
     </div>
   );
 }
@@ -297,15 +304,24 @@ async function setLightColor(r, g, b) {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
-function LightControl() {
-  const { writeValue, isWriting, error } = WebBLE.useCharacteristic('light_color');
+function LightControl({ device }: { device: BeacioDevice | null }) {
+  const { write, error } = useCharacteristic(
+    device,
+    'light_service',
+    'light_color',
+  );
+  const [isWriting, setIsWriting] = useState(false);
   
   const setColor = async (r: number, g: number, b: number) => {
-    const data = new Uint8Array([r, g, b]);
-    await writeValue(data);
+    setIsWriting(true);
+    try {
+      await write(new Uint8Array([r, g, b]));
+    } finally {
+      setIsWriting(false);
+    }
   };
   
   return (
@@ -360,21 +376,23 @@ async function stopNotifications() {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
-function HeartRateMonitor() {
+function HeartRateMonitor({ device }: { device: BeacioDevice | null }) {
   const { 
     value, 
     isSubscribed, 
     subscribe, 
     unsubscribe, 
     history 
-  } = WebBLE.useNotifications('heart_rate_measurement');
+  } = useNotifications(device, 'heart_rate', 'heart_rate_measurement');
   
   useEffect(() => {
     subscribe();
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+    };
   }, []);
   
   const heartRate = value ? value.getUint8(1) : 0;
@@ -389,7 +407,9 @@ function HeartRateMonitor() {
       <div>
         History:
         {history.map((entry, i) => (
-          <div key={i}>{entry.value} at {new Date(entry.timestamp).toLocaleTimeString()}</div>
+          <div key={i}>
+            {entry.value.getUint8(1)} BPM at {entry.timestamp.toLocaleTimeString()}
+          </div>
         ))}
       </div>
     </div>
@@ -432,30 +452,29 @@ function stopScan() {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
 function DeviceScanner() {
-  const { 
-    isScanning, 
-    devices, 
-    startScan, 
-    stopScan 
-  } = WebBLE.useScan({
-    filters: [{ namePrefix: 'Device' }],
-    keepRepeatedDevices: true,
-    duration: 10000  // Auto-stop after 10 seconds
-  });
+  const { scanState, devices, start, stop } = useScan();
+  const isScanning = scanState === 'scanning';
+  
+  const startScan = () =>
+    start({
+      filters: [{ namePrefix: 'Device' }],
+      keepRepeatedDevices: true,
+      timeout: 10000  // Auto-stop after 10 seconds
+    });
   
   return (
     <div>
-      <button onClick={isScanning ? stopScan : startScan}>
+      <button onClick={isScanning ? stop : startScan}>
         {isScanning ? 'Stop Scan' : 'Start Scan'}
       </button>
       <div>
         {devices.map(device => (
           <div key={device.id}>
-            {device.name || 'Unknown'} - {device.rssi} dBm
+            {device.name || 'Unknown'}
           </div>
         ))}
       </div>
@@ -487,18 +506,19 @@ try {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
 function Component() {
-  const { requestDevice } = WebBLE.useBluetooth();
+  const { requestDevice } = useBluetooth();
   const [error, setError] = useState<Error>();
   
   const connect = async () => {
     try {
       const device = await requestDevice(options);
       // ... more code
-    } catch (error) {
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
       
       switch (error.name) {
@@ -516,10 +536,10 @@ function Component() {
   };
   
   // Or use the built-in error states
-  const { error } = WebBLE.useDevice(deviceId);
+  const { error: deviceError } = useDevice(device);
   
-  if (error) {
-    return <ErrorDisplay error={error} />;
+  if (deviceError) {
+    return <ErrorDisplay error={deviceError} />;
   }
 }
 ```
@@ -542,12 +562,12 @@ function updateConnectionState(connected) {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
 // State is managed by hooks
-function Component() {
-  const { device, isConnected, services } = WebBLE.useDevice(deviceId);
+function Component({ device }: { device: BeacioDevice | null }) {
+  const { isConnected, services } = useDevice(device);
   
   // React handles UI updates automatically
   return (
@@ -587,13 +607,17 @@ function cleanup() {
 window.addEventListener('beforeunload', cleanup);
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
 // Cleanup is automatic with React hooks
-function Component() {
-  const { device, disconnect } = WebBLE.useDevice(deviceId);
-  const { unsubscribe } = WebBLE.useNotifications(characteristicId);
+function Component({ device }: { device: BeacioDevice | null }) {
+  const { disconnect } = useDevice(device);
+  const { unsubscribe } = useNotifications(
+    device,
+    'heart_rate',
+    'heart_rate_measurement',
+  );
   
   // Cleanup happens automatically on unmount
   useEffect(() => {
@@ -634,13 +658,17 @@ class HeartRateService {
 }
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
 // Create a custom hook instead
-function useHeartRateService(deviceId: string) {
-  const { services } = WebBLE.useDevice(deviceId);
-  const { value, subscribe } = WebBLE.useNotifications('heart_rate_measurement');
+function useHeartRateService(device: BeacioDevice | null) {
+  const { services } = useDevice(device);
+  const { value, subscribe } = useNotifications(
+    device,
+    'heart_rate',
+    'heart_rate_measurement',
+  );
   
   const heartRate = useMemo(() => {
     return value ? value.getUint8(1) : null;
@@ -686,21 +714,24 @@ navigator.bluetooth.requestDevice(options)
   });
 ```
 
-#### After (@ios-web-bluetooth/react)
+#### After (@beacio/react)
 
 ```tsx
 function Component() {
-  const { requestDevice } = WebBLE.useBluetooth();
-  const { connect } = WebBLE.useDevice(deviceId);
-  const { readValue } = WebBLE.useCharacteristic('battery_level');
+  const { requestDevice } = useBluetooth();
+  const [device, setDevice] = useState<BeacioDevice | null>(null);
+  const { connect } = useDevice(device);
+  const { read } = useCharacteristic(device, 'battery_service', 'battery_level');
   
   const getBatteryLevel = async () => {
     try {
-      const device = await requestDevice(options);
-      setDeviceId(device.id);
+      const paired = await requestDevice(options);
+      setDevice(paired);
       await connect();
-      const value = await readValue();
-      console.log('Battery:', value.getUint8(0));
+      const value = await read();
+      if (value) {
+        console.log('Battery:', value.getUint8(0));
+      }
     } catch (error) {
       console.error('Error:', error);
     }
@@ -733,37 +764,35 @@ test('connects to device', async () => {
 });
 ```
 
-### After (@ios-web-bluetooth/react)
+### After (@beacio/react)
 
 ```tsx
 import { render, screen } from '@testing-library/react';
-import { WebBLE } from '@ios-web-bluetooth/react';
+import { BeacioProvider, useBluetooth, useDevice } from '@beacio/react';
 
-// Mock the WebBLE hooks
-jest.mock('@ios-web-bluetooth/react', () => ({
-  WebBLE: {
-    Provider: ({ children }) => children,
-    useBluetooth: () => ({
-      requestDevice: jest.fn(),
-      isAvailable: true
-    }),
-    useDevice: () => ({
-      connect: jest.fn(),
-      isConnected: false
-    })
-  }
+// Mock the @beacio/react hooks
+jest.mock('@beacio/react', () => ({
+  BeacioProvider: ({ children }) => children,
+  useBluetooth: () => ({
+    requestDevice: jest.fn(),
+    isAvailable: true
+  }),
+  useDevice: () => ({
+    connect: jest.fn(),
+    isConnected: false
+  })
 }));
 
 test('connects to device', async () => {
   const { getByText } = render(
-    <WebBLE.Provider>
+    <BeacioProvider>
       <Component />
-    </WebBLE.Provider>
+    </BeacioProvider>
   );
   
   fireEvent.click(getByText('Connect'));
   
-  expect(WebBLE.useBluetooth().requestDevice).toHaveBeenCalled();
+  expect(useBluetooth().requestDevice).toHaveBeenCalled();
 });
 ```
 
@@ -771,18 +800,18 @@ test('connects to device', async () => {
 
 ### Issue: "Cannot read property 'requestDevice' of undefined"
 
-**Solution:** Make sure your component is wrapped with `WebBLE.Provider`.
+**Solution:** Make sure your component is wrapped with `BeacioProvider`.
 
 ### Issue: "Hook called outside of provider"
 
-**Solution:** All components using WebBLE hooks must be inside the provider tree.
+**Solution:** All components using the `@beacio/react` hooks must be inside the provider tree.
 
 ### Issue: "Device is null"
 
 **Solution:** Device operations are async. Use proper loading states:
 
 ```tsx
-const { device, isConnected } = WebBLE.useDevice(deviceId);
+const { device, isConnected } = useDevice(pairedDevice);
 
 if (!device) return <div>Loading...</div>;
 if (!isConnected) return <div>Connecting...</div>;
@@ -793,7 +822,11 @@ if (!isConnected) return <div>Connecting...</div>;
 **Solution:** Make sure you're subscribed:
 
 ```tsx
-const { value, isSubscribed } = WebBLE.useNotifications(charId);
+const { value, isSubscribed, subscribe } = useNotifications(
+  device,
+  'heart_rate',
+  'heart_rate_measurement',
+);
 
 useEffect(() => {
   if (!isSubscribed) {
@@ -816,5 +849,5 @@ useEffect(() => {
 
 - Check the [API Documentation](./API.md)
 - See [Examples](../../../examples/heart-rate-monitor/)
-- File an [Issue](https://github.com/wklm/ioswebble-sdk/issues)
+- File an [Issue](https://github.com/wklm/beacio-sdk/issues)
 - Read the [FAQ](./FAQ.md)

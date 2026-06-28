@@ -25,10 +25,10 @@ const CONSUMER_TOOL_NAMES = ALL_TOOLS
   .map((t) => t.name);
 
 const DEVELOPER_TOOL_NAMES = [
-  'webble_dev_best_practices',
-  'webble_dev_search_docs',
-  'webble_dev_list_structure',
-  'webble_dev_find_examples',
+  'beacio_dev_best_practices',
+  'beacio_dev_search_docs',
+  'beacio_dev_list_structure',
+  'beacio_dev_find_examples',
 ];
 
 describe('filterTools', () => {
@@ -59,7 +59,7 @@ describe('filterTools', () => {
   });
 });
 
-describe('webble_dev_best_practices', () => {
+describe('beacio_dev_best_practices', () => {
   it('returns content when AGENTS.md exists in cwd', () => {
     // AGENTS.md exists at repo root (the cwd during test)
     const out = runBestPractices({});
@@ -68,7 +68,7 @@ describe('webble_dev_best_practices', () => {
   });
 });
 
-describe('webble_dev_search_docs', () => {
+describe('beacio_dev_search_docs', () => {
   it('returns results for a known keyword', () => {
     const out = runSearchDocs({ query: 'react hooks' });
     expect(out.results.length).toBeGreaterThan(0);
@@ -81,7 +81,7 @@ describe('webble_dev_search_docs', () => {
   });
 });
 
-describe('webble_dev_list_structure', () => {
+describe('beacio_dev_list_structure', () => {
   it('returns a tree for the current directory', () => {
     const out = runListStructure({});
     expect(out.tree.type).toBe('directory');
@@ -97,7 +97,7 @@ describe('webble_dev_list_structure', () => {
   });
 });
 
-describe('webble_dev_find_examples', () => {
+describe('beacio_dev_find_examples', () => {
   it('returns matches for a known keyword', () => {
     const out = runFindExamples({ query: 'heart rate' });
     expect(out.matches.length).toBeGreaterThan(0);

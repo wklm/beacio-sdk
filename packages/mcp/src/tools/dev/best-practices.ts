@@ -62,7 +62,7 @@ export function runBestPractices(input: BestPracticesInput): BestPracticesOutput
 
   if (!fs.existsSync(agentsPath)) {
     throw new ToolInputError(
-      `No AGENTS.md found at ${agentsPath}. Run this tool from a WebBLE monorepo or project directory.`,
+      `No AGENTS.md found at ${agentsPath}. Run this tool from a Beacio monorepo or project directory.`,
     );
   }
 
@@ -93,9 +93,9 @@ export function runBestPractices(input: BestPracticesInput): BestPracticesOutput
 }
 
 export const bestPracticesTool: ToolDefinition<BestPracticesInput, BestPracticesOutput> = {
-  name: 'webble_dev_best_practices',
-  title: 'WebBLE development best practices',
+  name: 'beacio_dev_best_practices',
+  title: 'Beacio development best practices',
   description:
-    'Read the AGENTS.md best-practices guide from the current WebBLE project. Optionally filter by topic section.',
+    'Read the AGENTS.md best-practices guide from the current Beacio project. Optionally filter by topic section.',
   run: runBestPractices,
 };

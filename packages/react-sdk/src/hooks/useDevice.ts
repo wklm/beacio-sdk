@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { WebBLEError } from '@ios-web-bluetooth/core';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
+import type { BeacioDevice } from '@beacio/core';
 import type { ConnectionOptions, ConnectionPriority, ConnectionState, UseDeviceReturn } from '../types';
 
 const DEFAULT_RECONNECT_ATTEMPTS = 3;
@@ -14,17 +14,17 @@ const DEFAULT_RECONNECT_BACKOFF = 2;
  * and optional auto-reconnect with exponential backoff. Pass `null`
  * when no device has been selected yet.
  *
- * @param device - The {@link WebBLEDevice} to manage, or `null`.
+ * @param device - The {@link BeacioDevice} to manage, or `null`.
  * @param options - Optional auto-reconnect configuration.
  *
  * @example
  * ```tsx
- * import { useBluetooth, useDevice } from '@ios-web-bluetooth/react';
- * import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+ * import { useBluetooth, useDevice } from '@beacio/react';
+ * import type { BeacioDevice } from '@beacio/core';
  *
  * function DevicePanel() {
  *   const { requestDevice } = useBluetooth();
- *   const [device, setDevice] = useState<WebBLEDevice | null>(null);
+ *   const [device, setDevice] = useState<BeacioDevice | null>(null);
  *   const {
  *     isConnected, isConnecting, error,
  *     connect, disconnect,
@@ -53,14 +53,14 @@ const DEFAULT_RECONNECT_BACKOFF = 2;
  * ```
  */
 export function useDevice(
-  device: WebBLEDevice | null,
+  device: BeacioDevice | null,
   options?: ConnectionOptions,
 ): UseDeviceReturn {
   const [connectionState, setConnectionState] = useState<ConnectionState>(() => (
     device?.connected ? 'connected' : 'disconnected'
   ));
   const [services, setServices] = useState<BluetoothRemoteGATTService[]>([]);
-  const [error, setError] = useState<WebBLEError | null>(null);
+  const [error, setError] = useState<BeacioError | null>(null);
   const [autoReconnect, setAutoReconnectState] = useState(options?.autoReconnect ?? false);
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const [isWatchingAdvertisements, setIsWatchingAdvertisements] = useState(false);
@@ -91,7 +91,7 @@ export function useDevice(
     }
   }, []);
 
-  const loadServices = useCallback(async (target: WebBLEDevice): Promise<void> => {
+  const loadServices = useCallback(async (target: BeacioDevice): Promise<void> => {
     const discoveredServices = await target.getPrimaryServices();
     setServices(discoveredServices);
   }, []);
@@ -119,7 +119,7 @@ export function useDevice(
       try {
         await device.connect();
         if (!device.connected && connectionStateRef.current !== 'connected') {
-          throw new WebBLEError('GATT_OPERATION_FAILED', 'Failed to reconnect device');
+          throw new BeacioError('GATT_OPERATION_FAILED', 'Failed to reconnect device');
         }
 
         setError(null);
@@ -128,7 +128,7 @@ export function useDevice(
         loadServices(device).catch(() => {});
         optionsRef.current?.onReconnectSuccess?.(attempt);
       } catch (reconnectError) {
-        const reconnectFailure = WebBLEError.from(reconnectError);
+        const reconnectFailure = BeacioError.from(reconnectError);
         const willRetry = attempt < maxAttempts;
         setError(reconnectFailure);
         optionsRef.current?.onReconnectFailure?.(reconnectFailure, attempt, willRetry);
@@ -141,7 +141,7 @@ export function useDevice(
 
   const connect = useCallback(async () => {
     if (!device) {
-      setError(new WebBLEError('INVALID_PARAMETER', 'No device available'));
+      setError(new BeacioError('INVALID_PARAMETER', 'No device available'));
       return;
     }
 
@@ -158,10 +158,10 @@ export function useDevice(
       try {
         await loadServices(device);
       } catch (serviceError) {
-        setError(WebBLEError.from(serviceError));
+        setError(BeacioError.from(serviceError));
       }
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
       setConnectionState('disconnected');
     }
   }, [clearReconnectTimer, device, loadServices]);
@@ -178,7 +178,7 @@ export function useDevice(
       setConnectionState('disconnecting');
       device.disconnect();
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
     } finally {
       setConnectionState('disconnected');
     }
@@ -188,13 +188,13 @@ export function useDevice(
 
   const watchAdvertisements = useCallback(async () => {
     if (!device) {
-      const missingDeviceError = new WebBLEError('INVALID_PARAMETER', 'No device available');
+      const missingDeviceError = new BeacioError('INVALID_PARAMETER', 'No device available');
       setError(missingDeviceError);
       throw missingDeviceError;
     }
 
     if (typeof device.raw.watchAdvertisements !== 'function') {
-      const unsupportedError = new WebBLEError('GATT_OPERATION_FAILED', 'watchAdvertisements is not supported on this device');
+      const unsupportedError = new BeacioError('GATT_OPERATION_FAILED', 'watchAdvertisements is not supported on this device');
       setError(unsupportedError);
       throw unsupportedError;
     }
@@ -204,7 +204,7 @@ export function useDevice(
       await device.watchAdvertisements();
       setIsWatchingAdvertisements(true);
     } catch (err) {
-      const watchError = WebBLEError.from(err);
+      const watchError = BeacioError.from(err);
       setError(watchError);
       throw watchError;
     }
@@ -212,14 +212,14 @@ export function useDevice(
 
   const unwatchAdvertisements = useCallback(async () => {
     if (!device) {
-      const missingDeviceError = new WebBLEError('INVALID_PARAMETER', 'No device available');
+      const missingDeviceError = new BeacioError('INVALID_PARAMETER', 'No device available');
       setError(missingDeviceError);
       throw missingDeviceError;
     }
 
     const rawDevice = device.raw as BluetoothDevice & { unwatchAdvertisements?: () => Promise<void> };
     if (typeof rawDevice.unwatchAdvertisements !== 'function') {
-      const unsupportedError = new WebBLEError('GATT_OPERATION_FAILED', 'unwatchAdvertisements is not supported on this device');
+      const unsupportedError = new BeacioError('GATT_OPERATION_FAILED', 'unwatchAdvertisements is not supported on this device');
       setError(unsupportedError);
       throw unsupportedError;
     }
@@ -229,7 +229,7 @@ export function useDevice(
       await device.unwatchAdvertisements();
       setIsWatchingAdvertisements(false);
     } catch (err) {
-      const unwatchError = WebBLEError.from(err);
+      const unwatchError = BeacioError.from(err);
       setError(unwatchError);
       throw unwatchError;
     }
@@ -237,13 +237,13 @@ export function useDevice(
 
   const forget = useCallback(async () => {
     if (!device) {
-      const missingDeviceError = new WebBLEError('INVALID_PARAMETER', 'No device available');
+      const missingDeviceError = new BeacioError('INVALID_PARAMETER', 'No device available');
       setError(missingDeviceError);
       throw missingDeviceError;
     }
 
     if (typeof device.raw.forget !== 'function') {
-      const unsupportedError = new WebBLEError('GATT_OPERATION_FAILED', 'forget is not supported on this device');
+      const unsupportedError = new BeacioError('GATT_OPERATION_FAILED', 'forget is not supported on this device');
       setError(unsupportedError);
       throw unsupportedError;
     }
@@ -254,7 +254,7 @@ export function useDevice(
       setIsWatchingAdvertisements(false);
       setConnectionPriorityState(null);
     } catch (err) {
-      const forgetError = WebBLEError.from(err);
+      const forgetError = BeacioError.from(err);
       setError(forgetError);
       throw forgetError;
     }
@@ -266,7 +266,7 @@ export function useDevice(
     }) | undefined;
     const requestConnectionPriority = gatt?.requestConnectionPriority;
     if (!device || !gatt || typeof requestConnectionPriority !== 'function') {
-      const unsupportedError = new WebBLEError('GATT_OPERATION_FAILED', 'Connection priority is not supported on this device');
+      const unsupportedError = new BeacioError('GATT_OPERATION_FAILED', 'Connection priority is not supported on this device');
       setError(unsupportedError);
       throw unsupportedError;
     }
@@ -276,7 +276,7 @@ export function useDevice(
       await requestConnectionPriority.call(gatt, priority);
       setConnectionPriorityState(priority);
     } catch (err) {
-      const priorityError = WebBLEError.from(err);
+      const priorityError = BeacioError.from(err);
       setError(priorityError);
       throw priorityError;
     }

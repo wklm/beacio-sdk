@@ -1,9 +1,9 @@
-# NPM Publishing Guide for @ios-web-bluetooth/react
+# NPM Publishing Guide for @beacio/react
 
 ## Prerequisites
 
 1. **NPM Account**: Create an account at https://www.npmjs.com/
-2. **Organization**: Create or join the `@ios-web-bluetooth` organization on NPM
+2. **Organization**: Create or join the `@beacio` organization on NPM
 3. **Authentication**: Login to NPM CLI
    ```bash
    npm login
@@ -38,24 +38,24 @@ After publishing, test the installation:
 
 ```bash
 # Create test project
-npx create-react-app test-webble
-cd test-webble
+npx create-react-app test-beacio
+cd test-beacio
 
 # Install beta package
-npm install @ios-web-bluetooth/react@beta
+npm install @beacio/react@beta
 
 # Test import
 ```
 
 ```typescript
 // In App.js
-import { WebBLE } from '@ios-web-bluetooth/react';
+import { beacio } from '@beacio/react';
 
 function App() {
   return (
-    <WebBLE.Provider>
+    <beacio.Provider>
       {/* Your app */}
-    </WebBLE.Provider>
+    </beacio.Provider>
   );
 }
 ```
@@ -79,7 +79,7 @@ npm publish --access public
 
 ## Post-Publishing
 
-1. **Verify on NPM**: https://www.npmjs.com/package/@ios-web-bluetooth/react
+1. **Verify on NPM**: https://www.npmjs.com/package/@beacio/react
 2. **Update Documentation**: Add installation instructions to main README
 3. **Create GitHub Release**: Tag the release in git
 4. **Announce**: Share on social media, Discord, etc.
@@ -89,7 +89,7 @@ npm publish --access public
 If you encounter issues:
 
 1. **Authentication Error**: Run `npm whoami` to verify login
-2. **Permission Error**: Ensure you're a member of @ios-web-bluetooth organization
+2. **Permission Error**: Ensure you're a member of @beacio organization
 3. **Build Error**: Run `npm run build` before publishing
 4. **Test Failures**: Ensure all tests pass with `npm test`
 
@@ -105,4 +105,4 @@ If you encounter issues:
 ## Support
 
 For issues or questions, contact the development team or open an issue at:
-https://github.com/wklm/ioswebble-sdk/issues
+https://github.com/wklm/beacio-sdk/issues

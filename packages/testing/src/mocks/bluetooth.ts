@@ -23,7 +23,7 @@ export interface MockBluetoothOptions {
 }
 
 const unsupportedExtensionApi = (): Promise<never> =>
-  Promise.reject(new DOMException('WebBLE extension API not implemented in MockBluetooth', 'NotSupportedError'));
+  Promise.reject(new DOMException('Beacio extension API not implemented in MockBluetooth', 'NotSupportedError'));
 
 const noop = (): void => {};
 

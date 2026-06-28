@@ -1,25 +1,25 @@
 # React SDK
 
-`@ios-web-bluetooth/react` provides React hooks and UI components for BLE apps.
+`@beacio/react` provides React hooks and UI components for BLE apps.
 
 ## Install
 
 ```bash
-npm install @ios-web-bluetooth/react @ios-web-bluetooth/core
+npm install @beacio/react @beacio/core
 ```
 
-Add `@ios-web-bluetooth/detect` too if you want automatic iOS Safari install prompts.
+Add `@beacio/detect` too if you want automatic iOS Safari install prompts.
 
 ## Provider Setup
 
 ```tsx
-import { WebBLEProvider } from '@ios-web-bluetooth/react';
+import { BeacioProvider } from '@beacio/react';
 
 function App() {
   return (
-    <WebBLEProvider>
+    <BeacioProvider>
       <MyBluetoothUI />
-    </WebBLEProvider>
+    </BeacioProvider>
   );
 }
 ```
@@ -27,13 +27,13 @@ function App() {
 You can also use the namespace style shown in the README:
 
 ```tsx
-import { WebBLE } from '@ios-web-bluetooth/react';
+import { beacio } from '@beacio/react';
 
 function App() {
   return (
-    <WebBLE.Provider>
+    <beacio.Provider>
       <MyBluetoothUI />
-    </WebBLE.Provider>
+    </beacio.Provider>
   );
 }
 ```
@@ -52,7 +52,7 @@ function App() {
 
 ```tsx
 import { useState } from 'react';
-import { WebBLEProvider, useBluetooth, useDevice } from '@ios-web-bluetooth/react';
+import { BeacioProvider, useBluetooth, useDevice } from '@beacio/react';
 
 function DevicePanel() {
   const { requestDevice, isAvailable, isSupported } = useBluetooth();
@@ -86,9 +86,9 @@ function DevicePanel() {
 
 export default function App() {
   return (
-    <WebBLEProvider>
+    <BeacioProvider>
       <DevicePanel />
-    </WebBLEProvider>
+    </BeacioProvider>
   );
 }
 ```
@@ -97,7 +97,6 @@ export default function App() {
 
 - `DeviceScanner`
 - `ServiceExplorer`
-- `ConnectionStatus`
 - `InstallationWizard`
 
 ## Safari iOS Rule
@@ -106,5 +105,5 @@ Even in React, `requestDevice()` must still run from a user gesture. Do not call
 
 ## More Detail
 
-- React package README: <https://github.com/wklm/ioswebble-sdk/blob/main/packages/react-sdk/README.md>
-- Hosted docs: <https://ioswebble.com/docs#react-sdk>
+- React package README: <https://github.com/wklm/beacio-sdk/blob/main/packages/react-sdk/README.md>
+- Hosted docs: <https://beacio.com/docs#react-sdk>

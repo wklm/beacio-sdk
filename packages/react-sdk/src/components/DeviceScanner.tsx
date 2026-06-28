@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import type { BeacioDevice } from '@beacio/core';
 import { useScan } from '../hooks/useScan';
 import { useDevice } from '../hooks/useDevice';
 import type { BluetoothLEScanFilter } from '../types';
 
 interface DeviceScannerProps {
-  onDeviceSelected?: (device: WebBLEDevice) => void;
+  onDeviceSelected?: (device: BeacioDevice) => void;
   filters?: BluetoothLEScanFilter[];
   className?: string;
   showRssi?: boolean;
@@ -16,28 +16,28 @@ interface DeviceScannerProps {
 }
 
 interface DeviceItemProps {
-  device: WebBLEDevice;
-  onSelect: (device: WebBLEDevice) => void;
+  device: BeacioDevice;
+  onSelect: (device: BeacioDevice) => void;
   isConnecting?: boolean;
   isConnected?: boolean;
 }
 
 function DeviceItem({ device, onSelect, isConnecting, isConnected }: DeviceItemProps) {
   return (
-    <li className="device-item" data-webble-device="" data-webble-state={isConnected ? 'connected' : isConnecting ? 'connecting' : 'idle'}>
+    <li className="device-item" data-beacio-device="" data-beacio-state={isConnected ? 'connected' : isConnecting ? 'connecting' : 'idle'}>
       <button
         onClick={() => onSelect(device)}
         disabled={isConnecting}
         className={`device-button ${isConnected ? 'connected' : ''} ${isConnecting ? 'connecting' : ''}`}
         aria-label={`Select ${device.name ?? 'Unknown Device'}`}
-        data-webble-device-button=""
+        data-beacio-device-button=""
       >
-        <div className="device-info" data-webble-device-info="">
-          <span className="device-name" data-webble-device-name="">{device.name ?? 'Unknown Device'}</span>
-          <span className="device-id" data-webble-device-id="">{device.id}</span>
+        <div className="device-info" data-beacio-device-info="">
+          <span className="device-name" data-beacio-device-name="">{device.name ?? 'Unknown Device'}</span>
+          <span className="device-id" data-beacio-device-id="">{device.id}</span>
         </div>
-        {isConnected && <span className="connection-status" data-webble-device-status="">Connected</span>}
-        {isConnecting && <span className="connection-status" data-webble-device-status="">Connecting...</span>}
+        {isConnected && <span className="connection-status" data-beacio-device-status="">Connected</span>}
+        {isConnecting && <span className="connection-status" data-beacio-device-status="">Connecting...</span>}
       </button>
     </li>
   );
@@ -57,7 +57,7 @@ export function DeviceScanner(props: DeviceScannerProps) {
   } = props;
 
   const { scanState, devices, start, stop, error, clear } = useScan();
-  const [selectedDevice, setSelectedDevice] = useState<WebBLEDevice | null>(null);
+  const [selectedDevice, setSelectedDevice] = useState<BeacioDevice | null>(null);
   const [pendingAutoConnect, setPendingAutoConnect] = useState(false);
   const { connectionState, connect } = useDevice(selectedDevice);
 
@@ -72,7 +72,7 @@ export function DeviceScanner(props: DeviceScannerProps) {
     }
   }, [start, stop, clear, filters, scanDuration]);
 
-  const handleDeviceSelect = useCallback((device: WebBLEDevice) => {
+  const handleDeviceSelect = useCallback((device: BeacioDevice) => {
     setSelectedDevice(device);
     onDeviceSelected?.(device);
     if (autoConnect) {
@@ -91,10 +91,10 @@ export function DeviceScanner(props: DeviceScannerProps) {
   const visibleDevices = devices.slice(0, maxDevices);
 
   return (
-    <div className={`device-scanner ${className || ''}`} data-webble-scanner="" data-webble-state={scanState}>
-      <div className="scanner-header" data-webble-scanner-header="">
+    <div className={`device-scanner ${className || ''}`} data-beacio-scanner="" data-beacio-state={scanState}>
+      <div className="scanner-header" data-beacio-scanner-header="">
         <h2>Bluetooth Device Scanner</h2>
-        <div className="scanner-status" data-webble-scanner-status="">
+        <div className="scanner-status" data-beacio-scanner-status="">
           {scanState === 'scanning' && (
             <span className="status-indicator scanning">● Scanning</span>
           )}
@@ -104,7 +104,7 @@ export function DeviceScanner(props: DeviceScannerProps) {
         </div>
       </div>
 
-      <div className="scanner-controls" data-webble-scanner-controls="">
+      <div className="scanner-controls" data-beacio-scanner-controls="">
         {scanState === 'idle' && (
           <button 
             onClick={handleStartScan}
@@ -135,14 +135,14 @@ export function DeviceScanner(props: DeviceScannerProps) {
       </div>
 
       {error && (
-        <div className="scanner-error" role="alert" data-webble-scanner-error="">
+        <div className="scanner-error" role="alert" data-beacio-scanner-error="">
           <span className="error-icon">⚠</span>
           <span className="error-message">{error.message}</span>
         </div>
       )}
 
       {visibleDevices.length > 0 && (
-        <ul className="device-list" role="list" data-webble-device-list="">
+        <ul className="device-list" role="list" data-beacio-device-list="">
           {visibleDevices.map(device => (
             <DeviceItem
               key={device.id}
@@ -156,8 +156,8 @@ export function DeviceScanner(props: DeviceScannerProps) {
       )}
 
       {scanState === 'scanning' && devices.length === 0 && (
-        <div className="scanner-empty" data-webble-scanner-empty="">
-          <div className="scanning-animation" data-webble-scanner-animation="">
+        <div className="scanner-empty" data-beacio-scanner-empty="">
+          <div className="scanning-animation" data-beacio-scanner-animation="">
             <div className="pulse"></div>
             <div className="pulse"></div>
             <div className="pulse"></div>
@@ -167,7 +167,7 @@ export function DeviceScanner(props: DeviceScannerProps) {
       )}
 
       {scanState === 'idle' && devices.length === 0 && !error && (
-        <div className="scanner-empty" data-webble-scanner-empty="">
+        <div className="scanner-empty" data-beacio-scanner-empty="">
           <p>No devices found. Click "Start Scan" to search for Bluetooth devices.</p>
         </div>
       )}

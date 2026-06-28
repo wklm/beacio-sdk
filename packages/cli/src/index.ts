@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 
 /**
- * @ios-web-bluetooth/cli
+ * @beacio/cli
  *
- * CLI tool for integrating WebBLE into web projects.
- * Usage: npx ioswebble <command> [options]
+ * CLI tool for integrating Beacio into web projects.
+ * Usage: npx beacio <command> [options]
  */
 
 import { init } from './commands/init';
+import { migrate } from './commands/migrate';
 import { check } from './commands/check';
 
 const args = process.argv.slice(2);
@@ -15,22 +16,25 @@ const command = args[0];
 
 function printHelp() {
   console.log(`
-  WebBLE CLI - Add iOS Safari Bluetooth support to any web app
+  Beacio CLI - Add iOS Safari Bluetooth support to any web app
 
-  Usage: npx ioswebble <command> [options]
+  Usage: npx beacio <command> [options]
 
   Commands:
     init              Auto-detect framework and add detection snippet
-    check             Verify WebBLE integration is correct
+    migrate           Brownfield: patch an existing Web Bluetooth app for iOS Safari
+    check             Verify Beacio integration is correct (add --brownfield for an existing app)
 
   Options:
     --help, -h        Show this help message
     --version, -v     Show version
 
   Examples:
-    npx ioswebble init
-    npx ioswebble init --key wbl_xxxxx --framework react
-    npx ioswebble check
+    npx beacio init
+    npx beacio init --key wbl_xxxxx --framework react
+    npx beacio migrate
+    npx beacio check
+    npx beacio check --brownfield
   `);
 }
 
@@ -51,6 +55,9 @@ async function main() {
     switch (command) {
       case 'init':
         await init(args.slice(1));
+        break;
+      case 'migrate':
+        await migrate(args.slice(1));
         break;
       case 'check':
         await check(args.slice(1));

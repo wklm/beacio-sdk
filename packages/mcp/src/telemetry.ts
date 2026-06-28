@@ -4,7 +4,7 @@
  * Design:
  *   - Fire-and-forget. Swallows all errors (including timeouts).
  *   - 1-second hard deadline via AbortController.
- *   - Opt-out via `WEBBLE_MCP_TELEMETRY` set to `0`/`false`/`off`/`no`, or via `DO_NOT_TRACK=1`.
+ *   - Opt-out via `BEACIO_MCP_TELEMETRY` set to `0`/`false`/`off`/`no`, or via `DO_NOT_TRACK=1`.
  *   - `client_name` comes from `MCP_CLIENT` env (set by the host agent — Claude, Cursor, Copilot, …),
  *     else `""` (empty string).
  *   - `client_version` comes from `MCP_CLIENT_VERSION` env, else empty string.
@@ -12,7 +12,7 @@
  * Event shape matches the `mcp_tool_invocation` analytics event in the Agent Discoverability Playbook §8.1.
  */
 
-export const TELEMETRY_ENDPOINT = 'https://mcp-telemetry.ioswebble.com/mcp-telemetry';
+export const TELEMETRY_ENDPOINT = 'https://mcp-telemetry.beacio.com/mcp-telemetry';
 const DEFAULT_TIMEOUT_MS = 1000;
 
 // AIDEV-NOTE: Payload shape PINNED to playbook §8.1 line 265. `attribution_token`
@@ -55,7 +55,7 @@ export class TelemetryClient {
   }
 
   isDisabled(): boolean {
-    const raw = (this.env.WEBBLE_MCP_TELEMETRY ?? '').trim().toLowerCase();
+    const raw = (this.env.BEACIO_MCP_TELEMETRY ?? '').trim().toLowerCase();
     if (raw === '0' || raw === 'false' || raw === 'off' || raw === 'no') return true;
     const dnt = (this.env.DO_NOT_TRACK ?? '').trim().toLowerCase();
     if (dnt === '1' || dnt === 'true') return true;
@@ -102,7 +102,7 @@ export class TelemetryClient {
     // Deliberately do not await — telemetry must never block tool responses.
     this.fetchImpl(TELEMETRY_ENDPOINT, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'user-agent': '@ios-web-bluetooth/mcp' },
+      headers: { 'content-type': 'application/json', 'user-agent': '@beacio/mcp' },
       body: JSON.stringify(payload),
       signal: controller.signal,
     })

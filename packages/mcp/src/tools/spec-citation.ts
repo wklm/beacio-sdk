@@ -44,7 +44,7 @@ export function runSpecCitation(input: SpecCitationInput): SpecCitationOutput {
 }
 
 export const specCitationTool: ToolDefinition<SpecCitationInput, SpecCitationOutput> = {
-  name: 'webble_spec_citation',
+  name: 'beacio_spec_citation',
   title: 'WebBluetooth spec citation',
   description:
     'Return the W3C Web Bluetooth spec URL, a one-paragraph summary, and implementation caveats for a specific method (e.g. navigator.bluetooth.requestDevice).',

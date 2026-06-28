@@ -1,12 +1,12 @@
 /**
- * @ios-web-bluetooth/react - Production-grade Web Bluetooth SDK for React
+ * @beacio/react - Production-grade Web Bluetooth SDK for React
  *
  * One-line integration for Web Bluetooth in React applications
- * with full Safari support through the WebBLE extension.
+ * with full Safari support through the Beacio extension.
  */
 
 // Core exports
-export { WebBLEProvider, useWebBLE } from './core/WebBLEProvider';
+export { BeacioProvider, useBeacio } from './core/BeacioProvider';
 export { ExtensionDetector } from './core/ExtensionDetector';
 
 // Hook exports
@@ -22,7 +22,6 @@ export { useConnection } from './hooks/useConnection';
 // Component exports
 export { DeviceScanner } from './components/DeviceScanner';
 export { ServiceExplorer } from './components/ServiceExplorer';
-export { ConnectionStatus } from './components/ConnectionStatus';
 export { InstallationWizard } from './components/InstallationWizard';
 
 // Re-export core types (single source of truth -- not duplicated)
@@ -34,19 +33,19 @@ export type {
   CharacteristicNotificationOptions,
   NotificationPermissionState,
   NotificationTemplate,
-  WebBLEDevice,
-  WebBLEError,
-  WebBLEErrorCode,
+  BeacioDevice,
+  BeacioError,
+  BeacioErrorCode,
   Platform,
   RequestDeviceOptions,
   NotificationCallback,
   WriteOptions,
   WriteLimits,
-} from '@ios-web-bluetooth/core';
+} from '@beacio/core';
 
 // Local type exports
 export type {
-  WebBLEConfig,
+  BeacioConfig,
   UseBluetoothReturn,
   UseDeviceReturn,
   UseCharacteristicReturn,

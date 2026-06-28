@@ -6,9 +6,19 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
 ]
 `;
 
+exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "beacio class" 1`] = `
+[
+  "packages/core/src/beacio.ts",
+  "packages/core/src/device.ts",
+  "packages/core/src/errors.ts",
+  "packages/profiles/src/heart-rate.ts",
+  "packages/profiles/src/battery.ts",
+]
+`;
+
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "core entry point" 1`] = `
 [
-  "packages/core/src/webble.ts",
+  "packages/core/src/beacio.ts",
   "packages/core/src/device.ts",
   "packages/core/src/errors.ts",
   "packages/core/src/uuids.ts",
@@ -31,7 +41,7 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
 [
   "packages/core/src/device.ts",
   "packages/profiles/src/device-info.ts",
-  "packages/core/src/webble.ts",
+  "packages/core/src/beacio.ts",
   "packages/react-sdk/src/provider.tsx",
   "packages/react-sdk/src/hooks.ts",
 ]
@@ -41,7 +51,7 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
 [
   "packages/profiles/src/device-info.ts",
   "packages/core/src/device.ts",
-  "packages/core/src/webble.ts",
+  "packages/core/src/beacio.ts",
   "packages/react-sdk/src/hooks.ts",
   "packages/testing/src/mock.ts",
 ]
@@ -106,7 +116,7 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "requestDevice" 1`] = `
 [
-  "packages/core/src/webble.ts",
+  "packages/core/src/beacio.ts",
   "packages/testing/src/mock.ts",
 ]
 `;
@@ -123,21 +133,11 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
 ]
 `;
 
-exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "webble class" 1`] = `
-[
-  "packages/core/src/webble.ts",
-  "packages/core/src/device.ts",
-  "packages/core/src/errors.ts",
-  "packages/profiles/src/heart-rate.ts",
-  "packages/profiles/src/battery.ts",
-]
-`;
-
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "api reference" 1`] = `
 [
-  "API Reference — WebBLE class",
-  "API Reference — WebBLEDevice class",
-  "API Reference — WebBLEError",
+  "API Reference — Beacio class",
+  "API Reference — BeacioDevice class",
+  "API Reference — BeacioError",
   "Error Codes & Troubleshooting",
 ]
 `;
@@ -145,6 +145,16 @@ exports[`dev catalog ranking stability — search_docs > top-5 order is stable f
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "battery" 1`] = `
 [
   "Typed Profiles",
+]
+`;
+
+exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "beacio class" 1`] = `
+[
+  "API Reference — Beacio class",
+  "API Reference — BeacioDevice class",
+  "API Reference — BeacioError",
+  "Quick Start",
+  "React SDK",
 ]
 `;
 
@@ -156,10 +166,10 @@ exports[`dev catalog ranking stability — search_docs > top-5 order is stable f
 
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "device connect" 1`] = `
 [
-  "API Reference — WebBLEDevice class",
+  "API Reference — BeacioDevice class",
   "Error Codes & Troubleshooting",
-  "API Reference — WebBLE class",
-  "API Reference — WebBLEError",
+  "API Reference — Beacio class",
+  "API Reference — BeacioError",
   "React SDK",
 ]
 `;
@@ -167,14 +177,14 @@ exports[`dev catalog ranking stability — search_docs > top-5 order is stable f
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "error codes" 1`] = `
 [
   "Error Codes & Troubleshooting",
-  "API Reference — WebBLEError",
+  "API Reference — BeacioError",
   "User Gesture Requirement",
 ]
 `;
 
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "getAvailability" 1`] = `
 [
-  "API Reference — WebBLE class",
+  "API Reference — Beacio class",
 ]
 `;
 
@@ -197,14 +207,12 @@ exports[`dev catalog ranking stability — search_docs > top-5 order is stable f
   "iOS Detection & Install Banner",
   "Quick Start",
   "User Gesture Requirement",
-  "React SDK",
-  "Typed Profiles",
 ]
 `;
 
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "notifications" 1`] = `
 [
-  "API Reference — WebBLEDevice class",
+  "API Reference — BeacioDevice class",
   "React SDK",
 ]
 `;
@@ -229,7 +237,7 @@ exports[`dev catalog ranking stability — search_docs > top-5 order is stable f
 
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "requestDevice" 1`] = `
 [
-  "API Reference — WebBLE class",
+  "API Reference — Beacio class",
   "User Gesture Requirement",
 ]
 `;
@@ -243,22 +251,12 @@ exports[`dev catalog ranking stability — search_docs > top-5 order is stable f
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "troubleshoot disconnect" 1`] = `
 [
   "Error Codes & Troubleshooting",
-  "API Reference — WebBLEDevice class",
+  "API Reference — BeacioDevice class",
 ]
 `;
 
 exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "user gesture click" 1`] = `
 [
   "User Gesture Requirement",
-]
-`;
-
-exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "webble class" 1`] = `
-[
-  "API Reference — WebBLE class",
-  "API Reference — WebBLEDevice class",
-  "API Reference — WebBLEError",
-  "Quick Start",
-  "React SDK",
 ]
 `;

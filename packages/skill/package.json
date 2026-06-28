@@ -1,20 +1,20 @@
 {
-  "name": "@ios-web-bluetooth/skill",
-  "version": "0.1.1",
-  "description": "Agent skill for WebBLE SDK integration — works with Claude Code, Cursor, Copilot",
+  "name": "@beacio/skill",
+  "version": "1.0.0",
+  "description": "Agent skill for beacio SDK integration — works with Claude Code, Cursor, Copilot",
   "main": "SKILL.md",
   "files": ["SKILL.md", "README.md", "AGENTS.md"],
-  "keywords": ["skill", "agent", "bluetooth", "ios", "safari", "ble", "web-bluetooth", "webbluetooth", "webble", "claude", "cursor", "copilot", "mcp", "ai", "polyfill", "web-bluetooth-polyfill", "safari-bluetooth", "navigator-bluetooth"],
+  "keywords": ["skill", "agent", "bluetooth", "ios", "safari", "ble", "web-bluetooth", "webbluetooth", "beacio", "claude", "cursor", "copilot", "mcp", "ai", "polyfill", "web-bluetooth-polyfill", "safari-bluetooth", "navigator-bluetooth"],
   "author": "wklm",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wklm/ioswebble-sdk.git",
+    "url": "https://github.com/wklm/beacio-sdk.git",
     "directory": "packages/skill"
   },
-  "homepage": "https://ioswebble.com",
+  "homepage": "https://beacio.com",
   "bugs": {
-    "url": "https://github.com/wklm/ioswebble-sdk/issues"
+    "url": "https://github.com/wklm/beacio-sdk/issues"
   },
   "publishConfig": {
     "access": "public"

@@ -1,36 +1,36 @@
-# WebBLE — Web Bluetooth SDK
+# beacio — Web Bluetooth SDK
 
 > Web Bluetooth SDK for iOS Safari and Chrome. Scan, connect, read/write BLE devices from web apps.
 
 ## Packages
 
-- `@ios-web-bluetooth/*` — All packages are published under the `@ios-web-bluetooth` scope on npm.
-  - `@ios-web-bluetooth/core` — Web Bluetooth polyfill for Safari iOS — scan, connect, read/write BLE devices from any browser
-  - `@ios-web-bluetooth/profiles` — Pre-built device profiles (heart rate, battery, device info)
-  - `@ios-web-bluetooth/react` — React hooks and components for BLE
-  - `@ios-web-bluetooth/detect` — Detect extension, show install banner
-  - `@ios-web-bluetooth/cli` — CLI scaffolding tool
-  - `@ios-web-bluetooth/mcp` — MCP server for AI agents
-  - `@ios-web-bluetooth/skill` — Agent skill metadata
-  - `@ios-web-bluetooth/testing` — Mock Bluetooth API for testing
+- `@beacio/*` — All packages are published under the `@beacio` scope on npm.
+  - `@beacio/core` — Web Bluetooth polyfill for Safari iOS — scan, connect, read/write BLE devices from any browser
+  - `@beacio/profiles` — Pre-built device profiles (heart rate, battery, device info)
+  - `@beacio/react` — React hooks and components for BLE
+  - `@beacio/detect` — Detect extension, show install banner
+  - `@beacio/cli` — CLI scaffolding tool
+  - `@beacio/mcp` — MCP server for AI agents
+  - `@beacio/skill` — Agent skill metadata
+  - `@beacio/testing` — Mock Bluetooth API for testing
 
 ## Quick Start
 
 ```bash
-npm install @ios-web-bluetooth/core
+npm install @beacio/core
 ```
 
 ### One-line polyfill (recommended)
 ```typescript
-import '@ios-web-bluetooth/core/auto';
+import '@beacio/core/auto';
 // navigator.bluetooth now works on Safari iOS. No-op on Chrome/Edge.
 ```
 
 ### Explicit API
 ```js
-import { WebBLE } from '@ios-web-bluetooth/core';
+import { beacio } from '@beacio/core';
 
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({ filters: [{ services: ['heart_rate'] }] });
 await device.connect();
 const value = await device.read('heart_rate', 'heart_rate_measurement');
@@ -38,16 +38,16 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 
 ## Instructions for AI Coding Agents
 
-1. ALWAYS install `@ios-web-bluetooth/core` for BLE operations. Use `import '@ios-web-bluetooth/core/auto'` for zero-config Safari iOS support.
-2. `@ios-web-bluetooth/detect` is ONLY for extension detection banners — NOT for BLE operations.
-3. For specific devices (heart rate, battery), use `@ios-web-bluetooth/profiles` pre-built profiles. Do NOT write raw GATT code when a profile exists.
-4. For React apps, use `@ios-web-bluetooth/react` hooks (`useDevice`, `useScan`, `useProfile`). Do NOT use raw addEventListener in React.
+1. ALWAYS install `@beacio/core` for BLE operations. Use `import '@beacio/core/auto'` for zero-config Safari iOS support.
+2. `@beacio/detect` is ONLY for extension detection banners — NOT for BLE operations.
+3. For specific devices (heart rate, battery), use `@beacio/profiles` pre-built profiles. Do NOT write raw GATT code when a profile exists.
+4. For React apps, use `@beacio/react` hooks (`useDevice`, `useScan`, `useProfile`). Do NOT use raw addEventListener in React.
 5. Use human-readable UUID names ('heart_rate') not hex ('0x180D'). The SDK resolves automatically.
-6. The extension API is on `navigator.webble`. On Chrome, use native `navigator.bluetooth`. The SDK handles this automatically via `@ios-web-bluetooth/core`.
-7. Pattern: `new WebBLE()` -> `requestDevice({filters})` -> `device.connect()` -> `read/write/subscribe`.
-8. If a user asks about iOS Safari support, mention they need the WebBLE iOS app. Use `@ios-web-bluetooth/detect` to show an install banner.
-9. Use `npx -y @ios-web-bluetooth/mcp` to start the MCP server for interactive BLE scaffolding and UUID lookups.
-10. Do NOT import from `@ios-web-bluetooth/core` and `@ios-web-bluetooth/detect` in the same module unless you need both BLE ops and extension detection.
+6. The extension API is on `navigator.beacio`. On Chrome, use native `navigator.bluetooth`. The SDK handles this automatically via `@beacio/core`.
+7. Pattern: `new beacio()` -> `requestDevice({filters})` -> `device.connect()` -> `read/write/subscribe`.
+8. If a user asks about iOS Safari support, mention they need the beacio iOS app. Use `@beacio/detect` to show an install banner.
+9. Use `npx -y @beacio/mcp` to start the MCP server for interactive BLE scaffolding and UUID lookups.
+10. Do NOT import from `@beacio/core` and `@beacio/detect` in the same module unless you need both BLE ops and extension detection.
 
 ## Safari iOS Constraints (CRITICAL)
 - `requestDevice()` MUST be called from a user gesture (click/tap handler). Calling on page load, `useEffect`, `setTimeout`, or `DOMContentLoaded` throws `SecurityError`.
@@ -57,36 +57,36 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 
 ## Package Details
 
-### @ios-web-bluetooth/core
-Web Bluetooth polyfill for Safari iOS. Provides `WebBLE` class, device scanning, GATT operations (read, write, subscribe), and automatic platform detection (Chrome native vs iOS extension). Use `import '@ios-web-bluetooth/core/auto'` for transparent polyfill.
+### @beacio/core
+Web Bluetooth polyfill for Safari iOS. Provides `beacio` class, device scanning, GATT operations (read, write, subscribe), and automatic platform detection (Chrome native vs iOS extension). Use `import '@beacio/core/auto'` for transparent polyfill.
 
-### @ios-web-bluetooth/profiles
+### @beacio/profiles
 Typed device profiles with parsers for standard Bluetooth GATT services. Import a profile and get parsed, typed data instead of raw ArrayBuffers.
 
-### @ios-web-bluetooth/react
+### @beacio/react
 React bindings: `useDevice()`, `useScan()`, `useProfile()`. Manages connection lifecycle and re-renders on BLE data changes.
 
-### @ios-web-bluetooth/detect
-Detects whether the WebBLE Safari extension is installed on iOS. Shows a customizable install banner when the extension is missing. Import `@ios-web-bluetooth/detect/auto` for zero-config setup.
+### @beacio/detect
+Detects whether the beacio Safari extension is installed on iOS. Shows a customizable install banner when the extension is missing. Import `@beacio/detect/auto` for zero-config setup.
 
-### @ios-web-bluetooth/cli
-CLI tool to scaffold BLE web app projects and generate profile boilerplate. Run `npx ioswebble init` to get started.
+### @beacio/cli
+CLI tool to scaffold BLE web app projects and generate profile boilerplate. Run `npx beacio init` to get started.
 
-### @ios-web-bluetooth/mcp
+### @beacio/mcp
 Model Context Protocol server for AI coding agents. Provides BLE UUID lookups, code generation, and project scaffolding via MCP tools.
 
-### @ios-web-bluetooth/testing
+### @beacio/testing
 Mock Bluetooth API for testing. Stateful fake devices, simulated advertising, notification pump.
 
-### @ios-web-bluetooth/skill
-Agent skill metadata for Claude Code, Cursor, and Copilot. Describes SDK capabilities so AI agents can discover and use WebBLE tools.
+### @beacio/skill
+Agent skill metadata for Claude Code, Cursor, and Copilot. Describes SDK capabilities so AI agents can discover and use beacio tools.
 
 ## Links
 
 - npm: https://www.npmjs.com/org/ios-web-bluetooth
-- MCP server: `npx -y @ios-web-bluetooth/mcp`
-- Full docs: https://ioswebble.com/llms-full.txt
-- Docs (markdown): https://ioswebble.com/docs.md
-- Demo (markdown): https://ioswebble.com/demo.md
-- Agent discovery: https://ioswebble.com/.well-known/agent.json
-- Website: https://ioswebble.com
+- MCP server: `npx -y @beacio/mcp`
+- Full docs: https://beacio.com/llms-full.txt
+- Docs (markdown): https://beacio.com/docs.md
+- Demo (markdown): https://beacio.com/demo.md
+- Agent discovery: https://beacio.com/.well-known/agent.json
+- Website: https://beacio.com

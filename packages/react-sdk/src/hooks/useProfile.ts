@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { WebBLEError } from '@ios-web-bluetooth/core';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
+import type { BeacioDevice } from '@beacio/core';
 
 /**
- * Hook that wraps a {@link BaseProfile} subclass from `@ios-web-bluetooth/profiles`.
+ * Hook that wraps a {@link BaseProfile} subclass from `@beacio/profiles`.
  *
  * Manages profile instantiation, connection, and teardown tied to the
  * React component lifecycle. A new profile instance is created whenever
@@ -12,16 +12,16 @@ import type { WebBLEDevice } from '@ios-web-bluetooth/core';
  *
  * @typeParam T - The profile class type (must have `connect()` and `stop()`).
  * @param ProfileClass - The profile constructor (e.g. `HeartRateProfile`).
- * @param device - The WebBLEDevice to bind to, or `null` if not yet available.
+ * @param device - The BeacioDevice to bind to, or `null` if not yet available.
  * @returns An object with the profile instance, a `connect` function, and error state.
  *
  * @example
  * ```tsx
- * import { useProfile } from '@ios-web-bluetooth/react';
- * import { HeartRateProfile } from '@ios-web-bluetooth/profiles';
- * import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+ * import { useProfile } from '@beacio/react';
+ * import { HeartRateProfile } from '@beacio/profiles';
+ * import type { BeacioDevice } from '@beacio/core';
  *
- * function HeartRateMonitor({ device }: { device: WebBLEDevice }) {
+ * function HeartRateMonitor({ device }: { device: BeacioDevice }) {
  *   const { profile, connect, error } = useProfile(HeartRateProfile, device);
  *   const [bpm, setBpm] = useState<number | null>(null);
  *
@@ -41,11 +41,11 @@ import type { WebBLEDevice } from '@ios-web-bluetooth/core';
  * ```
  */
 export function useProfile<T extends { connect(): Promise<void>; stop(): void }>(
-  ProfileClass: new (device: WebBLEDevice) => T,
-  device: WebBLEDevice | null,
-): { profile: T | null; connect: () => Promise<void>; error: WebBLEError | null } {
+  ProfileClass: new (device: BeacioDevice) => T,
+  device: BeacioDevice | null,
+): { profile: T | null; connect: () => Promise<void>; error: BeacioError | null } {
   const [profile, setProfile] = useState<T | null>(null);
-  const [error, setError] = useState<WebBLEError | null>(null);
+  const [error, setError] = useState<BeacioError | null>(null);
   const profileRef = useRef<T | null>(null);
 
   // Create profile instance when device changes
@@ -74,7 +74,7 @@ export function useProfile<T extends { connect(): Promise<void>; stop(): void }>
       setError(null);
       await profileRef.current.connect();
     } catch (e) {
-      setError(WebBLEError.from(e));
+      setError(BeacioError.from(e));
     }
   }, []);
 

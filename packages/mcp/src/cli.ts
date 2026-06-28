@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Entry point for `webble-mcp`. Wires the MCP server to stdio so hosts
+ * Entry point for `beacio-mcp`. Wires the MCP server to stdio so hosts
  * (Claude Desktop, Cursor, Copilot, etc.) can spawn and speak MCP.
  */
 import { createRequire } from 'node:module';
@@ -12,7 +12,7 @@ const args = process.argv.slice(2);
 
 if (args.includes('--help') || args.includes('-h')) {
   process.stderr.write(
-    `Usage: webble-mcp [options]\n\nOptions:\n  --consumer                   Consumer tool visibility mode (default)\n  --developer                  Developer tool visibility mode (includes all tools)\n  --read-only                  Expose only read-only tools\n  --local-only                 Expose only local tools\n  -E, --experimental-tool <name>  Enable a specific experimental tool (repeatable)\n  --help, -h                   Show this help message\n  --version, -v                Print version and exit\n`,
+    `Usage: beacio-mcp [options]\n\nOptions:\n  --consumer                   Consumer tool visibility mode (default)\n  --developer                  Developer tool visibility mode (includes all tools)\n  --read-only                  Expose only read-only tools\n  --local-only                 Expose only local tools\n  -E, --experimental-tool <name>  Enable a specific experimental tool (repeatable)\n  --help, -h                   Show this help message\n  --version, -v                Print version and exit\n`,
   );
   process.exit(0);
 }
@@ -42,7 +42,7 @@ async function shutdown(signal: string) {
 
   void setTimeout(() => {
     // eslint-disable-next-line no-console
-    console.error(`[webble-mcp] forced exit after ${signal}`);
+    console.error(`[beacio-mcp] forced exit after ${signal}`);
     process.exit(1);
   }, 5000).unref();
 
@@ -59,12 +59,12 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 
 process.on('unhandledRejection', (reason) => {
   // eslint-disable-next-line no-console
-  console.error('[webble-mcp] unhandled rejection:', reason);
+  console.error('[beacio-mcp] unhandled rejection:', reason);
   process.exit(1);
 });
 
 main().catch((err) => {
   // eslint-disable-next-line no-console
-  console.error('[webble-mcp] fatal:', err);
+  console.error('[beacio-mcp] fatal:', err);
   process.exit(1);
 });

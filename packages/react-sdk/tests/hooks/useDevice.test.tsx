@@ -1,10 +1,10 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { WebBLEProvider } from '../../src/core/WebBLEProvider';
+import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useDevice } from '../../src/hooks/useDevice';
 
 /**
- * Factory for creating mock WebBLEDevice objects that match the interface
+ * Factory for creating mock BeacioDevice objects that match the interface
  * expected by useDevice: connect(), disconnect(), getPrimaryServices(),
  * watchAdvertisements(), forget(), on(), off(), subscribe(), raw, id, name, connected.
  */
@@ -48,7 +48,7 @@ function createMockDevice(overrides: Record<string, any> = {}) {
 
 describe('useDevice Hook', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <WebBLEProvider>{children}</WebBLEProvider>
+    <BeacioProvider>{children}</BeacioProvider>
   );
 
   let mockDevice: ReturnType<typeof createMockDevice>;

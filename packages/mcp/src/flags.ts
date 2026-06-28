@@ -14,13 +14,13 @@ export function parseFlags(argv: string[] = process.argv): ParsedFlags {
     if (arg === '--developer') {
       if (mode === 'consumer') {
         // eslint-disable-next-line no-console
-        console.error('[webble-mcp] --developer overrides --consumer; running in developer mode');
+        console.error('[beacio-mcp] --developer overrides --consumer; running in developer mode');
       }
       mode = 'developer';
     } else if (arg === '--consumer') {
       if (mode === 'developer') {
         // eslint-disable-next-line no-console
-        console.error('[webble-mcp] --developer already set; ignoring --consumer');
+        console.error('[beacio-mcp] --developer already set; ignoring --consumer');
       } else {
         mode = 'consumer';
       }

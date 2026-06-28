@@ -33,9 +33,9 @@ export function runSearchDocs(input: SearchDocsInput): SearchDocsOutput {
 }
 
 export const searchDocsTool: ToolDefinition<SearchDocsInput, SearchDocsOutput> = {
-  name: 'webble_dev_search_docs',
-  title: 'Search WebBLE documentation by keyword',
+  name: 'beacio_dev_search_docs',
+  title: 'Search Beacio documentation by keyword',
   description:
-    'Search the WebBLE documentation index for topics matching a query string. Returns ranked results with URLs to ioswebble.com docs.',
+    'Search the Beacio documentation index for topics matching a query string. Returns ranked results with URLs to beacio.com docs.',
   run: runSearchDocs,
 };

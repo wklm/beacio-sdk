@@ -7,7 +7,7 @@ import { TextEncoder, TextDecoder } from 'util';
 
 // Mock Web Bluetooth API
 const mockBluetooth = {
-  __webble: true, // Marker for ExtensionDetector.isInstalled()
+  __beacio: true, // Marker for ExtensionDetector.isInstalled()
   getAvailability: jest.fn().mockResolvedValue(true),
   requestDevice: jest.fn(),
   getDevices: jest.fn().mockResolvedValue([]),

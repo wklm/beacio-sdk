@@ -1,7 +1,7 @@
 {
-  "name": "@ios-web-bluetooth/detect",
-  "version": "0.1.1",
-  "description": "Detect WebBLE Safari extension on iOS. Auto-show install banner when extension not found",
+  "name": "@beacio/detect",
+  "version": "1.0.0",
+  "description": "Detect beacio Safari extension on iOS. Auto-show install banner when extension not found",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -27,12 +27,12 @@
     "dist",
     "README.md",
     "AGENTS.md",
-    "SKILL.md",
-    "CONTEXT.md"
+    "SKILL.md"
   ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "test": "jest",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build && npm run typecheck"
   },
@@ -43,7 +43,7 @@
     "ble",
     "web-bluetooth",
     "webbluetooth",
-    "webble",
+    "beacio",
     "extension",
     "detect",
     "install-banner",
@@ -59,25 +59,25 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wklm/ioswebble-sdk.git",
+    "url": "https://github.com/wklm/beacio-sdk.git",
     "directory": "packages/detect"
   },
-  "homepage": "https://ioswebble.com/docs#detect-package",
+  "homepage": "https://beacio.com/docs#detect-package",
   "bugs": {
-    "url": "https://github.com/wklm/ioswebble-sdk/issues"
+    "url": "https://github.com/wklm/beacio-sdk/issues"
   },
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
     "react": ">=17.0.0",
-    "@ios-web-bluetooth/core": ">=2.0.0-beta.2"
+    "@beacio/core": "^1.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
       "optional": true
     },
-    "@ios-web-bluetooth/core": {
+    "@beacio/core": {
       "optional": true
     }
   },
@@ -85,7 +85,7 @@
     "@types/react": "^19.2.17",
     "react": "^19.2.7",
     "tsup": "^8.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=18"

@@ -6,6 +6,9 @@ export default defineConfig({
     'heart-rate': 'src/heart-rate.ts',
     battery: 'src/battery.ts',
     'device-info': 'src/device-info.ts',
+    'nordic-uart': 'src/nordic-uart.ts',
+    'serial-ffe0': 'src/serial-ffe0.ts',
+    'storz-bickel': 'src/storz-bickel.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,
@@ -13,5 +16,5 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   treeshake: true,
-  external: ['@ios-web-bluetooth/core'],
+  external: ['@beacio/core'],
 });

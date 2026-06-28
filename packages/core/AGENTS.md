@@ -1,21 +1,21 @@
-# @ios-web-bluetooth/core — Agent Instructions
+# @beacio/core — Agent Instructions
 
 ## What this package does
-Platform-agnostic Web Bluetooth SDK. Provides `WebBLE` (entry point),
-`WebBLEDevice` (connected device wrapper), and `WebBLEError` (typed errors).
+Platform-agnostic Web Bluetooth SDK. Provides `beacio` (entry point),
+`BeacioDevice` (connected device wrapper), and `BeacioError` (typed errors).
 Works on any browser with Web Bluetooth support.
 
 ## One-line polyfill (recommended)
 ```typescript
-import '@ios-web-bluetooth/core/auto';
+import '@beacio/core/auto';
 // navigator.bluetooth now works on Safari iOS. No-op on Chrome/Edge.
 ```
 
 ## Core pattern (explicit API)
 ```typescript
-import { WebBLE } from '@ios-web-bluetooth/core';
+import { beacio } from '@beacio/core';
 
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }]
 });
@@ -24,8 +24,8 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 ```
 
 ## Key API surface
-- `new WebBLE(options?)` — creates SDK instance, detects platform
-- `ble.requestDevice(options?)` — opens device picker, returns `WebBLEDevice`
+- `new beacio(options?)` — creates SDK instance, detects platform
+- `ble.requestDevice(options?)` — opens device picker, returns `BeacioDevice`
 - `ble.getAvailability()` — checks if Bluetooth is available
 - `device.connect()` / `device.disconnect()` — GATT connection lifecycle
 - `device.read(service, characteristic)` — read a characteristic value
@@ -35,18 +35,18 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 - `device.notifications(service, characteristic)` — async iterable of DataView values
 - `device.on('disconnected', fn)` / `device.off('disconnected', fn)` — disconnect events
 - `resolveUUID(name)` — converts human-readable names to full UUIDs
-- `WebBLEError` — typed error with `.code` (`UNSUPPORTED`, `NOT_CONNECTED`, `DEVICE_NOT_FOUND`, `USER_CANCELLED`, `GATT_ERROR`, `TIMEOUT`)
+- `BeacioError` — typed error with `.code` (`UNSUPPORTED`, `NOT_CONNECTED`, `DEVICE_NOT_FOUND`, `USER_CANCELLED`, `GATT_ERROR`, `TIMEOUT`)
 
 ## DO
 - Use human-readable service/characteristic names (`'heart_rate'`, `'battery_level'`) — `resolveUUID` handles conversion
 - Call `device.connect()` before any read/write/subscribe
-- Check `WebBLEError.code` for programmatic error handling
+- Check `BeacioError.code` for programmatic error handling
 - Store the unsubscribe function returned by `device.subscribe()` and call it on cleanup
-- Use `@ios-web-bluetooth/profiles` when a built-in profile exists for your device type
+- Use `@beacio/profiles` when a built-in profile exists for your device type
 
 ## DO NOT
-- Do not write raw GATT parsing code when a profile exists in `@ios-web-bluetooth/profiles`
-- Do not catch errors silently — surface `WebBLEError.code` and `.hint` to the user
+- Do not write raw GATT parsing code when a profile exists in `@beacio/profiles`
+- Do not catch errors silently — surface `BeacioError.code` and `.hint` to the user
 - Do not call `device.read()` / `device.write()` before `device.connect()` — throws `NOT_CONNECTED`
 - Do not access `device.raw` unless you need the underlying `BluetoothDevice` for an unsupported operation
 
@@ -98,7 +98,7 @@ const data = await device.read('battery_service', 'battery_level') // throws DEV
 try {
   await device.read('heart_rate', 'heart_rate_measurement')
 } catch (e) {
-  if (e instanceof WebBLEError) {
+  if (e instanceof BeacioError) {
     console.error(e.code, e.suggestion) // machine-readable + actionable
   }
 }
@@ -141,7 +141,7 @@ device.on('disconnected', () => {
 try {
   await device.read('heart_rate', 'heart_rate_measurement');
 } catch (e) {
-  if (e instanceof WebBLEError) {
+  if (e instanceof BeacioError) {
     switch (e.code) {
       case 'NOT_CONNECTED': /* reconnect */ break;
       case 'GATT_ERROR': /* retry or surface */ break;

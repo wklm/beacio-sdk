@@ -1,6 +1,6 @@
 {
-  "name": "@ios-web-bluetooth/react",
-  "version": "2.0.0-beta.2",
+  "name": "@beacio/react",
+  "version": "1.0.0",
   "description": "React hooks for Bluetooth Low Energy — useDevice, useScan, useProfile. Real-time BLE data in React",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -33,17 +33,17 @@
     "prepublishOnly": "npm run build && npm run typecheck"
   },
   "peerDependencies": {
-    "@ios-web-bluetooth/core": ">=2.0.0-beta.2",
-    "@ios-web-bluetooth/detect": ">=0.1.0",
-    "@ios-web-bluetooth/profiles": ">=1.0.0-beta.2",
+    "@beacio/core": "^1.0.0",
+    "@beacio/detect": "^1.0.0",
+    "@beacio/profiles": "^1.0.0",
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
   },
   "peerDependenciesMeta": {
-    "@ios-web-bluetooth/detect": {
+    "@beacio/detect": {
       "optional": true
     },
-    "@ios-web-bluetooth/profiles": {
+    "@beacio/profiles": {
       "optional": true
     }
   },
@@ -60,11 +60,11 @@
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "react": "^19.2.7",
-    "react-dom": "^19.2.6",
-    "ts-jest": "^29.4.9",
+    "react-dom": "^19.2.7",
+    "ts-jest": "^29.4.11",
     "tslib": "^2.6.2",
     "tsup": "^8.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "keywords": [
     "bluetooth",
@@ -74,7 +74,7 @@
     "react",
     "react-hooks",
     "safari",
-    "webble",
+    "beacio",
     "ios",
     "gatt",
     "bluetooth-low-energy",
@@ -92,13 +92,13 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wklm/ioswebble-sdk.git",
+    "url": "https://github.com/wklm/beacio-sdk.git",
     "directory": "packages/react-sdk"
   },
   "bugs": {
-    "url": "https://github.com/wklm/ioswebble-sdk/issues"
+    "url": "https://github.com/wklm/beacio-sdk/issues"
   },
-  "homepage": "https://ioswebble.com/docs#react-sdk",
+  "homepage": "https://beacio.com/docs#react-sdk",
   "publishConfig": {
     "access": "public"
   },

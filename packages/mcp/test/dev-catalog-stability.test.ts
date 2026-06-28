@@ -27,7 +27,7 @@ const DOC_QUERIES = [
   'profiles',
   'device connect',
   'getAvailability',
-  'webble class',
+  'beacio class',
   'troubleshoot disconnect',
   'defineProfile custom',
   'notifications',
@@ -35,7 +35,7 @@ const DOC_QUERIES = [
 ];
 
 const EXAMPLE_QUERIES = [
-  'webble class',
+  'beacio class',
   'device connect',
   'error',
   'uuid resolve',

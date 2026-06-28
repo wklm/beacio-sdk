@@ -1,31 +1,25 @@
 /**
- * ExtensionDetector - Automatically detects if the WebBLE Safari extension is installed
+ * ExtensionDetector - Automatically detects if the Beacio Safari extension is installed
  */
 
-export type ExtensionInstallState = 'not-installed' | 'installed-inactive' | 'active';
+import { BEACIO_EVENTS } from '@beacio/core';
+// SB-SDK-12: the install-state marker derivation is now the SINGLE shared
+// accessor in @beacio/detect (consumed by the detect package's own detect.ts and
+// the framework-agnostic headless onboarding API). This react-sdk detector reads
+// through the SAME getInstallState() so the four old copies cannot drift — AC1
+// "the detection logic is SHARED, not duplicated". @beacio/detect is already a
+// peer this package imports at module level (see InstallationWizard's SETUP_STEPS
+// import), so this reuses the established seam.
+import { getInstallState, type ExtensionInstallState } from '@beacio/detect';
+
+export type { ExtensionInstallState } from '@beacio/detect';
 
 export class ExtensionDetector {
   private detectionPromise: Promise<ExtensionInstallState> | null = null;
   private readonly DETECTION_TIMEOUT = 3000;
 
   private readInstallState(): ExtensionInstallState {
-    if (typeof navigator !== 'undefined' && (navigator as any).webble?.__webble === true) {
-      return 'active';
-    }
-
-    if (typeof document !== 'undefined' && document.documentElement.dataset.webbleExtension === 'true') {
-      return 'active';
-    }
-
-    if (typeof window !== 'undefined' && (window as any).__webble?.status === 'installed') {
-      return 'installed-inactive';
-    }
-
-    if (typeof document !== 'undefined' && document.documentElement.dataset.webbleInstalled === 'true') {
-      return 'installed-inactive';
-    }
-
-    return 'not-installed';
+    return getInstallState();
   }
 
   getInstallState(): ExtensionInstallState {
@@ -79,18 +73,18 @@ export class ExtensionDetector {
       const handleExtensionReady = () => {
         if (!resolved) {
           resolved = true;
-          window.removeEventListener('webble:extension:ready', handleExtensionReady);
+          window.removeEventListener(BEACIO_EVENTS.EXTENSION_READY, handleExtensionReady);
           resolve('active');
         }
       };
 
-      window.addEventListener('webble:extension:ready', handleExtensionReady);
+      window.addEventListener(BEACIO_EVENTS.EXTENSION_READY, handleExtensionReady);
 
       // Timeout after specified duration
       setTimeout(() => {
         if (!resolved) {
           resolved = true;
-          window.removeEventListener('webble:extension:ready', handleExtensionReady);
+          window.removeEventListener(BEACIO_EVENTS.EXTENSION_READY, handleExtensionReady);
           resolve(this.readInstallState());
         }
       }, this.DETECTION_TIMEOUT);

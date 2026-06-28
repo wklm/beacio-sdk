@@ -30,8 +30,8 @@ describe('detectPlatform', () => {
     expect(detectPlatform()).toBe('unsupported');
   });
 
-  it('returns safari-extension when navigator.webble.__webble is true', () => {
-    mockNavigator({ webble: { __webble: true, requestDevice: jest.fn() } });
+  it('returns safari-extension when navigator.beacio.__beacio is true', () => {
+    mockNavigator({ beacio: { __beacio: true, requestDevice: jest.fn() } });
     expect(detectPlatform()).toBe('safari-extension');
   });
 
@@ -41,11 +41,11 @@ describe('detectPlatform', () => {
   });
 
   it('returns unsupported when navigator.bluetooth has CDN stub', () => {
-    mockNavigator({ bluetooth: { __webbleCDNStub: true } });
+    mockNavigator({ bluetooth: { __beacioCDNStub: true } });
     expect(detectPlatform()).toBe('unsupported');
   });
 
-  it('returns unsupported when navigator has no bluetooth or webble', () => {
+  it('returns unsupported when navigator has no bluetooth or beacio', () => {
     mockNavigator({});
     expect(detectPlatform()).toBe('unsupported');
   });
@@ -58,10 +58,10 @@ describe('getBluetoothAPI', () => {
     expect(getBluetoothAPI()).toBeNull();
   });
 
-  it('returns webble object for safari-extension', () => {
-    const webble = { __webble: true, requestDevice: jest.fn() };
-    mockNavigator({ webble });
-    expect(getBluetoothAPI()).toBe(webble);
+  it('returns beacio object for safari-extension', () => {
+    const beacio = { __beacio: true, requestDevice: jest.fn() };
+    mockNavigator({ beacio });
+    expect(getBluetoothAPI()).toBe(beacio);
   });
 
   it('returns bluetooth object for native', () => {
@@ -71,7 +71,7 @@ describe('getBluetoothAPI', () => {
   });
 
   it('returns null for CDN stub', () => {
-    mockNavigator({ bluetooth: { __webbleCDNStub: true } });
+    mockNavigator({ bluetooth: { __beacioCDNStub: true } });
     expect(getBluetoothAPI()).toBeNull();
   });
 });

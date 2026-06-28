@@ -1,6 +1,6 @@
 /**
- * `npx ioswebble init` command
- * Auto-detects framework and adds WebBLE detection snippet
+ * `npx beacio init` command
+ * Auto-detects framework and adds Beacio detection snippet
  */
 
 import * as fs from 'fs';
@@ -21,10 +21,10 @@ function parseArgs(args: string[]): { key?: string; framework?: string } {
 
 function getInstallCommand(packageManager: string): string {
   switch (packageManager) {
-    case 'yarn': return 'yarn add @ios-web-bluetooth/core @ios-web-bluetooth/detect';
-    case 'pnpm': return 'pnpm add @ios-web-bluetooth/core @ios-web-bluetooth/detect';
-    case 'bun': return 'bun add @ios-web-bluetooth/core @ios-web-bluetooth/detect';
-    default: return 'npm install @ios-web-bluetooth/core @ios-web-bluetooth/detect';
+    case 'yarn': return 'yarn add @beacio/core @beacio/detect';
+    case 'pnpm': return 'pnpm add @beacio/core @beacio/detect';
+    case 'bun': return 'bun add @beacio/core @beacio/detect';
+    default: return 'npm install @beacio/core @beacio/detect';
   }
 }
 
@@ -32,34 +32,44 @@ function getSnippet(framework: Framework, apiKey: string): { code: string; locat
   switch (framework) {
     case 'nextjs-app':
       return {
-        code: `import { IOSWebBLEProvider } from '@ios-web-bluetooth/detect/react'\n`,
-        location: 'Wrap children with <IOSWebBLEProvider apiKey="' + apiKey + '">{children}</IOSWebBLEProvider>',
+        code: `import { BeacioProvider } from '@beacio/detect/react'\n`,
+        location: 'Wrap children with <BeacioProvider apiKey="' + apiKey + '">{children}</BeacioProvider>',
       };
     case 'nextjs-pages':
       return {
-        code: `import { IOSWebBLEProvider } from '@ios-web-bluetooth/detect/react'\n`,
-        location: 'Wrap <Component /> with <IOSWebBLEProvider apiKey="' + apiKey + '">...</IOSWebBLEProvider>',
+        code: `import { BeacioProvider } from '@beacio/detect/react'\n`,
+        location: 'Wrap <Component /> with <BeacioProvider apiKey="' + apiKey + '">...</BeacioProvider>',
       };
     case 'react-vite':
     case 'react-cra':
       return {
-        code: `import '@ios-web-bluetooth/core/auto'\nimport '@ios-web-bluetooth/detect/auto'\n// Set key: <meta name="ioswebble-key" content="${apiKey}"> in index.html\n`,
+        code: `import '@beacio/core/auto'\nimport '@beacio/detect/auto'\n// Set key: <meta name="beacio-key" content="${apiKey}"> in index.html\n`,
         location: 'Add import at the top of the entry file',
       };
     case 'vue':
     case 'nuxt':
       return {
-        code: `import '@ios-web-bluetooth/core/auto'\nimport { initIOSWebBLE } from '@ios-web-bluetooth/detect'\ninitIOSWebBLE({ key: '${apiKey}' })\n`,
+        code: `import '@beacio/core/auto'\nimport { initBeacio } from '@beacio/detect'\ninitBeacio({ key: '${apiKey}' })\n`,
         location: 'Add to the entry file',
       };
     case 'html':
+      // CDN-01: emit the canonical M7-pinned cdn.beacio.com bootstrap (the same
+      // URL `beacio_install_plan` writes on the html+cdn path — see
+      // packages/mcp/src/tools/install-plan.ts CANONICAL_CDN_BOOTSTRAP_URL +
+      // packages/mcp/src/data/install-plan.json). The cdn Worker 302s full-semver
+      // `@1.0.0` and 400s partials (`@1`, `@1.0`), so the version is pinned
+      // exactly. The API key rides on a `<meta name="beacio-key">` tag (the form
+      // `@beacio/detect/auto` reads — see packages/detect/AGENTS.md), since the
+      // ESM self-installing polyfill has no `data-key` attribute surface. The
+      // pre-rebrand `https://beacio.com/beacio.js` apex shortener is kept as a
+      // LEGACY alternative in check.ts (not emitted here anymore).
       return {
-        code: `<script src="https://ioswebble.com/webble.js" data-key="${apiKey}"></script>`,
-        location: 'Add before </body>',
+        code: `<meta name="beacio-key" content="${apiKey}">\n<script type="module">import 'https://cdn.beacio.com/@beacio/core@1.0.0/dist/auto.mjs';</script>`,
+        location: 'Add before </body> (meta tag first, then the module script — module scripts are deferred so navigator.bluetooth mounts after the document parses)',
       };
     default:
       return {
-        code: `import '@ios-web-bluetooth/core/auto'\nimport { initIOSWebBLE } from '@ios-web-bluetooth/detect'\ninitIOSWebBLE({ key: '${apiKey}' })`,
+        code: `import '@beacio/core/auto'\nimport { initBeacio } from '@beacio/detect'\ninitBeacio({ key: '${apiKey}' })`,
         location: 'Add to your app entry point',
       };
   }
@@ -77,10 +87,10 @@ export async function init(args: string[]): Promise<void> {
   console.log();
 
   // Get API key (optional — used for campaign tracking)
-  const apiKey = options.key || process.env.IOSWEBBLE_API_KEY || 'YOUR_API_KEY';
+  const apiKey = options.key || process.env.BEACIO_API_KEY || 'YOUR_API_KEY';
 
   if (options.key) {
-    const { validateApiKey } = await import('@ios-web-bluetooth/detect');
+    const { validateApiKey } = await import('@beacio/detect');
     console.log('Validating API key...');
     const config = await validateApiKey(options.key);
     if (config) {
@@ -94,7 +104,7 @@ export async function init(args: string[]): Promise<void> {
 
   // Install packages
   const installCmd = getInstallCommand(detection.packageManager);
-  console.log(`Installing @ios-web-bluetooth/core and @ios-web-bluetooth/detect...`);
+  console.log(`Installing @beacio/core and @beacio/detect...`);
   console.log(`  Run: ${installCmd}`);
   console.log();
 
@@ -108,22 +118,22 @@ export async function init(args: string[]): Promise<void> {
     // For HTML, inject the script tag
     const filePath = path.join(projectPath, detection.entryFile);
     let content = fs.readFileSync(filePath, 'utf-8');
-    if (!content.includes('ioswebble')) {
+    if (!content.includes('beacio')) {
       content = content.replace('</body>', `  ${snippet.code}\n</body>`);
       fs.writeFileSync(filePath, content);
       console.log(`Added detection snippet to ${detection.entryFile}`);
     } else {
-      console.log('WebBLE already detected in entry file, skipping.');
+      console.log('Beacio already detected in entry file, skipping.');
     }
   } else if (detection.entryFile) {
     const filePath = path.join(projectPath, detection.entryFile);
     let content = fs.readFileSync(filePath, 'utf-8');
-    if (!content.includes('ioswebble')) {
+    if (!content.includes('beacio')) {
       content = snippet.code + '\n' + content;
       fs.writeFileSync(filePath, content);
       console.log(`Added detection import to ${detection.entryFile}`);
     } else {
-      console.log('WebBLE already detected in entry file, skipping.');
+      console.log('Beacio already detected in entry file, skipping.');
     }
   }
 
@@ -135,16 +145,16 @@ export async function init(args: string[]): Promise<void> {
   if (detection.entryFile) {
     console.log(`  2. ${snippet.location}`);
   }
-  console.log(`  3. Run: npx ioswebble check`);
+  console.log(`  3. Run: npx beacio check`);
 
   // Suggest React SDK if React is detected
   if (['nextjs-app', 'nextjs-pages', 'react-vite', 'react-cra'].includes(detection.framework)) {
     console.log();
     console.log('React detected! Also consider:');
-    const reactPkg = detection.packageManager === 'yarn' ? 'yarn add @ios-web-bluetooth/react' :
-      detection.packageManager === 'pnpm' ? 'pnpm add @ios-web-bluetooth/react' :
-      detection.packageManager === 'bun' ? 'bun add @ios-web-bluetooth/react' :
-      'npm install @ios-web-bluetooth/react';
+    const reactPkg = detection.packageManager === 'yarn' ? 'yarn add @beacio/react' :
+      detection.packageManager === 'pnpm' ? 'pnpm add @beacio/react' :
+      detection.packageManager === 'bun' ? 'bun add @beacio/react' :
+      'npm install @beacio/react';
     console.log(`  ${reactPkg} — React hooks for BLE (useDevice, useScan, useProfile)`);
   }
 }

@@ -1,5 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { WebBLEDevice } from '../src/device';
+import { BeacioDevice } from '../src/device';
+import { BeacioError } from '../src/errors';
+import { resolveUUID } from '../src/uuid';
 
 type MockCharacteristic = {
   value: DataView | null;
@@ -77,9 +79,9 @@ function createConnectedDevice(options?: {
       getWriteLimits: options?.getWriteLimits,
     },
     addEventListener: jest.fn(),
-  } as unknown as ConstructorParameters<typeof WebBLEDevice>[0];
+  } as unknown as ConstructorParameters<typeof BeacioDevice>[0];
 
-  const device = new WebBLEDevice(rawDevice);
+  const device = new BeacioDevice(rawDevice);
 
   return {
     device,
@@ -96,7 +98,7 @@ function createConnectedDevice(options?: {
   };
 }
 
-describe('WebBLEDevice.write', () => {
+describe('BeacioDevice.write', () => {
   it('rejects invalid timeout values', async () => {
     const { device } = createConnectedDevice();
 
@@ -243,7 +245,7 @@ describe('WebBLEDevice.write', () => {
   });
 });
 
-describe('WebBLEDevice.getWriteLimits', () => {
+describe('BeacioDevice.getWriteLimits', () => {
   it('returns null limits when the underlying platform exposes no transport metadata', async () => {
     const { device } = createConnectedDevice();
 
@@ -291,7 +293,7 @@ describe('WebBLEDevice.getWriteLimits', () => {
   });
 });
 
-describe('WebBLEDevice.subscribe', () => {
+describe('BeacioDevice.subscribe', () => {
   it('does not keep a stale callback when unsubscribed before characteristic resolution completes', async () => {
     const characteristicDeferred = deferred<MockCharacteristic>();
     const { device, characteristic, addEventListener, startNotifications } = createConnectedDevice({
@@ -470,7 +472,7 @@ describe('WebBLEDevice.subscribe', () => {
   });
 });
 
-describe('WebBLEDevice.notifications', () => {
+describe('BeacioDevice.notifications', () => {
   it('throws on queue overflow by default', async () => {
     const { device, characteristic, addEventListener } = createConnectedDevice();
     await device.connect();
@@ -581,7 +583,7 @@ describe('WebBLEDevice.notifications', () => {
   });
 });
 
-describe('WebBLEDevice.connect and disconnect lifecycle', () => {
+describe('BeacioDevice.connect and disconnect lifecycle', () => {
   it('resolves an existing reconnect gate even when reconnect recovery fails', async () => {
     const characteristicDeferred = deferred<MockCharacteristic>();
     const { device } = createConnectedDevice({ characteristicPromise: characteristicDeferred.promise });
@@ -620,7 +622,7 @@ describe('WebBLEDevice.connect and disconnect lifecycle', () => {
   });
 });
 
-describe('WebBLEDevice advanced APIs', () => {
+describe('BeacioDevice advanced APIs', () => {
   it('returns effective MTU from write limits when available', async () => {
     const { device } = createConnectedDevice({
       getWriteLimits: async () => ({ withResponse: 185, withoutResponse: 182, mtu: 188 }),
@@ -796,7 +798,7 @@ describe('WebBLEDevice advanced APIs', () => {
 // write-chunker + notification-manager). These lock in the load-bearing behaviors
 // across the extraction: reconcile ordering, the reconnect-gate lifecycle, the
 // notifications() pause/resume on disconnect, and in-flight write abort cleanup.
-describe('WebBLEDevice god-class split invariants', () => {
+describe('BeacioDevice god-class split invariants', () => {
   it('reconciles concurrent subscribe/unsubscribe/re-subscribe to a single active native lifecycle', async () => {
     const { device, characteristic, addEventListener, startNotifications, stopNotifications } = createConnectedDevice();
     await device.connect();
@@ -973,5 +975,197 @@ describe('WebBLEDevice god-class split invariants', () => {
     await secondAssertion;
 
     expect(inFlight.size).toBe(0);
+  });
+});
+
+// SB-SDK-05 AC3 + AC4: every DOMException @beacio/core throws on the
+// navigator.bluetooth path must carry a complete plain-English .message. The
+// dominant real failure for a vanilla site (S&B) is forgetting to declare a
+// service in requestDevice({ optionalServices }): WebKit then rejects
+// getPrimaryService with a SecurityError, and today device.getService rethrows it
+// as a GENERIC PERMISSION_DENIED BeacioError that DROPS the offending UUID — the
+// one detail the operator needs to fix the call. This pins the remediation:
+// getService must throw a SecurityError DOMException whose .message NAMES the
+// in-scope service UUID and states it must be added to optionalServices (mirroring
+// SUGGESTIONS.SERVICE_NOT_FOUND), with no leaked stack and no competitor name.
+// AC4 control: the existing BeacioError.code/.suggestion mappings must NOT regress.
+describe('SB-SDK-05 @beacio/core surfaces human DOMException messages on the bluetooth path', () => {
+  // A custom 128-bit service UUID an operator would pass to requestDevice — not a
+  // SIG-registered name — so getService reaches server.getPrimaryService (no cache
+  // hit) and the canonical resolved form is what the message must name.
+  const SB_SERVICE = '00000001-5354-4f52-5a26-4249434b454c';
+
+  it('AC3: a missing-optionalServices SecurityError names the offending UUID + optionalServices remedy (no stack, no Bluefy)', async () => {
+    const { device, getPrimaryService } = createConnectedDevice();
+    await device.connect();
+
+    // WebKit's real shape when a service is not in optionalServices: a
+    // SecurityError DOMException with terse, jargon-laden, UUID-less text.
+    getPrimaryService.mockImplementationOnce(() =>
+      Promise.reject(
+        new DOMException(
+          `Origin is not allowed to access the service. Tip: Add the service UUID to 'optionalServices' in requestDevice() options. https://goo.gl/HxfxSQ`,
+          'SecurityError'
+        )
+      )
+    );
+
+    let thrown: unknown;
+    try {
+      await device.read(SB_SERVICE, 'battery_level');
+    } catch (e) {
+      thrown = e;
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    const err = thrown as Error & { message: string; name: string };
+
+    // (1) It is a SecurityError DOMException — the W3C-correct class the demo's
+    // raw `catch` already special-cases — not flattened to a generic Error.
+    expect(err.name).toBe('SecurityError');
+    expect(err).toBeInstanceOf(DOMException);
+
+    // (2) The message NAMES the offending service UUID in its canonical resolved
+    // form (whatever case resolveUUID produces), so the operator knows WHICH
+    // service to declare.
+    const canonical = resolveUUID(SB_SERVICE);
+    const haystack = err.message.toLowerCase();
+    expect(haystack).toContain(canonical.toLowerCase());
+
+    // (3) It states the optionalServices remedy in plain English.
+    expect(err.message).toMatch(/optionalServices/);
+    expect(err.message).toMatch(/requestDevice/);
+
+    // (4) No leaked stack frames, no WebKit jargon dump, no competitor names.
+    expect(err.message).not.toMatch(/Bluefy/i);
+    expect(err.message).not.toContain('\n    at ');
+    expect(err.message).not.toMatch(/goo\.gl|HxfxSQ/);
+  });
+
+  // AC6: drive the enumerated simulated failures through the real device.read()
+  // seam (not just BeacioError.from in isolation) and assert the surfaced
+  // error.toString() — what a raw catch(e){alert(e.toString())} would show — leaks
+  // no stack frame and no competitor name. The native rejection deliberately
+  // carries a multi-line stack + a competitor name + a native URL, mimicking
+  // WebKit/the polyfill bridge.
+  it('AC6: a dirty mid-operation disconnect surfaced by device.read() has a clean error.toString()', async () => {
+    const dirtyDisconnect = new DOMException(
+      "GATT Server is disconnected. via Bluefy https://webkit.example/x\n    at z (crafty.js:518:13)",
+      'NetworkError'
+    );
+    const { device } = createConnectedDevice({ characteristicPromise: Promise.reject(dirtyDisconnect) });
+    await device.connect();
+
+    let thrown: unknown;
+    try {
+      await device.read('heart_rate', 'heart_rate_measurement');
+    } catch (e) {
+      thrown = e;
+    }
+    const str = (thrown as Error).toString();
+    expect(str).not.toMatch(/Bluefy/i);
+    expect(str).not.toContain('\n    at ');
+    expect(str).not.toMatch(/\bat\s+\S+\.js:\d+:\d+/);
+    expect(str).not.toContain('webkit://');
+    expect(str).not.toContain('https://');
+    expect(str).not.toContain('undefined');
+  });
+
+  it('AC4 (no regression): BeacioError.code/.suggestion mappings are unchanged', () => {
+    // Spot-check the mappings SB-SDK-05 must not disturb while refining the
+    // SecurityError message (these mirror errors.test.ts).
+    const disconnected = new BeacioError('DEVICE_DISCONNECTED');
+    expect(disconnected.code).toBe('DEVICE_DISCONNECTED');
+    expect(disconnected.suggestion).toBe('Call device.connect() before performing GATT operations.');
+    expect(disconnected.isRetriable).toBe(true);
+
+    const serviceNotFound = new BeacioError('SERVICE_NOT_FOUND');
+    expect(serviceNotFound.code).toBe('SERVICE_NOT_FOUND');
+    expect(serviceNotFound.suggestion).toMatch(/requestDevice filters|service UUID/);
+
+    // BeacioError.from still maps a plain SecurityError (with no service context)
+    // to PERMISSION_DENIED — the general path is preserved.
+    const generic = BeacioError.from(new DOMException('not allowed', 'SecurityError'));
+    expect(generic.code).toBe('PERMISSION_DENIED');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SB-SDK-14 — BeacioDevice.onCharacteristicOverflow. The native bounded
+// EventQueue surfaces evictions as a `beacio:overflow` CustomEvent dispatched on
+// the W3C characteristic; this seam resolves that characteristic (via the same
+// cached getCharacteristic lookup) and forwards the raw event to the listener.
+// The returned unsubscribe detaches the listener. Uses a REAL EventTarget for
+// the characteristic so add/remove/dispatch behave as in the browser.
+// ---------------------------------------------------------------------------
+describe('SB-SDK-14 — BeacioDevice.onCharacteristicOverflow', () => {
+  function createOverflowDevice() {
+    const characteristic = Object.assign(new EventTarget(), {
+      uuid: '0000beef-0000-1000-8000-00805f9b34fb',
+      readValue: jest.fn(() => Promise.resolve(new DataView(new Uint8Array([0]).buffer))),
+    });
+    const service = {
+      uuid: '0000feed-0000-1000-8000-00805f9b34fb',
+      getCharacteristic: jest.fn(() => Promise.resolve(characteristic)),
+    };
+    const server = {
+      connected: true,
+      disconnect: jest.fn(),
+      getPrimaryService: jest.fn(() => Promise.resolve(service)),
+      getPrimaryServices: jest.fn(() => Promise.resolve([service])),
+    };
+    const rawDevice = {
+      id: 'device-overflow',
+      name: 'Overflow Device',
+      gatt: { connect: jest.fn(() => Promise.resolve(server)) },
+      addEventListener: jest.fn(),
+    } as unknown as ConstructorParameters<typeof BeacioDevice>[0];
+    return { device: new BeacioDevice(rawDevice), characteristic };
+  }
+
+  it('forwards a beacio:overflow event on the characteristic to the listener exactly once', async () => {
+    const { device, characteristic } = createOverflowDevice();
+    await device.connect();
+
+    const listener = jest.fn();
+    device.onCharacteristicOverflow('0000feed-0000-1000-8000-00805f9b34fb', '0000beef-0000-1000-8000-00805f9b34fb', listener);
+    await flushPromises();
+
+    const event = new CustomEvent('beacio:overflow', { detail: { evictedCount: 7, queueCapacity: 64, seq: 1234, timestamp: 42 } });
+    characteristic.dispatchEvent(event);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    const received = listener.mock.calls[0]?.[0] as CustomEvent;
+    expect(received.type).toBe('beacio:overflow');
+    expect(received.detail).toEqual({ evictedCount: 7, queueCapacity: 64, seq: 1234, timestamp: 42 });
+  });
+
+  it('the returned unsubscribe detaches the listener (no further calls)', async () => {
+    const { device, characteristic } = createOverflowDevice();
+    await device.connect();
+
+    const listener = jest.fn();
+    const off = device.onCharacteristicOverflow('0000feed-0000-1000-8000-00805f9b34fb', '0000beef-0000-1000-8000-00805f9b34fb', listener);
+    await flushPromises();
+
+    characteristic.dispatchEvent(new CustomEvent('beacio:overflow', { detail: { evictedCount: 1 } }));
+    off();
+    characteristic.dispatchEvent(new CustomEvent('beacio:overflow', { detail: { evictedCount: 2 } }));
+
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  it('unsubscribing before the characteristic resolves never attaches the listener', async () => {
+    const { device, characteristic } = createOverflowDevice();
+    await device.connect();
+
+    const listener = jest.fn();
+    const off = device.onCharacteristicOverflow('0000feed-0000-1000-8000-00805f9b34fb', '0000beef-0000-1000-8000-00805f9b34fb', listener);
+    off(); // cancel before the async getCharacteristic resolves
+    await flushPromises();
+
+    characteristic.dispatchEvent(new CustomEvent('beacio:overflow', { detail: { evictedCount: 9 } }));
+
+    expect(listener).not.toHaveBeenCalled();
   });
 });

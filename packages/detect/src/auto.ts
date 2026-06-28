@@ -1,28 +1,28 @@
 /**
- * Auto-initialization for WebBLE.
+ * Auto-initialization for Beacio.
  *
  * Import this module to automatically detect and handle the extension:
- *   import '@ios-web-bluetooth/detect/auto'
+ *   import '@beacio/detect/auto'
  *
  * Reads the API key from:
- *   1. <meta name="ioswebble-key" content="wbl_xxxxx">
- *   2. window.__IOSWEBBLE_KEY__
+ *   1. <meta name="beacio-key" content="wbl_xxxxx">
+ *   2. window.__BEACIO_KEY__
  */
 
-import { initIOSWebBLE } from './index';
+import { initBeacio } from './index';
 
 function getApiKey(): string | null {
   // Check meta tag
   if (typeof document !== 'undefined') {
-    const meta = document.querySelector('meta[name="ioswebble-key"]');
+    const meta = document.querySelector('meta[name="beacio-key"]');
     if (meta) {
       return meta.getAttribute('content');
     }
   }
 
   // Check global variable
-  if (typeof window !== 'undefined' && (window as any).__IOSWEBBLE_KEY__) {
-    return (window as any).__IOSWEBBLE_KEY__;
+  if (typeof window !== 'undefined' && (window as any).__BEACIO_KEY__) {
+    return (window as any).__BEACIO_KEY__;
   }
 
   return null;
@@ -30,14 +30,14 @@ function getApiKey(): string | null {
 
 function getOperatorName(): string | undefined {
   if (typeof document !== 'undefined') {
-    const meta = document.querySelector('meta[name="ioswebble-name"]');
+    const meta = document.querySelector('meta[name="beacio-name"]');
     if (meta) return meta.getAttribute('content') ?? undefined;
   }
-  if (typeof window !== 'undefined' && (window as any).__IOSWEBBLE_NAME__) {
-    return (window as any).__IOSWEBBLE_NAME__;
+  if (typeof window !== 'undefined' && (window as any).__BEACIO_NAME__) {
+    return (window as any).__BEACIO_NAME__;
   }
   return undefined;
 }
 
 const key = getApiKey();
-initIOSWebBLE({ key: key ?? undefined, operatorName: getOperatorName() });
+initBeacio({ key: key ?? undefined, operatorName: getOperatorName() });

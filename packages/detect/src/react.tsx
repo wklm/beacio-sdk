@@ -1,19 +1,19 @@
 /**
- * React component for WebBLE detection.
+ * React component for Beacio detection.
  *
  * Usage:
- *   import { IOSWebBLEProvider } from '@ios-web-bluetooth/detect/react'
+ *   import { BeacioProvider } from '@beacio/detect/react'
  *
  *   export default function Layout({ children }) {
- *     return <IOSWebBLEProvider apiKey="wbl_xxxxx">{children}</IOSWebBLEProvider>
+ *     return <BeacioProvider apiKey="wbl_xxxxx">{children}</BeacioProvider>
  *   }
  */
 
 import React, { useEffect, useState, createContext, useContext } from 'react';
-import type { IOSWebBLEOptions, BannerOptions } from './index';
+import type { BeacioOptions, BannerOptions } from './index';
 import type { ExtensionInstallState } from './detect';
 
-interface IOSWebBLEContextValue {
+interface BeacioContextValue {
   /** Whether the extension is installed */
   isInstalled: boolean | null;
   /** Detailed install state for onboarding vs active flows */
@@ -24,18 +24,18 @@ interface IOSWebBLEContextValue {
   isIOSSafari: boolean;
 }
 
-const IOSWebBLEContext = createContext<IOSWebBLEContextValue>({
+const BeacioContext = createContext<BeacioContextValue>({
   isInstalled: null,
   installState: null,
   isDetecting: true,
   isIOSSafari: false,
 });
 
-export function useIOSWebBLE(): IOSWebBLEContextValue {
-  return useContext(IOSWebBLEContext);
+export function useBeacio(): BeacioContextValue {
+  return useContext(BeacioContext);
 }
 
-interface IOSWebBLEProviderProps {
+interface BeacioProviderProps {
   apiKey?: string;
   /** Operator/app name shown in the install prompt (e.g. "FitTracker") */
   operatorName?: string;
@@ -46,7 +46,7 @@ interface IOSWebBLEProviderProps {
   children: React.ReactNode;
 }
 
-export function IOSWebBLEProvider({
+export function BeacioProvider({
   apiKey,
   operatorName,
   banner,
@@ -54,8 +54,8 @@ export function IOSWebBLEProvider({
   onInstalledInactive,
   onNotInstalled,
   children,
-}: IOSWebBLEProviderProps) {
-  const [state, setState] = useState<IOSWebBLEContextValue>({
+}: BeacioProviderProps) {
+  const [state, setState] = useState<BeacioContextValue>({
     isInstalled: null,
     installState: null,
     isDetecting: true,
@@ -75,9 +75,9 @@ export function IOSWebBLEProvider({
         return;
       }
 
-      const { initIOSWebBLE } = await import('./index');
+      const { initBeacio } = await import('./index');
 
-      const options: IOSWebBLEOptions = {
+      const options: BeacioOptions = {
         key: apiKey ?? undefined,
         operatorName,
         banner,
@@ -101,7 +101,7 @@ export function IOSWebBLEProvider({
         },
       };
 
-      await initIOSWebBLE(options);
+      await initBeacio(options);
     }
 
     detect();
@@ -112,8 +112,8 @@ export function IOSWebBLEProvider({
   }, [apiKey, operatorName, banner, onReady, onInstalledInactive, onNotInstalled]);
 
   return (
-    <IOSWebBLEContext.Provider value={state}>
+    <BeacioContext.Provider value={state}>
       {children}
-    </IOSWebBLEContext.Provider>
+    </BeacioContext.Provider>
   );
 }

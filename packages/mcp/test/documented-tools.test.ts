@@ -10,10 +10,10 @@ import { ALL_TOOLS } from '../src/tool-registry.js';
 // cannot silently drift again.
 
 const PKG_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const TOOL_NAME_RE = /webble_[a-z0-9_]+/g;
-// Attribution tokens share the `webble_` prefix (e.g. webble_202604_mcp_xxxx)
-// but are not tool names — exclude them from the documented-name extraction.
-const ATTRIBUTION_TOKEN_RE = /^webble_\d{6}_mcp_/;
+const TOOL_NAME_RE = /beacio_[a-z0-9_]+/g;
+// Attribution tokens keep the legacy `beacio_` prefix (e.g. beacio_202604_mcp_xxxx)
+// and are not tool names — exclude them from the documented-name extraction.
+const ATTRIBUTION_TOKEN_RE = /^beacio_\d{6}_mcp_/;
 
 const REGISTERED_TOOL_NAMES = ALL_TOOLS.map((t) => t.name).sort();
 
@@ -26,9 +26,9 @@ function documentedToolNames(relativePath: string): string[] {
 }
 
 describe('documented tool lists stay in sync with ALL_TOOLS', () => {
-  it('sanity: there are 11 registered tools (7 consumer + 4 developer)', () => {
-    expect(REGISTERED_TOOL_NAMES.length).toBe(11);
-    expect(ALL_TOOLS.filter((t) => t.mode === 'consumer').length).toBe(7);
+  it('sanity: there are 12 registered tools (8 consumer + 4 developer)', () => {
+    expect(REGISTERED_TOOL_NAMES.length).toBe(12);
+    expect(ALL_TOOLS.filter((t) => t.mode === 'consumer').length).toBe(8);
     expect(ALL_TOOLS.filter((t) => t.mode === 'developer').length).toBe(4);
   });
 

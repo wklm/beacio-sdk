@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { WebBLEError } from '@ios-web-bluetooth/core';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
+import type { BeacioDevice } from '@beacio/core';
 import type { UseNotificationsReturn, NotificationEntry } from '../types';
 
 export interface NotificationOptions {
@@ -11,10 +11,10 @@ export interface NotificationOptions {
 /**
  * Hook for subscribing to GATT characteristic notifications.
  *
- * Delegates to {@link WebBLEDevice.subscribeAsync} for notification lifecycle
+ * Delegates to {@link BeacioDevice.subscribeAsync} for notification lifecycle
  * management. Maintains a rolling history of received values.
  *
- * @param device - The connected {@link WebBLEDevice}, or `null`.
+ * @param device - The connected {@link BeacioDevice}, or `null`.
  * @param service - Human-readable service name or UUID (e.g. `'heart_rate'`).
  * @param characteristic - Human-readable characteristic name or UUID.
  * @param options - Optional configuration.
@@ -30,7 +30,7 @@ export interface NotificationOptions {
  * ```
  */
 export function useNotifications(
-  device: WebBLEDevice | null,
+  device: BeacioDevice | null,
   service: string,
   characteristic: string,
   options?: NotificationOptions
@@ -38,7 +38,7 @@ export function useNotifications(
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [value, setValue] = useState<DataView | null>(null);
   const [history, setHistory] = useState<NotificationEntry[]>([]);
-  const [error, setError] = useState<WebBLEError | null>(null);
+  const [error, setError] = useState<BeacioError | null>(null);
 
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const isSubscribedRef = useRef(false);
@@ -58,7 +58,7 @@ export function useNotifications(
     if (isSubscribedRef.current) return;
 
     if (!device || !device.connected) {
-      setError(new WebBLEError('INVALID_PARAMETER', 'Device not available or not connected'));
+      setError(new BeacioError('INVALID_PARAMETER', 'Device not available or not connected'));
       return;
     }
 
@@ -70,7 +70,7 @@ export function useNotifications(
       isSubscribedRef.current = true;
       setIsSubscribed(true);
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
       isSubscribedRef.current = false;
       setIsSubscribed(false);
     }

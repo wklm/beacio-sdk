@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { WebBLEError } from '@ios-web-bluetooth/core';
-import type { WebBLEDevice } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
+import type { BeacioDevice } from '@beacio/core';
 import type { UseCharacteristicReturn, NotificationHandler } from '../types';
 
 /**
@@ -10,17 +10,17 @@ import type { UseCharacteristicReturn, NotificationHandler } from '../types';
  * `device.write()`, and `device.subscribeAsync()`. Does not resolve
  * raw GATT objects — use `device.raw.gatt` for escape-hatch access.
  *
- * @param device - The connected {@link WebBLEDevice}, or `null`.
+ * @param device - The connected {@link BeacioDevice}, or `null`.
  * @param serviceUUID - Service UUID (name or full UUID).
  * @param characteristicUUID - Characteristic UUID (name or full UUID).
  */
 export function useCharacteristic(
-  device?: WebBLEDevice | null,
+  device?: BeacioDevice | null,
   serviceUUID?: string | null,
   characteristicUUID?: string | null,
 ): UseCharacteristicReturn {
   const [value, setValue] = useState<DataView | null>(null);
-  const [error, setError] = useState<WebBLEError | null>(null);
+  const [error, setError] = useState<BeacioError | null>(null);
   const [isNotifying, setIsNotifying] = useState(false);
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const notificationHandlerRef = useRef<NotificationHandler | null>(null);
@@ -44,7 +44,7 @@ export function useCharacteristic(
 
   const requireTarget = useCallback(() => {
     if (!device || !serviceUUID || !characteristicUUID) {
-      throw new WebBLEError('INVALID_PARAMETER', 'No characteristic target available');
+      throw new BeacioError('INVALID_PARAMETER', 'No characteristic target available');
     }
     return { device, serviceUUID, characteristicUUID };
   }, [device, serviceUUID, characteristicUUID]);
@@ -57,7 +57,7 @@ export function useCharacteristic(
       setValue(nextValue);
       return nextValue;
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
       return null;
     }
   }, [requireTarget]);
@@ -68,7 +68,7 @@ export function useCharacteristic(
       const { device: d, serviceUUID: s, characteristicUUID: c } = requireTarget();
       await d.write(s, c, nextValue);
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
     }
   }, [requireTarget]);
 
@@ -78,7 +78,7 @@ export function useCharacteristic(
       const { device: d, serviceUUID: s, characteristicUUID: c } = requireTarget();
       await d.writeWithoutResponse(s, c, nextValue);
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
     }
   }, [requireTarget]);
 
@@ -98,7 +98,7 @@ export function useCharacteristic(
       unsubscribeRef.current = unsub;
       setIsNotifying(true);
     } catch (err) {
-      setError(WebBLEError.from(err));
+      setError(BeacioError.from(err));
       setIsNotifying(false);
     }
   }, [requireTarget]);

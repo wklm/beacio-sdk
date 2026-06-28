@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
-import { defineProfile, parseRawBytes } from '../src/base';
+import { BaseProfile, defineProfile, parseRawBytes } from '../src/base';
+import type { BeacioDevice, NativeOverflowEvent } from '@beacio/core';
 
 type MockDevice = {
   connect: ReturnType<typeof jest.fn>;
@@ -7,6 +8,7 @@ type MockDevice = {
   write: ReturnType<typeof jest.fn>;
   writeWithoutResponse: ReturnType<typeof jest.fn>;
   subscribe: ReturnType<typeof jest.fn>;
+  onCharacteristicOverflow: ReturnType<typeof jest.fn>;
   disconnect: ReturnType<typeof jest.fn>;
   id: string;
   name: string;
@@ -20,6 +22,7 @@ function makeMockDevice(): MockDevice {
     write: jest.fn(async () => undefined),
     writeWithoutResponse: jest.fn(async () => undefined),
     subscribe: jest.fn().mockReturnValue(jest.fn()),
+    onCharacteristicOverflow: jest.fn().mockReturnValue(jest.fn()),
     disconnect: jest.fn(),
     id: 'test-device',
     name: 'Test Device',
@@ -171,5 +174,88 @@ describe('defineProfile', () => {
     expect(profile.getServiceUUID()).toBe('battery_service');
     expect(profile.getCharacteristicUUID('config')).toBe('2a00');
     expect(profile.getCharacteristicCapabilities('level')).toEqual(['read', 'notify']);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// SB-SDK-14 — BaseProfile.onOverflow base surface. The protected hook forwards
+// to device.onCharacteristicOverflow, decodes the beacio:overflow event detail,
+// and registers cleanup into the profile's cleanup set (parity with subscribe()).
+// A minimal subclass exposes the protected hook publicly for the test.
+// ---------------------------------------------------------------------------
+describe('SB-SDK-14 — BaseProfile.onOverflow', () => {
+  const SVC = '0000feed-0000-1000-8000-00805f9b34fb';
+  const CHAR = '0000beef-0000-1000-8000-00805f9b34fb';
+
+  class OverflowTestProfile extends BaseProfile {
+    protected readonly service = SVC;
+    watch(callback: (event: NativeOverflowEvent) => void): () => void {
+      return this.onOverflow(CHAR, callback);
+    }
+  }
+
+  /** A device whose onCharacteristicOverflow attaches to a real EventTarget. */
+  function makeOverflowDevice(): { device: BeacioDevice; target: EventTarget; spy: ReturnType<typeof jest.fn> } {
+    const target = new EventTarget();
+    const spy = jest.fn(
+      (_service: string, _characteristic: string, listener: (event: Event) => void): (() => void) => {
+        target.addEventListener('beacio:overflow', listener as EventListener);
+        return () => target.removeEventListener('beacio:overflow', listener as EventListener);
+      },
+    );
+    const device = { ...makeMockDevice(), onCharacteristicOverflow: spy } as unknown as BeacioDevice;
+    return { device, target, spy };
+  }
+
+  it('forwards onOverflow(char, cb) to device.onCharacteristicOverflow(service, char, fn)', () => {
+    const { device, spy } = makeOverflowDevice();
+    new OverflowTestProfile(device).watch(jest.fn());
+    expect(spy).toHaveBeenCalledWith(SVC, CHAR, expect.any(Function));
+  });
+
+  it('decodes the beacio:overflow event detail into a typed NativeOverflowEvent', () => {
+    const { device, target } = makeOverflowDevice();
+    const seen: NativeOverflowEvent[] = [];
+    new OverflowTestProfile(device).watch((e) => seen.push(e));
+
+    target.dispatchEvent(new CustomEvent('beacio:overflow', { detail: { evictedCount: 9, queueCapacity: 64, seq: 5, timestamp: 7 } }));
+
+    expect(seen).toEqual([{ evictedCount: 9, queueCapacity: 64, seq: 5, timestamp: 7 }]);
+  });
+
+  it('the returned unsubscribe detaches the listener exactly once', () => {
+    const { device, target } = makeOverflowDevice();
+    const seen: NativeOverflowEvent[] = [];
+    const off = new OverflowTestProfile(device).watch((e) => seen.push(e));
+
+    target.dispatchEvent(new CustomEvent('beacio:overflow', { detail: { evictedCount: 1 } }));
+    off();
+    target.dispatchEvent(new CustomEvent('beacio:overflow', { detail: { evictedCount: 2 } }));
+
+    expect(seen).toHaveLength(1);
+  });
+
+  it('stop() detaches the overflow listener (cleanup parity with subscribe)', () => {
+    const { device, target } = makeOverflowDevice();
+    const seen: NativeOverflowEvent[] = [];
+    const profile = new OverflowTestProfile(device);
+    profile.watch((e) => seen.push(e));
+
+    profile.stop();
+    target.dispatchEvent(new CustomEvent('beacio:overflow', { detail: { evictedCount: 3 } }));
+
+    expect(seen).toHaveLength(0);
+  });
+
+  it('dispose() detaches the overflow listener too', () => {
+    const { device, target } = makeOverflowDevice();
+    const seen: NativeOverflowEvent[] = [];
+    const profile = new OverflowTestProfile(device);
+    profile.watch((e) => seen.push(e));
+
+    profile.dispose();
+    target.dispatchEvent(new CustomEvent('beacio:overflow', { detail: { evictedCount: 4 } }));
+
+    expect(seen).toHaveLength(0);
   });
 });

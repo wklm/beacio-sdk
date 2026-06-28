@@ -136,19 +136,19 @@ describe('InstallationWizard', () => {
       });
     });
 
-    it('should navigate to App Store when install button is clicked', async () => {
+    it('should navigate to the canonical setup page when install button is clicked', async () => {
       const navigateSpy = jest
         .spyOn(InstallationWizardModule.navigationController, 'navigateToUrl')
         .mockImplementation(() => {});
 
       render(<InstallationWizard />);
-      
+
       await waitFor(() => {
         const button = screen.getByText('Start Setup');
         fireEvent.click(button);
       });
 
-      expect(navigateSpy).toHaveBeenCalledWith('https://ioswebble.com/setup.html');
+      expect(navigateSpy).toHaveBeenCalledWith('https://beacio.com/setup');
     });
 
     it('should use custom appStoreUrl when provided', async () => {
@@ -202,7 +202,7 @@ describe('InstallationWizard', () => {
       fireEvent.click(screen.getByText('Not now'));
       
       expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'ioswebble_dismiss_until',
+        'beacio_dismiss_until',
         expect.any(String)
       );
     });
@@ -224,12 +224,41 @@ describe('InstallationWizard', () => {
 
     it('should use operatorName in description text', async () => {
       mockDetector.detectInstallState.mockResolvedValue('not-installed');
-      
-      render(<InstallationWizard operatorName="MyApp" />);
-      
+
+      const { container } = render(<InstallationWizard operatorName="MyApp" />);
+
       await waitFor(() => {
-        expect(screen.getByText(/MyApp/)).toBeInTheDocument();
+        expect(screen.getByText('Bluetooth Required')).toBeInTheDocument();
       });
+
+      // operatorName now appears in the body AND the SB-PRD-03 return affordance;
+      // scope to the description body to keep this assertion's original intent.
+      const body = container.querySelector('[data-beacio-wizard-body]');
+      expect(body?.textContent).toMatch(/MyApp/);
+    });
+
+    // SDK-01: an operatorName containing '&' (the flagship STORZ & BICKEL) must
+    // surface in the DEFAULT body copy as a single, unescaped ampersand. The
+    // earlier esc() helper HTML-entity-encoded the string and React then escaped
+    // the entities a second time, so the literal "STORZ &amp; BICKEL" was shown.
+    it('should not double-escape "&" in the default body (STORZ & BICKEL)', async () => {
+      mockDetector.detectInstallState.mockResolvedValue('not-installed');
+
+      const { container } = render(<InstallationWizard operatorName="STORZ & BICKEL" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Bluetooth Required')).toBeInTheDocument();
+      });
+
+      const body = container.querySelector('[data-beacio-wizard-body]');
+      // The rendered text node carries the literal, once-decoded ampersand.
+      expect(body?.textContent).toContain('STORZ & BICKEL');
+      // ...and never the double-encoded form.
+      expect(body?.textContent).not.toContain('STORZ &amp; BICKEL');
+      // The serialized HTML must contain exactly one entity-encoded '&' for this
+      // name (React's single escaping), never the double-encoded '&amp;amp;'.
+      expect(body?.innerHTML).toContain('STORZ &amp; BICKEL');
+      expect(body?.innerHTML).not.toContain('&amp;amp;');
     });
 
     it('should handle undefined onComplete', async () => {
@@ -278,10 +307,166 @@ describe('InstallationWizard', () => {
 
       // Simulate extension becoming ready
       act(() => {
-        window.dispatchEvent(new Event('webble:extension:ready'));
+        window.dispatchEvent(new Event('beacio:extension:ready'));
       });
 
       expect(onComplete).toHaveBeenCalled();
+    });
+  });
+
+  describe('SB-PRD-03: iOS-26 enable + grant copy parity (web ↔ react)', () => {
+    beforeEach(() => {
+      mockDetector.detectInstallState.mockResolvedValue('not-installed');
+    });
+
+    it('AC2: names the per-origin grant GESTURE (aA → Manage Extensions → Allow Every Website)', async () => {
+      const { container } = render(<InstallationWizard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Bluetooth Required')).toBeInTheDocument();
+      });
+
+      const text = (container.textContent || '').replace(/\s+/g, ' ');
+      // The address-bar gesture, not just a menu-item name.
+      expect(text).toMatch(/\baA\b|address bar/);
+      expect(text).toContain('Manage Extensions');
+      expect(text).toContain('Allow Every Website');
+      // The first grant path (enable the extension in Settings) is also named.
+      expect(text).toMatch(/Allow Extension|Safari Settings|Settings/);
+    });
+
+    it('AC3: names the first-scan Bluetooth permission step with its "why"', async () => {
+      const { container } = render(<InstallationWizard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Bluetooth Required')).toBeInTheDocument();
+      });
+
+      const text = (container.textContent || '').replace(/\s+/g, ' ');
+      expect(text).toMatch(/allow Bluetooth|Safari will ask.*Allow|tap Allow/i);
+    });
+
+    it('AC4: renders a VISIBLE return affordance whose href derives from beacio_return', async () => {
+      const origin = 'https://app.storz-bickel.com/connect?session=abc';
+      localStorageMock.setItem(
+        'beacio_return',
+        JSON.stringify({ url: origin, timestamp: Date.now() })
+      );
+
+      const { container } = render(<InstallationWizard />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Bluetooth Required')).toBeInTheDocument();
+      });
+
+      const returnLink = container.querySelector('a[href]') as HTMLAnchorElement | null;
+      expect(returnLink).not.toBeNull();
+      expect(returnLink!.getAttribute('href')).toContain('app.storz-bickel.com');
+      expect((returnLink!.textContent || '').trim().length).toBeGreaterThan(0);
+    });
+  });
+
+  // SB-SDK-11: the wizard is themeable (tier-2 co-brand) — the same surface as the
+  // @beacio/detect banner. A premium partner (Storz & Bickel) must be able to swap
+  // the Apple-blue + beacio glyph + "Bluetooth Required" chrome for its own accent,
+  // logo, and device-specific copy, plus the medical-market trust surfaces (a
+  // VISIBLE "no data collected" line and a "not affiliated with the device maker"
+  // microcopy). These FAIL on the current tree: the props do not exist (TS compile
+  // error) and the themed DOM / visible-privacy / no-affiliation nodes are absent.
+  describe('SB-SDK-11 themeable wizard (tier-2 co-brand)', () => {
+    // jsdom normalizes inline-style hex colors to rgb(), so assertions are made
+    // against the rgb forms: #007aff -> rgb(0, 122, 255); #c8102e -> rgb(200, 16, 46).
+    const DEFAULT_ACCENT_RGB = 'rgb(0, 122, 255)';
+    const PARTNER_ACCENT_RGB = 'rgb(200, 16, 46)';
+    beforeEach(() => {
+      mockDetector.detectInstallState.mockResolvedValue('not-installed');
+    });
+
+    it('AC1/AC2: applies the partner accent + logo <img> + device-specific copy', async () => {
+      const { container } = render(
+        <InstallationWizard
+          operatorName="STORZ & BICKEL"
+          accentColor="#c8102e"
+          brandLogoUrl="https://app.storz-bickel.com/logo-sb.svg"
+          deviceName="VOLCANO HYBRID"
+          body="Connect your VOLCANO HYBRID in Safari to control it from app.storz-bickel.com."
+        />
+      );
+
+      await waitFor(() => {
+        expect(container.querySelector('[data-beacio-wizard-body]')).toBeInTheDocument();
+      });
+
+      // (1) the accent reaches the icon tile + the primary CTA (inline styles).
+      const icon = container.querySelector('[data-beacio-wizard-icon]') as HTMLElement;
+      const action = container.querySelector('[data-beacio-wizard-action]') as HTMLElement;
+      expect(icon.style.background).toBe(PARTNER_ACCENT_RGB);
+      expect(action.style.background).toBe(PARTNER_ACCENT_RGB);
+      // The default Apple-blue is gone from those themed nodes.
+      expect(icon.style.background).not.toBe(DEFAULT_ACCENT_RGB);
+      expect(action.style.background).not.toBe(DEFAULT_ACCENT_RGB);
+
+      // (2) the operator logo renders as an <img> and the beacio inline <svg> glyph is gone.
+      const img = icon.querySelector('img');
+      expect(img).not.toBeNull();
+      expect(img!.getAttribute('src')).toBe('https://app.storz-bickel.com/logo-sb.svg');
+      expect(icon.querySelector('svg')).toBeNull();
+
+      // (3) the device-specific / overridden copy is shown.
+      const body = container.querySelector('[data-beacio-wizard-body]');
+      expect(body?.textContent).toContain('VOLCANO HYBRID');
+      expect(body?.textContent).toContain('Connect your VOLCANO HYBRID in Safari');
+    });
+
+    it('AC3: surfaces a VISIBLE privacy line (outside <details>) + a "not affiliated" microcopy line', async () => {
+      const { container } = render(
+        <InstallationWizard operatorName="STORZ & BICKEL" accentColor="#c8102e" deviceName="VOLCANO HYBRID" />
+      );
+
+      await waitFor(() => {
+        expect(container.querySelector('[data-beacio-wizard-body]')).toBeInTheDocument();
+      });
+
+      // A visible "No data collected" reassurance line NOT nested in a <details>.
+      const visiblePrivacy = Array.from(container.querySelectorAll<HTMLElement>('*')).find(
+        (n) =>
+          /no data collected|processed locally|stays on your|never collected/i.test(n.textContent || '') &&
+          n.closest('details') === null
+      );
+      expect(visiblePrivacy).toBeDefined();
+
+      // A "not affiliated with the device maker" microcopy line (no-affiliation rule).
+      expect(container.textContent || '').toMatch(/not affiliated|not made by|independent/i);
+      // No App-Store-approved/cleared/audited language.
+      expect(container.textContent || '').not.toMatch(/approved|cleared|audited|reviewed by/i);
+    });
+
+    it('AC2 (injection guard): a non-http brandLogoUrl renders NO <img> with that src', async () => {
+      for (const bad of ['javascript:alert(1)', 'data:text/html,<script>1</script>', 'ftp://x/y.svg']) {
+        const { container, unmount } = render(
+          <InstallationWizard operatorName="STORZ & BICKEL" accentColor="#c8102e" brandLogoUrl={bad} />
+        );
+        await waitFor(() => {
+          expect(container.querySelector('[data-beacio-wizard-body]')).toBeInTheDocument();
+        });
+        const imgs = Array.from(container.querySelectorAll<HTMLImageElement>('img'));
+        expect(imgs.some((i) => (i.getAttribute('src') || '') === bad)).toBe(false);
+        unmount();
+      }
+    });
+
+    it('REGRESSION: omitting theme props preserves the default beacio theme', async () => {
+      const { container } = render(<InstallationWizard operatorName="X" />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Bluetooth Required')).toBeInTheDocument();
+      });
+
+      // Default Apple-blue accent on the icon tile; the beacio inline <svg> is present; no <img>.
+      const icon = container.querySelector('[data-beacio-wizard-icon]') as HTMLElement;
+      expect(icon.style.background).toBe(DEFAULT_ACCENT_RGB);
+      expect(icon.querySelector('svg')).not.toBeNull();
+      expect(container.querySelector('img')).toBeNull();
     });
   });
 

@@ -1,8 +1,8 @@
 <p align="center">
-  <a href="https://ioswebble.com"><img src="https://raw.githubusercontent.com/wklm/ioswebble-sdk/main/design-assets/brand/logo.png" alt="WebBLE" width="84" height="84"></a>
+  <a href="https://beacio.com"><img src="https://beacio.com/img/logo.png" alt="beacio" width="84" height="84"></a>
 </p>
 
-# @ios-web-bluetooth/core — Web Bluetooth Polyfill for Safari iOS
+# @beacio/core — Web Bluetooth Polyfill for Safari iOS
 
 > **The Web Bluetooth API (`navigator.bluetooth`) is not available in Safari.**
 > This SDK fixes that. One import and your BLE web app works on iPhone.
@@ -12,21 +12,21 @@
 ## Install
 
 ```bash
-npm install @ios-web-bluetooth/core
+npm install @beacio/core
 ```
 
 Add the polyfill import in your app entry point. The package no longer prints a `postinstall` reminder, so setup lives here in the README instead:
 
 ```typescript
-import '@ios-web-bluetooth/core/auto';
+import '@beacio/core/auto';
 // navigator.bluetooth now works everywhere — Safari iOS, Chrome, Edge.
 ```
 
 ## Safari iOS setup checklist
 
-1. Install `@ios-web-bluetooth/core`.
-2. Add `import '@ios-web-bluetooth/core/auto';` to the first browser entry file that runs in your app.
-3. Make sure the WebBLE Safari extension is installed and enabled.
+1. Install `@beacio/core`.
+2. Add `import '@beacio/core/auto';` to the first browser entry file that runs in your app.
+3. Make sure the beacio Safari extension is installed and enabled.
 4. Call `requestDevice()` only from a direct user gesture such as a button click.
 
 ```typescript
@@ -45,9 +45,9 @@ setTimeout(() => {
 Or use the explicit API for full control:
 
 ```typescript
-import { WebBLE } from '@ios-web-bluetooth/core';
+import { beacio } from '@beacio/core';
 
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }],
 });
@@ -55,7 +55,7 @@ await device.connect();
 const value = await device.read('heart_rate', 'heart_rate_measurement');
 ```
 
-For direct browser-script usage, load the browser bundle from a CDN package root or `dist/browser.global.js`. It exposes the full core API as `window.WebBLECore`.
+For direct browser-script usage, load the browser bundle from a CDN package root or `dist/browser.global.js`. It exposes the full core API as `window.BeacioCore`.
 
 ## Selective imports & tree-shaking
 
@@ -63,25 +63,25 @@ Zero dependencies. `sideEffects: false` enables tree-shaking — only what you i
 
 ```typescript
 // Full SDK (~4KB gzipped)
-import { WebBLE, WebBLEDevice, WebBLEError } from '@ios-web-bluetooth/core';
+import { beacio, BeacioDevice, BeacioError } from '@beacio/core';
 
 // Just UUID helpers (~1KB gzipped)
-import { resolveUUID, getServiceName } from '@ios-web-bluetooth/core';
+import { resolveUUID, getServiceName } from '@beacio/core';
 
 // Just platform detection (~0.5KB gzipped)
-import { detectPlatform } from '@ios-web-bluetooth/core';
+import { detectPlatform } from '@beacio/core';
 ```
 
-You do **not** need `@ios-web-bluetooth/profiles` or `@ios-web-bluetooth/react-sdk` for basic BLE operations. `@ios-web-bluetooth/core` is fully self-contained.
+You do **not** need `@beacio/profiles` or `@beacio/react-sdk` for basic BLE operations. `@beacio/core` is fully self-contained.
 
 ## Scanning for devices
 
 ### Filter by service UUID
 
 ```typescript
-import { WebBLE } from '@ios-web-bluetooth/core';
+import { beacio } from '@beacio/core';
 
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }],
 });
@@ -126,15 +126,15 @@ const device = await ble.requestDevice({
 ### Error handling for scanning
 
 ```typescript
-import { WebBLE, WebBLEError } from '@ios-web-bluetooth/core';
+import { beacio, BeacioError } from '@beacio/core';
 
-const ble = new WebBLE();
+const ble = new beacio();
 try {
   const device = await ble.requestDevice({
     filters: [{ services: ['heart_rate'] }],
   });
 } catch (err) {
-  if (err instanceof WebBLEError) {
+  if (err instanceof BeacioError) {
     switch (err.code) {
       case 'USER_CANCELLED':
         // User dismissed the device picker
@@ -146,7 +146,7 @@ try {
         // Bluetooth is off or unsupported
         break;
       case 'EXTENSION_NOT_INSTALLED':
-        // iOS Safari: WebBLE extension not active
+        // iOS Safari: beacio extension not active
         break;
     }
     console.log(err.suggestion); // Human-readable recovery hint
@@ -154,7 +154,7 @@ try {
 }
 ```
 
-> **iOS Safari note:** The WebBLE Safari extension must be installed and enabled under Settings > Apps > Safari > Extensions. Use `@ios-web-bluetooth/detect` to auto-prompt users when the extension is missing.
+> **iOS Safari note:** The beacio Safari extension must be installed and enabled under Settings > Apps > Safari > Extensions. Use `@beacio/detect` to auto-prompt users when the extension is missing.
 
 ## Connecting & GATT service access
 
@@ -186,7 +186,7 @@ await device.read('0000180d-0000-1000-8000-00805f9b34fb', '00002a37-0000-1000-80
 Use `resolveUUID()` to convert names to full UUIDs:
 
 ```typescript
-import { resolveUUID, getServiceName } from '@ios-web-bluetooth/core';
+import { resolveUUID, getServiceName } from '@beacio/core';
 
 resolveUUID('heart_rate');               // '0000180d-0000-1000-8000-00805f9b34fb'
 getServiceName('0000180d-0000-1000-8000-00805f9b34fb'); // 'heart_rate'
@@ -241,7 +241,7 @@ For long-running monitors, start with the smallest queue that still covers your 
 If your app fans out across several peripherals, you can set a soft SDK-side pool limit up front:
 
 ```typescript
-const ble = new WebBLE({ maxConnections: 2 });
+const ble = new beacio({ maxConnections: 2 });
 ```
 
 When that limit is reached, `connect()` and `connectWithRetry()` throw `CONNECTION_LIMIT_REACHED` with a suggestion to disconnect another device or raise the limit.
@@ -313,12 +313,12 @@ const result = await device.writeFragmented('uart_service', 'tx_characteristic',
 console.log(result.bytesWritten, result.retryCount);
 ```
 
-Partial transfer failures throw `WebBLEError` with code `WRITE_INCOMPLETE` and retry metadata when available. Use `device.getWriteLimits()`, `device.getMtu()`, or `device.getEffectiveMtu()` when you need to choose chunk sizes explicitly.
+Partial transfer failures throw `BeacioError` with code `WRITE_INCOMPLETE` and retry metadata when available. Use `device.getWriteLimits()`, `device.getMtu()`, or `device.getEffectiveMtu()` when you need to choose chunk sizes explicitly.
 
 ### Retry utility
 
 ```typescript
-import { withRetry } from '@ios-web-bluetooth/core';
+import { withRetry } from '@beacio/core';
 
 await withRetry(async () => {
   const value = await device.read('heart_rate', 'heart_rate_measurement');
@@ -330,19 +330,19 @@ await withRetry(async () => {
 });
 ```
 
-`withRetry()` automatically stops on non-retriable `WebBLEError`s and prefers `error.retryAfterMs` when the SDK can infer a safer retry delay.
+`withRetry()` automatically stops on non-retriable `BeacioError`s and prefers `error.retryAfterMs` when the SDK can infer a safer retry delay.
 
 ### Full lifecycle example
 
 ```typescript
-import { WebBLE, WebBLEError } from '@ios-web-bluetooth/core';
+import { beacio, BeacioError } from '@beacio/core';
 
-const ble = new WebBLE({ maxConnections: 2 });
+const ble = new beacio({ maxConnections: 2 });
 
 // 1. Check availability
 if (!ble.isSupported) {
   console.log('Web Bluetooth not available');
-  // On iOS Safari, suggest installing the WebBLE extension
+  // On iOS Safari, suggest installing the beacio extension
 }
 
 // 2. Scan
@@ -372,16 +372,16 @@ await device.disconnect();
 
 `requestDevice()` still must run inside a user gesture on Safari iOS. If you call it during page load, inside `setTimeout`, or from a framework lifecycle hook, the SDK surfaces that failure as `PERMISSION_DENIED` and the suggestion points back to a click/tap handler.
 
-All SDK errors are `WebBLEError` instances with a typed `code` and a human-readable `suggestion`:
+All SDK errors are `BeacioError` instances with a typed `code` and a human-readable `suggestion`:
 
 ```typescript
-import { WebBLEError } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
 
 try {
   await device.connect();
   const value = await device.read('heart_rate', 'heart_rate_measurement');
 } catch (err) {
-  if (err instanceof WebBLEError) {
+  if (err instanceof BeacioError) {
     console.log(err.code);       // e.g. 'SERVICE_NOT_FOUND'
     console.log(err.message);    // Technical detail
     console.log(err.suggestion); // User-facing recovery hint
@@ -408,25 +408,25 @@ try {
 | `CHARACTERISTIC_NOT_NOTIFIABLE` | Characteristic doesn't support notifications |
 | `GATT_OPERATION_FAILED` | Generic GATT operation failure |
 | `SCAN_ALREADY_IN_PROGRESS` | Another scan is already running |
-| `CONNECTION_LIMIT_REACHED` | The current `WebBLE` instance has already reached `maxConnections` |
+| `CONNECTION_LIMIT_REACHED` | The current `beacio` instance has already reached `maxConnections` |
 | `TIMEOUT` | Operation timed out |
 | `WRITE_INCOMPLETE` | A multi-part or interrupted write transferred only part of the payload |
 
 ## API
 
-### `WebBLE`
+### `beacio`
 
 | Member | Description |
 |--------|-------------|
-| `new WebBLE(options?)` | Create SDK instance |
-| `requestDevice(options?): Promise<WebBLEDevice>` | Scan and select a BLE device |
-| `getDevices(): Promise<WebBLEDevice[]>` | Return already-granted devices when supported by the browser |
+| `new beacio(options?)` | Create SDK instance |
+| `requestDevice(options?): Promise<BeacioDevice>` | Scan and select a BLE device |
+| `getDevices(): Promise<BeacioDevice[]>` | Return already-granted devices when supported by the browser |
 | `getAvailability(): Promise<boolean>` | Check if Bluetooth is available |
 | `maxConnections: number \| null` | Optional SDK-managed connection pool limit |
 | `platform: Platform` | Current platform (`'ios-safari'`, `'chrome'`, `'unsupported'`) |
 | `isSupported: boolean` | Whether Web Bluetooth is available |
 
-### `WebBLEDevice`
+### `BeacioDevice`
 
 | Member | Description |
 |--------|-------------|
@@ -451,16 +451,16 @@ try {
 | `on('disconnected' \| 'queue-overflow' \| 'subscription-lost' \| 'reconnected', listener): void` | Listen for device lifecycle events |
 | `addErrorListener(listener): () => void` | Subscribe to internal async callback errors |
 
-### `WebBLEError`
+### `BeacioError`
 
 | Member | Description |
 |--------|-------------|
-| `code: WebBLEErrorCode` | Typed error code (see table above) |
+| `code: BeacioErrorCode` | Typed error code (see table above) |
 | `message: string` | Error detail |
 | `suggestion: string` | Human-readable recovery hint |
 | `isRetriable: boolean` | Whether the failure is safe to retry automatically |
 | `retryAfterMs?: number` | Suggested delay before retrying when known |
-| `WebBLEError.from(error, fallbackCode)` | Wrap unknown errors |
+| `BeacioError.from(error, fallbackCode)` | Wrap unknown errors |
 
 ### Utility functions
 
@@ -470,18 +470,18 @@ try {
 | `getServiceName(uuid): string \| undefined` | Get human-readable service name from UUID |
 | `getCharacteristicName(uuid): string \| undefined` | Get human-readable characteristic name from UUID |
 | `detectPlatform(): Platform` | Returns `'ios-safari'`, `'chrome'`, or `'unsupported'` |
-| `withRetry(fn, options): Promise<T>` | Retry a BLE operation using `WebBLEError` retry metadata |
+| `withRetry(fn, options): Promise<T>` | Retry a BLE operation using `BeacioError` retry metadata |
 
 ## AI agent integration
 
 MCP server for coding agents (Claude Code, Cursor, Copilot):
 
 ```
-npx -y @ios-web-bluetooth/mcp
+npx -y @beacio/mcp
 ```
 
-Full SDK reference for LLM context: <https://ioswebble.com/llms-full.txt>
+Full SDK reference for LLM context: <https://beacio.com/llms-full.txt>
 
 ## Two scopes
 
-The **`@ios-web-bluetooth/*`** packages (`core`, `profiles`, `react`) are the cross-browser BLE SDK -- they work on any platform with Web Bluetooth support (Chrome, Edge, iOS Safari via the extension). The **`@ios-web-bluetooth/*`** packages (`detect`, `cli`, `mcp`, `skill`) handle iOS-specific extension detection, install prompts, and agent tooling. Use both together for full iOS Safari coverage.
+The **`@beacio/*`** packages (`core`, `profiles`, `react`) are the cross-browser BLE SDK -- they work on any platform with Web Bluetooth support (Chrome, Edge, iOS Safari via the extension). The **`@beacio/*`** packages (`detect`, `cli`, `mcp`, `skill`) handle iOS-specific extension detection, install prompts, and agent tooling. Use both together for full iOS Safari coverage.

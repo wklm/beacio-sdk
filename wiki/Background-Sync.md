@@ -7,7 +7,7 @@ This page covers the public API and usage model only.
 ## Namespace
 
 ```typescript
-navigator.webble.backgroundSync
+navigator.beacio.backgroundSync
 ```
 
 ## What It Can Do
@@ -23,7 +23,7 @@ Request notification permission from a direct user gesture:
 
 ```javascript
 button.addEventListener('click', async () => {
-  const permission = await navigator.webble.backgroundSync.requestPermission();
+  const permission = await navigator.beacio.backgroundSync.requestPermission();
   if (permission === 'granted') {
     console.log('Notifications enabled');
   }
@@ -35,7 +35,7 @@ button.addEventListener('click', async () => {
 ## Keep A Device Connected
 
 ```javascript
-const keepAlive = await navigator.webble.backgroundSync.requestBackgroundConnection({
+const keepAlive = await navigator.beacio.backgroundSync.requestBackgroundConnection({
   deviceId: device.id,
 });
 ```
@@ -45,7 +45,7 @@ Use this when you want the companion app to maintain the BLE connection for futu
 ## Characteristic Notifications
 
 ```javascript
-const alerts = await navigator.webble.backgroundSync.registerCharacteristicNotifications({
+const alerts = await navigator.beacio.backgroundSync.registerCharacteristicNotifications({
   deviceId: device.id,
   serviceUUID: 'heart_rate',
   characteristicUUID: 'heart_rate_measurement',
@@ -61,7 +61,7 @@ const alerts = await navigator.webble.backgroundSync.registerCharacteristicNotif
 ## Beacon Scanning
 
 ```javascript
-const beacons = await navigator.webble.backgroundSync.registerBeaconScanning({
+const beacons = await navigator.beacio.backgroundSync.registerBeaconScanning({
   filters: [{ services: ['0000fee0-0000-1000-8000-00805f9b34fb'] }],
   template: {
     title: 'Nearby BLE beacon',
@@ -76,7 +76,7 @@ At least one `services` filter is required.
 ## Manage Registrations
 
 ```javascript
-const registrations = await navigator.webble.backgroundSync.getRegistrations();
+const registrations = await navigator.beacio.backgroundSync.getRegistrations();
 
 for (const registration of registrations) {
   console.log(registration.id, registration.type);
@@ -115,7 +115,7 @@ Interpolated values are sanitized before delivery.
 ## Complete Example
 
 ```javascript
-const permission = await navigator.webble.backgroundSync.requestPermission();
+const permission = await navigator.beacio.backgroundSync.requestPermission();
 
 if (permission !== 'granted') {
   throw new Error('Enable notifications to use background BLE alerts');
@@ -127,11 +127,11 @@ const device = await navigator.bluetooth.requestDevice({
 
 await device.gatt.connect();
 
-const keepAlive = await navigator.webble.backgroundSync.requestBackgroundConnection({
+const keepAlive = await navigator.beacio.backgroundSync.requestBackgroundConnection({
   deviceId: device.id,
 });
 
-const heartRateAlerts = await navigator.webble.backgroundSync.registerCharacteristicNotifications({
+const heartRateAlerts = await navigator.beacio.backgroundSync.registerCharacteristicNotifications({
   deviceId: device.id,
   serviceUUID: 'heart_rate',
   characteristicUUID: 'heart_rate_measurement',
@@ -143,7 +143,7 @@ const heartRateAlerts = await navigator.webble.backgroundSync.registerCharacteri
   },
 });
 
-const activeRegistrations = await navigator.webble.backgroundSync.getRegistrations();
+const activeRegistrations = await navigator.beacio.backgroundSync.getRegistrations();
 console.log(activeRegistrations.map(({ id, type }) => ({ id, type })));
 
 await heartRateAlerts.update({
@@ -153,5 +153,5 @@ await heartRateAlerts.update({
 
 ## More Detail
 
-- Hosted docs: <https://ioswebble.com/docs#api-background-sync>
-- Public API reference source: <https://github.com/wklm/ioswebble-sdk/blob/main/README.md>
+- Hosted docs: <https://beacio.com/docs#api-background-sync>
+- Public API reference source: <https://github.com/wklm/beacio-sdk/blob/main/README.md>

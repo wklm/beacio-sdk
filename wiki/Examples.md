@@ -4,17 +4,17 @@ Use these references to build your own integration quickly.
 
 ## Example Sources
 
-- Core README examples: <https://github.com/wklm/ioswebble-sdk/blob/main/packages/core/README.md>
-- Detect README examples: <https://github.com/wklm/ioswebble-sdk/blob/main/packages/detect/README.md>
-- React README examples: <https://github.com/wklm/ioswebble-sdk/blob/main/packages/react-sdk/README.md>
+- Core README examples: <https://github.com/wklm/beacio-sdk/blob/main/packages/core/README.md>
+- Detect README examples: <https://github.com/wklm/beacio-sdk/blob/main/packages/detect/README.md>
+- React README examples: <https://github.com/wklm/beacio-sdk/blob/main/packages/react-sdk/README.md>
 
 The public mirror does not currently publish a top-level `examples/` directory, so the package READMEs are the best source of maintained examples.
 
 ## Good Starting Points
 
-- plain Web Bluetooth with `@ios-web-bluetooth/core`
-- iOS Safari detection with `@ios-web-bluetooth/detect`
-- React apps with `@ios-web-bluetooth/react`
+- plain Web Bluetooth with `@beacio/core`
+- iOS Safari detection with `@beacio/detect`
+- React apps with `@beacio/react`
 - heart rate and battery-style profile examples
 
 ## Suggested Learning Path

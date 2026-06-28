@@ -1,6 +1,6 @@
-# @ios-web-bluetooth/react API Documentation
+# @beacio/react API Documentation
 
-Complete API reference for the @ios-web-bluetooth/react SDK.
+Complete API reference for the @beacio/react SDK.
 
 ## Table of Contents
 
@@ -15,36 +15,35 @@ Complete API reference for the @ios-web-bluetooth/react SDK.
 - [Components](#components)
   - [DeviceScanner](#devicescanner)
   - [ServiceExplorer](#serviceexplorer)
-  - [ConnectionStatus](#connectionstatus)
   - [InstallationWizard](#installationwizard)
 - [Types](#types)
 - [Utilities](#utilities)
 
 ## Provider
 
-### `WebBLE.Provider`
+### `beacio.Provider`
 
 The root provider component that enables Web Bluetooth functionality in your React app.
 
 ```tsx
-import { WebBLE } from '@ios-web-bluetooth/react';
+import { beacio } from '@beacio/react';
 
-<WebBLE.Provider config={config}>
+<beacio.Provider config={config}>
   <App />
-</WebBLE.Provider>
+</beacio.Provider>
 ```
 
 #### Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `config` | `WebBLEConfig` | `{}` | Configuration options |
+| `config` | `BeacioConfig` | `{}` | Configuration options |
 | `children` | `ReactNode` | Required | Child components |
 
-#### WebBLEConfig
+#### BeacioConfig
 
 ```typescript
-interface WebBLEConfig {
+interface BeacioConfig {
   autoReconnect?: boolean;      // Auto-reconnect on disconnect (default: true)
   reconnectAttempts?: number;    // Max reconnection attempts (default: 3)
   reconnectDelay?: number;       // Delay between attempts in ms (default: 1000)
@@ -60,7 +59,7 @@ interface WebBLEConfig {
 Main hook for Bluetooth operations.
 
 ```tsx
-const bluetooth = WebBLE.useBluetooth();
+const bluetooth = beacio.useBluetooth();
 ```
 
 #### Returns
@@ -80,7 +79,7 @@ interface UseBluetoothReturn {
 
 ```tsx
 function Component() {
-  const { isAvailable, requestDevice } = WebBLE.useBluetooth();
+  const { isAvailable, requestDevice } = beacio.useBluetooth();
   
   const connect = async () => {
     const device = await requestDevice({
@@ -95,7 +94,7 @@ function Component() {
 Manage a specific Bluetooth device.
 
 ```tsx
-const device = WebBLE.useDevice(deviceId, options);
+const device = beacio.useDevice(deviceId, options);
 ```
 
 #### Parameters
@@ -140,7 +139,7 @@ interface UseDeviceOptions {
 Read and write BLE characteristics.
 
 ```tsx
-const characteristic = WebBLE.useCharacteristic(characteristicId, options);
+const characteristic = beacio.useCharacteristic(characteristicId, options);
 ```
 
 #### Parameters
@@ -194,7 +193,7 @@ interface UseCharacteristicOptions {
 Real-time notifications from characteristics.
 
 ```tsx
-const notifications = WebBLE.useNotifications(characteristicId, options);
+const notifications = beacio.useNotifications(characteristicId, options);
 ```
 
 #### Parameters
@@ -240,7 +239,7 @@ interface UseNotificationsOptions {
 Scan for nearby BLE devices.
 
 ```tsx
-const scan = WebBLE.useScan(options);
+const scan = beacio.useScan(options);
 ```
 
 #### Parameters
@@ -279,7 +278,7 @@ interface UseScanOptions {
 Advanced connection management.
 
 ```tsx
-const connection = WebBLE.useConnection(deviceId, options);
+const connection = beacio.useConnection(deviceId, options);
 ```
 
 #### Parameters
@@ -314,7 +313,7 @@ type ConnectionPriority = 'low' | 'balanced' | 'high';
 Full-featured device selection UI component.
 
 ```tsx
-<WebBLE.DeviceScanner {...props} />
+<beacio.DeviceScanner {...props} />
 ```
 
 #### Props
@@ -336,7 +335,7 @@ Full-featured device selection UI component.
 GATT service and characteristic explorer.
 
 ```tsx
-<WebBLE.ServiceExplorer {...props} />
+<beacio.ServiceExplorer {...props} />
 ```
 
 #### Props
@@ -352,31 +351,12 @@ GATT service and characteristic explorer.
 | `onError` | `(error) => void` | - | Error callback |
 | `className` | `string` | - | CSS class |
 
-### `ConnectionStatus`
-
-Connection state indicator component.
-
-```tsx
-<WebBLE.ConnectionStatus {...props} />
-```
-
-#### Props
-
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `deviceId` | `string` | Required | Device ID |
-| `showDetails` | `boolean` | `false` | Show connection details |
-| `showSignalStrength` | `boolean` | `false` | Show RSSI |
-| `showActions` | `boolean` | `false` | Show connect/disconnect buttons |
-| `compact` | `boolean` | `false` | Compact mode |
-| `className` | `string` | - | CSS class |
-
 ### `InstallationWizard`
 
 Extension installation helper component.
 
 ```tsx
-<WebBLE.InstallationWizard {...props} />
+<beacio.InstallationWizard {...props} />
 ```
 
 #### Props
@@ -483,23 +463,23 @@ interface BluetoothRemoteGATTCharacteristic extends EventTarget {
 
 ### `ExtensionDetector`
 
-Detect WebBLE extension installation.
+Detect beacio extension installation.
 
 ```typescript
-import { ExtensionDetector } from '@ios-web-bluetooth/react';
+import { ExtensionDetector } from '@beacio/react';
 
 const detector = new ExtensionDetector();
 const isInstalled = await detector.detect();
 ```
 
-### `WebBLEClient`
+### `BeacioClient`
 
 Low-level Web Bluetooth client.
 
 ```typescript
-import { WebBLEClient } from '@ios-web-bluetooth/react';
+import { BeacioClient } from '@beacio/react';
 
-const client = new WebBLEClient({
+const client = new BeacioClient({
   autoConnect: true,
   cacheTimeout: 60000,
   retryAttempts: 5
@@ -513,7 +493,7 @@ const device = await client.requestDevice();
 Utility functions for Bluetooth operations.
 
 ```typescript
-import { bluetoothUtils } from '@ios-web-bluetooth/react';
+import { bluetoothUtils } from '@beacio/react';
 
 // Parse characteristic value
 const heartRate = bluetoothUtils.parseHeartRate(dataView);
@@ -625,9 +605,9 @@ navigator.bluetooth.requestDevice({ filters: [{ services: ['heart_rate'] }] })
   .then(service => service.getCharacteristic('heart_rate_measurement'))
   .then(characteristic => characteristic.startNotifications());
 
-// After (@ios-web-bluetooth/react)
-const { requestDevice } = WebBLE.useBluetooth();
-const { startNotifications } = WebBLE.useCharacteristic('heart_rate_measurement');
+// After (@beacio/react)
+const { requestDevice } = beacio.useBluetooth();
+const { startNotifications } = beacio.useCharacteristic('heart_rate_measurement');
 
 const device = await requestDevice({ filters: [{ services: ['heart_rate'] }] });
 await startNotifications();
@@ -637,10 +617,10 @@ await startNotifications();
 
 Most React Bluetooth libraries have similar APIs. Key differences:
 
-1. **Provider required** - Wrap your app with `WebBLE.Provider`
+1. **Provider required** - Wrap your app with `beacio.Provider`
 2. **Hooks-first** - Use hooks instead of components for logic
 3. **TypeScript native** - Full type safety out of the box
-4. **Extension support** - Works with WebBLE Safari Extension
+4. **Extension support** - Works with beacio Safari Extension
 
 ## Troubleshooting
 
@@ -648,7 +628,7 @@ Most React Bluetooth libraries have similar APIs. Key differences:
 
 | Issue | Solution |
 |-------|----------|
-| "Bluetooth not available" | Install WebBLE extension or use supported browser |
+| "Bluetooth not available" | Install beacio extension or use supported browser |
 | "Permission denied" | Check browser permissions and HTTPS requirement |
 | "Device not found" | Ensure device is advertising and in range |
 | "Connection failed" | Check device is not connected elsewhere |
@@ -659,9 +639,9 @@ Most React Bluetooth libraries have similar APIs. Key differences:
 Enable debug logging:
 
 ```tsx
-<WebBLE.Provider config={{ debugMode: true }}>
+<beacio.Provider config={{ debugMode: true }}>
   <App />
-</WebBLE.Provider>
+</beacio.Provider>
 ```
 
 ### Performance Tips
@@ -674,6 +654,6 @@ Enable debug logging:
 
 ## Support
 
-- GitHub Issues: https://github.com/wklm/ioswebble-sdk/issues
-- Documentation: https://github.com/wklm/ioswebble-sdk/tree/main/packages/react-sdk/docs
-- Examples: https://github.com/wklm/ioswebble-sdk/tree/main/examples/heart-rate-monitor
+- GitHub Issues: https://github.com/wklm/beacio-sdk/issues
+- Documentation: https://github.com/wklm/beacio-sdk/tree/main/packages/react-sdk/docs
+- Examples: https://github.com/wklm/beacio-sdk/tree/main/examples/heart-rate-monitor

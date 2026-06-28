@@ -1,9 +1,9 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { WebBLEProvider } from '../../src/core/WebBLEProvider';
+import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useBackgroundSync } from '../../src/hooks/useBackgroundSync';
-import { WebBLEError } from '@ios-web-bluetooth/core';
-import type { BackgroundRegistration, NotificationPermissionState } from '@ios-web-bluetooth/core';
+import { BeacioError } from '@beacio/core';
+import type { BackgroundRegistration, NotificationPermissionState } from '@beacio/core';
 
 function makeRegistration(overrides: Partial<BackgroundRegistration> = {}): BackgroundRegistration {
   return {
@@ -38,10 +38,10 @@ function makeMockBackgroundSync() {
 }
 
 function installSafariExtensionRuntime(backgroundSync: ReturnType<typeof makeMockBackgroundSync>) {
-  Object.defineProperty(navigator, 'webble', {
+  Object.defineProperty(navigator, 'beacio', {
     value: {
       ...((navigator as any).bluetooth as Record<string, unknown>),
-      __webble: true,
+      __beacio: true,
       backgroundSync,
     },
     writable: true,
@@ -50,23 +50,23 @@ function installSafariExtensionRuntime(backgroundSync: ReturnType<typeof makeMoc
 }
 
 describe('useBackgroundSync Hook', () => {
-  let originalWebble: unknown;
+  let originalBeacio: unknown;
   let mockBackgroundSync: ReturnType<typeof makeMockBackgroundSync>;
 
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <WebBLEProvider>{children}</WebBLEProvider>
+    <BeacioProvider>{children}</BeacioProvider>
   );
 
   beforeEach(() => {
     jest.clearAllMocks();
-    originalWebble = (navigator as any).webble;
+    originalBeacio = (navigator as any).beacio;
     mockBackgroundSync = makeMockBackgroundSync();
     installSafariExtensionRuntime(mockBackgroundSync);
   });
 
   afterEach(() => {
-    Object.defineProperty(navigator, 'webble', {
-      value: originalWebble,
+    Object.defineProperty(navigator, 'beacio', {
+      value: originalBeacio,
       writable: true,
       configurable: true,
     });
@@ -107,7 +107,7 @@ describe('useBackgroundSync Hook', () => {
     });
 
     expect(permissionState).toBeNull();
-    expect(result.current.error).toBeInstanceOf(WebBLEError);
+    expect(result.current.error).toBeInstanceOf(BeacioError);
     expect(result.current.error?.message).toBe('Permission failed');
     expect(result.current.isLoading).toBe(false);
   });
@@ -204,7 +204,7 @@ describe('useBackgroundSync Hook', () => {
 
     expect(result.current.registrations).toHaveLength(1);
     expect(result.current.registrations[0]?.id).toBe('reg-1');
-    expect(result.current.error).toBeInstanceOf(WebBLEError);
+    expect(result.current.error).toBeInstanceOf(BeacioError);
     expect(result.current.error?.message).toBe('Unregister failed');
   });
 
@@ -221,7 +221,7 @@ describe('useBackgroundSync Hook', () => {
   });
 
   it('marks the hook unsupported outside safari-extension mode', async () => {
-    Object.defineProperty(navigator, 'webble', {
+    Object.defineProperty(navigator, 'beacio', {
       value: undefined,
       writable: true,
       configurable: true,
@@ -237,7 +237,7 @@ describe('useBackgroundSync Hook', () => {
     });
 
     expect(permissionState).toBeNull();
-    expect(result.current.error).toBeInstanceOf(WebBLEError);
+    expect(result.current.error).toBeInstanceOf(BeacioError);
   });
 
   it('auto-fetches registrations on mount when requested', async () => {

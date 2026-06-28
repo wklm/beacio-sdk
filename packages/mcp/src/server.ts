@@ -10,7 +10,7 @@ import './data/validate.js'; // validates bundled JSON at import time
 const require = createRequire(import.meta.url);
 const { version: SERVER_VERSION } = require('../package.json') as { version: string };
 
-export const SERVER_NAME = '@ios-web-bluetooth/mcp';
+export const SERVER_NAME = '@beacio/mcp';
 export { SERVER_VERSION };
 
 /** Options allowing tests to inject a telemetry stub. */

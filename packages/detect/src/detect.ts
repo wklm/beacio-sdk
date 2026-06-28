@@ -1,6 +1,13 @@
 /**
- * Platform detection utilities for WebBLE
+ * Platform detection utilities for Beacio
  */
+
+// SB-SDK-12: the install-state marker derivation now lives in the single shared
+// install-state module (consumed here, by the react-sdk ExtensionDetector, and by
+// the headless API), so the detection logic is shared rather than duplicated.
+import { getInstallState, type ExtensionInstallState } from './install-state';
+
+export type { ExtensionInstallState } from './install-state';
 
 export function isIOSSafari(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -14,47 +21,16 @@ export function isIOSSafari(): boolean {
   return isIOS && isSafari;
 }
 
-export type ExtensionInstallState = 'not-installed' | 'installed-inactive' | 'active';
-
-function hasWindowMarker(): boolean {
-  return typeof window !== 'undefined' && (window as any).__webble?.status === 'installed';
-}
-
-function hasNavigatorMarker(): boolean {
-  if (typeof navigator === 'undefined') {
-    return false;
-  }
-  return Boolean((navigator as any).webble && (navigator as any).webble.__webble);
-}
-
-function hasInstallMarker(): boolean {
-  return typeof document !== 'undefined' && document.documentElement.dataset.webbleInstalled === 'true';
-}
-
-function hasActiveMarker(): boolean {
-  return typeof document !== 'undefined' && document.documentElement.dataset.webbleExtension === 'true';
-}
-
-function resolveInstallState(): ExtensionInstallState {
-  if (hasNavigatorMarker() || hasActiveMarker()) {
-    return 'active';
-  }
-  if (hasWindowMarker() || hasInstallMarker()) {
-    return 'installed-inactive';
-  }
-  return 'not-installed';
-}
-
 export async function getExtensionInstallState(): Promise<ExtensionInstallState> {
-  // Fast-path: if @ios-web-bluetooth/core is installed, use its platform detection
+  // Fast-path: if @beacio/core is installed, use its platform detection
   try {
-    const { detectPlatform } = await import('@ios-web-bluetooth/core');
+    const { detectPlatform } = await import('@beacio/core');
     if (detectPlatform() === 'safari-extension') return 'active';
   } catch { /* core not installed — fall through */ }
 
   return new Promise((resolve) => {
     // Method 1: Check for the global marker set by injected-full.ts
-    const immediateState = resolveInstallState();
+    const immediateState = getInstallState();
     if (immediateState !== 'not-installed') {
       resolve(immediateState);
       return;
@@ -65,7 +41,7 @@ export async function getExtensionInstallState(): Promise<ExtensionInstallState>
     let checks = 0;
     const interval = setInterval(() => {
       checks++;
-      const state = resolveInstallState();
+      const state = getInstallState();
       if (state !== 'not-installed') {
         clearInterval(interval);
         resolve(state);

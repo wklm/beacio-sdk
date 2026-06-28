@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "com.beacio/mcp",
+  "description": "MCP server for Web Bluetooth on iOS Safari: scaffolding, UUID lookup, extension detection.",
+  "status": "active",
+  "version": "2.0.0",
+  "repository": {
+    "url": "https://github.com/wklm/beacio-sdk",
+    "source": "github",
+    "subfolder": "packages/mcp"
+  },
+  "packages": [
+    {
+      "identifier": "@beacio/mcp",
+      "version": "2.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "runtimeHint": "npx"
+    }
+  ],
+  "websiteUrl": "https://beacio.com"
+}

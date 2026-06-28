@@ -1,12 +1,12 @@
 import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { WebBLEProvider } from '../../src/core/WebBLEProvider';
+import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useBluetooth } from '../../src/hooks/useBluetooth';
-import { WebBLEDevice, WebBLEError } from '@ios-web-bluetooth/core';
+import { BeacioDevice, BeacioError } from '@beacio/core';
 
 describe('useBluetooth Hook', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
-    <WebBLEProvider>{children}</WebBLEProvider>
+    <BeacioProvider>{children}</BeacioProvider>
   );
 
   beforeEach(() => {
@@ -29,9 +29,9 @@ describe('useBluetooth Hook', () => {
     });
 
     it('should detect extension installation', async () => {
-      const originalWebBLE = (navigator as any).webble;
-      Object.defineProperty(navigator, 'webble', {
-        value: { __webble: true },
+      const originalBeacio = (navigator as any).beacio;
+      Object.defineProperty(navigator, 'beacio', {
+        value: { __beacio: true },
         writable: true,
         configurable: true,
       });
@@ -43,10 +43,10 @@ describe('useBluetooth Hook', () => {
           expect(result.current.isExtensionInstalled).toBe(true);
         });
 
-        expect((navigator as any).webble?.__webble).toBe(true);
+        expect((navigator as any).beacio?.__beacio).toBe(true);
       } finally {
-        Object.defineProperty(navigator, 'webble', {
-          value: originalWebBLE,
+        Object.defineProperty(navigator, 'beacio', {
+          value: originalBeacio,
           writable: true,
           configurable: true,
         });
@@ -91,7 +91,7 @@ describe('useBluetooth Hook', () => {
       expect(mockRequestDevice).toHaveBeenCalledWith({
         acceptAllDevices: true
       });
-      expect(device).toBeInstanceOf(WebBLEDevice);
+      expect(device).toBeInstanceOf(BeacioDevice);
       expect((device as any).raw).toBe(mockDevice);
     });
 
@@ -131,7 +131,7 @@ describe('useBluetooth Hook', () => {
         });
       });
 
-      expect(result.current.error).toBeInstanceOf(WebBLEError);
+      expect(result.current.error).toBeInstanceOf(BeacioError);
       expect(result.current.error?.message).toBe(error.message);
     });
 
@@ -156,8 +156,8 @@ describe('useBluetooth Hook', () => {
 
       expect(navigator.bluetooth.getDevices).toHaveBeenCalled();
       expect(devices).toHaveLength(2);
-      expect(devices[0]).toBeInstanceOf(WebBLEDevice);
-      expect(devices[1]).toBeInstanceOf(WebBLEDevice);
+      expect(devices[0]).toBeInstanceOf(BeacioDevice);
+      expect(devices[1]).toBeInstanceOf(BeacioDevice);
       expect((devices[0] as any).raw).toBe(mockDevices[0]);
       expect((devices[1] as any).raw).toBe(mockDevices[1]);
     });
@@ -256,7 +256,7 @@ describe('useBluetooth Hook', () => {
         await result.current.requestDevice({ acceptAllDevices: true });
       });
 
-      expect(result.current.error).toBeInstanceOf(WebBLEError);
+      expect(result.current.error).toBeInstanceOf(BeacioError);
       expect(result.current.error?.message).toBe(error.message);
       
       // Second request should succeed and clear error

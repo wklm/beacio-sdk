@@ -1,21 +1,21 @@
 <p align="center">
-  <a href="https://ioswebble.com"><img src="https://raw.githubusercontent.com/wklm/ioswebble-sdk/main/design-assets/brand/logo.png" alt="WebBLE" width="84" height="84"></a>
+  <a href="https://beacio.com"><img src="https://beacio.com/img/logo.png" alt="beacio" width="84" height="84"></a>
 </p>
 
-# @ios-web-bluetooth/profiles
+# @beacio/profiles
 
 Pre-built BLE device profiles -- heart rate, battery, device info. Typed parsers for Bluetooth GATT characteristics.
 
 ## Install
 
 ```bash
-npm install @ios-web-bluetooth/profiles @ios-web-bluetooth/core
+npm install @beacio/profiles @beacio/core
 ```
 
 Enable Safari iOS support in your browser entry file:
 
 ```typescript
-import '@ios-web-bluetooth/core/auto';
+import '@beacio/core/auto';
 ```
 
 `requestDevice()` must be triggered from a direct user gesture such as a button click.
@@ -23,10 +23,10 @@ import '@ios-web-bluetooth/core/auto';
 ## Usage
 
 ```typescript
-import { WebBLE } from '@ios-web-bluetooth/core';
-import { HeartRateProfile } from '@ios-web-bluetooth/profiles';
+import { beacio } from '@beacio/core';
+import { HeartRateProfile } from '@beacio/profiles';
 
-const ble = new WebBLE();
+const ble = new beacio();
 const device = await ble.requestDevice({ filters: [{ services: ['heart_rate'] }] });
 
 const hr = new HeartRateProfile(device);
@@ -62,11 +62,11 @@ Use `stop()` as soon as the user leaves the live monitoring view. Profiles usual
 MCP server for coding agents (Claude Code, Cursor, Copilot):
 
 ```
-npx -y @ios-web-bluetooth/mcp
+npx -y @beacio/mcp
 ```
 
-Full SDK reference for LLM context: <https://ioswebble.com/llms-full.txt>
+Full SDK reference for LLM context: <https://beacio.com/llms-full.txt>
 
 ## Two scopes
 
-The **`@ios-web-bluetooth/*`** packages (`core`, `profiles`, `react`) are the cross-browser BLE SDK -- they work on any platform with Web Bluetooth support (Chrome, Edge, iOS Safari via the extension). The **`@ios-web-bluetooth/*`** packages (`detect`, `cli`, `mcp`, `skill`) handle iOS-specific extension detection, install prompts, and agent tooling. Use both together for full iOS Safari coverage.
+The **`@beacio/*`** packages (`core`, `profiles`, `react`) are the cross-browser BLE SDK -- they work on any platform with Web Bluetooth support (Chrome, Edge, iOS Safari via the extension). The **`@beacio/*`** packages (`detect`, `cli`, `mcp`, `skill`) handle iOS-specific extension detection, install prompts, and agent tooling. Use both together for full iOS Safari coverage.

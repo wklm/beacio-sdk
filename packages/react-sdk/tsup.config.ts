@@ -10,8 +10,8 @@ export default defineConfig({
   external: [
     'react',
     'react-dom',
-    '@ios-web-bluetooth/core',
-    '@ios-web-bluetooth/detect',
-    '@ios-web-bluetooth/profiles',
+    '@beacio/core',
+    '@beacio/detect',
+    '@beacio/profiles',
   ],
 });

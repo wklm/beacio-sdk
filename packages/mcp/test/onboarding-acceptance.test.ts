@@ -19,7 +19,7 @@ import { runVerifyIntegration } from '../src/tools/verify-integration.js';
  * to a temp fixture and execute the one offline-evaluable check (the bootstrap grep).
  */
 
-const BOOTSTRAP_NEEDLE = /core\/auto|cdn\.ioswebble\.com/;
+const BOOTSTRAP_NEEDLE = /core\/auto|cdn\.beacio\.com/;
 
 type FileEdit = { op: string; path: string; insert: string; position?: string };
 
@@ -66,13 +66,13 @@ describe('agent-onboarding acceptance (install_plan ↔ verify_integration)', ()
     for (const framework of FRAMEWORKS) {
       if (framework === 'html') continue; // html loads the polyfill via the CDN <script>, no npm dep
       const plan = runInstallPlan({ framework, package_manager: 'npm' });
-      expect(plan.actions.commands.join('\n')).toContain('@ios-web-bluetooth/core');
+      expect(plan.actions.commands.join('\n')).toContain('@beacio/core');
     }
   });
 
   it('applying the plan bootstrap makes the verify auto_import_present check pass (offline e2e)', () => {
     for (const framework of FRAMEWORKS) {
-      const root = mkdtempSync(join(tmpdir(), `webble-${framework}-`));
+      const root = mkdtempSync(join(tmpdir(), `beacio-${framework}-`));
       try {
         const plan = runInstallPlan({ framework, package_manager: 'npm' });
         for (const edit of plan.actions.files_to_edit as FileEdit[]) applyFileEdit(root, edit);

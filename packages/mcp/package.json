@@ -1,11 +1,11 @@
 {
-  "name": "@ios-web-bluetooth/mcp",
-  "version": "0.1.1",
-  "mcpName": "io.github.wklm/ios-web-bluetooth",
-  "description": "MCP server for WebBLE — unified tools for SDK consumers and extension developers shipping iOS Safari Web Bluetooth.",
+  "name": "@beacio/mcp",
+  "version": "2.0.0",
+  "mcpName": "com.beacio/mcp",
+  "description": "MCP server for beacio — unified tools for SDK consumers and extension developers shipping iOS Safari Web Bluetooth.",
   "type": "module",
   "bin": {
-    "webble-mcp": "./dist/cli.js"
+    "beacio-mcp": "./dist/cli.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,14 +22,14 @@
   "publishConfig": {
     "access": "public"
   },
-  "homepage": "https://ioswebble.com/mcp",
+  "homepage": "https://beacio.com/mcp",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wklm/ioswebble-sdk.git",
+    "url": "https://github.com/wklm/beacio-sdk.git",
     "directory": "packages/mcp"
   },
   "bugs": {
-    "url": "https://github.com/wklm/ioswebble-sdk/issues"
+    "url": "https://github.com/wklm/beacio-sdk/issues"
   },
   "license": "MIT",
   "author": "wklm",
@@ -41,7 +41,7 @@
     "safari",
     "bluetooth",
     "ble",
-    "webble"
+    "beacio"
   ],
   "scripts": {
     "prebuild": "rm -rf dist",
@@ -55,10 +55,10 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^25",
-    "tsx": "^4.7.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.1.8"
+    "@types/node": "^26.0.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.9"
   },
   "engines": {
     "node": ">=20"

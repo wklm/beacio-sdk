@@ -1,5 +1,5 @@
 /**
- * @ios-web-bluetooth/testing — Mock Bluetooth API for testing BLE web apps
+ * @beacio/testing — Mock Bluetooth API for testing BLE web apps
  *
  * Provides stateful mocks for the Web Bluetooth API:
  * - MockBluetooth: drop-in replacement for navigator.bluetooth
@@ -8,7 +8,7 @@
  * - Advertisement simulation for requestLEScan/watchAdvertisements tests
  *
  * Usage:
- *   import { createMockBluetooth, installMockBluetooth } from '@ios-web-bluetooth/testing'
+ *   import { createMockBluetooth, installMockBluetooth } from '@beacio/testing'
  *
  *   // Option A: Create and install on navigator.bluetooth
  *   const mock = installMockBluetooth({ available: true })
@@ -175,7 +175,7 @@ export const devices = {
             {
               uuid: BLE_UUIDS.characteristics.MANUFACTURER_NAME,
               properties: { read: true },
-              value: Uint8Array.from(Array.from('WebBLE Test Corp').map(c => c.charCodeAt(0))),
+              value: Uint8Array.from(Array.from('Beacio Test Corp').map(c => c.charCodeAt(0))),
             },
             {
               uuid: BLE_UUIDS.characteristics.MODEL_NUMBER,

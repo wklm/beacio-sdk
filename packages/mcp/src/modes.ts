@@ -19,7 +19,7 @@ export function autoDetectMode(): ServerMode {
   if (fs.existsSync(pkgPath)) {
     try {
       const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-      isMonorepo = pkg.name === 'webble-safari-extension';
+      isMonorepo = pkg.name === 'beacio-safari-extension';
     } catch { /* not valid JSON */ }
   }
   return (hasAgentsMd && isMonorepo) ? 'developer' : 'consumer';

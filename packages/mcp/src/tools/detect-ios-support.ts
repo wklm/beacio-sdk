@@ -5,14 +5,14 @@ export interface DetectIOSSupportInput {}
 
 export interface DetectIOSSupportOutput {
   detection_snippet: string;
-  global_name: 'window.webbleIOS';
+  global_name: 'window.beacioIOS';
   notes: string[];
   source_url: string;
 }
 
 const DATA = detectData as {
   detection_snippet: string;
-  global_name: 'window.webbleIOS';
+  global_name: 'window.beacioIOS';
   notes: string[];
 };
 
@@ -26,9 +26,9 @@ export function runDetectIOSSupport(_input: DetectIOSSupportInput = {}): DetectI
 }
 
 export const detectIOSSupportTool: ToolDefinition<DetectIOSSupportInput, DetectIOSSupportOutput> = {
-  name: 'webble_detect_ios_support',
-  title: 'Detect WebBLE support on iOS Safari',
+  name: 'beacio_detect_ios_support',
+  title: 'Detect Beacio support on iOS Safari',
   description:
-    'Return a runtime detection snippet for navigator.bluetooth and window.webbleIOS, plus notes covering every way the detection can go wrong on iPhone Safari.',
+    'Return a runtime detection snippet for navigator.bluetooth and window.beacioIOS, plus notes covering every way the detection can go wrong on iPhone Safari.',
   run: runDetectIOSSupport,
 };

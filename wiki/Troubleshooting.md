@@ -7,7 +7,7 @@ On iOS Safari, the most common issue is that the user enabled the extension but 
 Guide users to:
 
 1. tap `aA` in the Safari address bar
-2. tap the `iOSWebBLE` extension icon
+2. tap the `iOSbeacio` extension icon
 3. choose `Always Allow`
 4. choose `Always Allow on Every Website`
 
@@ -46,11 +46,11 @@ If a background registration includes `template.url`, it must:
 
 ## Good Test Targets
 
-- Hosted demo: <https://ioswebble.com/demo>
-- Hosted docs: <https://ioswebble.com/docs>
+- Hosted demo: <https://beacio.com/demo>
+- Hosted docs: <https://beacio.com/docs>
 
 ## Support
 
-- GitHub Issues: <https://github.com/wklm/ioswebble-sdk/issues>
-- Email: <mailto:support@ioswebble.com>
-- Product page: <https://ioswebble.com/product>
+- GitHub Issues: <https://github.com/wklm/beacio-sdk/issues>
+- Email: <mailto:support@beacio.com>
+- Product page: <https://beacio.com/product>

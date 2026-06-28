@@ -1,5 +1,5 @@
 import type { RetryOptions } from './errors';
-import { WebBLEError, withRetry } from './errors';
+import { BeacioError, withRetry } from './errors';
 import { resolveUUID } from './uuid';
 import { WriteChunker } from './write-chunker';
 import { NotificationManager } from './notification-manager';
@@ -27,8 +27,8 @@ import type {
 } from './types';
 
 type DeviceHooks = {
-  beforeConnect?: (device: WebBLEDevice) => void;
-  onConnectionChange?: (device: WebBLEDevice) => void;
+  beforeConnect?: (device: BeacioDevice) => void;
+  onConnectionChange?: (device: BeacioDevice) => void;
 };
 
 type DisconnectListener = (reason: DisconnectReason) => void;
@@ -41,6 +41,45 @@ type DeviceTransportInfo = {
   getMtu?: () => Promise<number | null>;
   getWriteLimits?: () => Promise<Partial<WriteLimits> | null | undefined>;
 };
+
+/**
+ * SB-SDK-05 AC3: is this native rejection the "service not declared in
+ * optionalServices" failure? WebKit raises it as a SecurityError DOMException
+ * ("Origin is not allowed to access the service…"); other engines word it as an
+ * access/allowed/blocklist failure. We match the SecurityError name OR that
+ * access-denied phrasing so the operator gets the actionable remedy regardless of
+ * engine wording, while genuine non-permission GATT failures still fall through to
+ * BeacioError.from.
+ */
+function isUndeclaredServiceSecurityError(error: unknown): boolean {
+  const name =
+    typeof error === 'object' && error !== null && 'name' in error && typeof (error as { name: unknown }).name === 'string'
+      ? (error as { name: string }).name
+      : '';
+  if (name === 'SecurityError') return true;
+  const msg = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return (
+    (msg.includes('not allowed to access') || msg.includes('blocklist') || msg.includes('blocked')) &&
+    msg.includes('service')
+  );
+}
+
+/**
+ * SB-SDK-05 AC3: build the human, stack-free SecurityError for an undeclared
+ * service. The .message is a complete plain-English sentence that NAMES the
+ * offending service UUID (canonical resolved form) and states the optionalServices
+ * remedy (mirroring SUGGESTIONS.SERVICE_NOT_FOUND), with no native URL/jargon, no
+ * stack, and no competitor name. A SecurityError DOMException is the W3C-correct
+ * class a raw `catch` already special-cases.
+ */
+function undeclaredServiceError(uuid: string): DOMException {
+  return new DOMException(
+    `This site is not allowed to access the Bluetooth service ${uuid}. ` +
+      `Add "${uuid}" to the optionalServices array in your requestDevice() options, ` +
+      `then reconnect.`,
+    'SecurityError'
+  );
+}
 
 /**
  * Represents a connected BLE device. Provides methods to read, write,
@@ -64,9 +103,11 @@ type DeviceTransportInfo = {
  * device.disconnect()
  * ```
  */
-export class WebBLEDevice {
+export class BeacioDevice {
   readonly id: string;
-  readonly name: string | undefined;
+  /** Device name, mirroring the WebIDL `DOMString?` shape: null when the
+   *  device has no name (never undefined). */
+  readonly name: string | null;
   readonly raw: BluetoothDevice;
 
   private server: BluetoothRemoteGATTServer | null = null;
@@ -90,7 +131,7 @@ export class WebBLEDevice {
 
   constructor(device: BluetoothDevice, hooks: DeviceHooks = {}) {
     this.id = device.id;
-    this.name = device.name ?? undefined;
+    this.name = device.name ?? null;
     this.raw = device;
     this.hooks = hooks;
 
@@ -151,8 +192,8 @@ export class WebBLEDevice {
    *
    * @param options - Connection options including auto-reconnect configuration.
    *
-   * @throws {WebBLEError} `GATT_OPERATION_FAILED` -- device has no GATT server
-   * @throws {WebBLEError} `CONNECTION_LIMIT_REACHED` -- `WebBLE.maxConnections` exceeded
+   * @throws {BeacioError} `GATT_OPERATION_FAILED` -- device has no GATT server
+   * @throws {BeacioError} `CONNECTION_LIMIT_REACHED` -- `Beacio.maxConnections` exceeded
    *
    * @example
    * ```typescript
@@ -189,7 +230,7 @@ export class WebBLEDevice {
 
     this.hooks.beforeConnect?.(this);
     const gatt = this.raw.gatt;
-    if (!gatt) throw new WebBLEError('GATT_OPERATION_FAILED', 'Device has no GATT server');
+    if (!gatt) throw new BeacioError('GATT_OPERATION_FAILED', 'Device has no GATT server');
     const reconnectGate = this.reconnectGate;
 
     try {
@@ -202,7 +243,7 @@ export class WebBLEDevice {
         try {
           fn();
         } catch (error) {
-          this.emitError(WebBLEError.from(error), { operation: 'device.reconnected-listener' });
+          this.emitError(BeacioError.from(error), { operation: 'device.reconnected-listener' });
         }
       }
       this.intentionalDisconnect = false;
@@ -212,7 +253,7 @@ export class WebBLEDevice {
         this.server = null;
         this.hooks.onConnectionChange?.(this);
       }
-      throw WebBLEError.from(error);
+      throw BeacioError.from(error);
     } finally {
       if (this.reconnectGate === reconnectGate) {
         this.reconnectGate = null;
@@ -256,7 +297,7 @@ export class WebBLEDevice {
    *
    * @param options - Retry options (defaults: 3 attempts, 250ms delay, 1.5x backoff).
    *
-   * @throws {WebBLEError} Last error from the final failed attempt
+   * @throws {BeacioError} Last error from the final failed attempt
    *
    * @see {@link connect}
    * @see {@link withRetry}
@@ -274,7 +315,7 @@ export class WebBLEDevice {
    * Service and characteristic names (e.g. `'battery_service'`, `'battery_level'`)
    * are resolved to full 128-bit UUIDs via {@link resolveUUID}.
    *
-   * For typed reads, use the overload with a parse function (e.g. from `@ios-web-bluetooth/profiles`):
+   * For typed reads, use the overload with a parse function (e.g. from `@beacio/profiles`):
    * ```typescript
    * const hr = await device.read('heart_rate', 'heart_rate_measurement', parseHeartRate)
    * console.log(hr.bpm) // typed HeartRateData
@@ -285,11 +326,11 @@ export class WebBLEDevice {
    * @param options - Read options including timeout.
    * @returns Raw characteristic value as a `DataView`.
    *
-   * @throws {WebBLEError} `DEVICE_DISCONNECTED` -- not connected
-   * @throws {WebBLEError} `SERVICE_NOT_FOUND` -- service UUID not found on device
-   * @throws {WebBLEError} `CHARACTERISTIC_NOT_FOUND` -- characteristic UUID not found
-   * @throws {WebBLEError} `CHARACTERISTIC_NOT_READABLE` -- characteristic does not support read
-   * @throws {WebBLEError} `TIMEOUT` -- read did not complete within `timeoutMs`
+   * @throws {BeacioError} `DEVICE_DISCONNECTED` -- not connected
+   * @throws {BeacioError} `SERVICE_NOT_FOUND` -- service UUID not found on device
+   * @throws {BeacioError} `CHARACTERISTIC_NOT_FOUND` -- characteristic UUID not found
+   * @throws {BeacioError} `CHARACTERISTIC_NOT_READABLE` -- characteristic does not support read
+   * @throws {BeacioError} `TIMEOUT` -- read did not complete within `timeoutMs`
    *
    * @example
    * ```typescript
@@ -342,7 +383,7 @@ export class WebBLEDevice {
       );
       return parse ? await parse(value) : value;
     } catch (e) {
-      throw WebBLEError.from(e);
+      throw BeacioError.from(e);
     }
   }
 
@@ -356,10 +397,10 @@ export class WebBLEDevice {
    * @param value - Data to write (ArrayBuffer, TypedArray, or DataView).
    * @param options - Write mode and timeout options.
    *
-   * @throws {WebBLEError} `DEVICE_DISCONNECTED` -- not connected
-   * @throws {WebBLEError} `CHARACTERISTIC_NOT_WRITABLE` -- characteristic does not support write
-   * @throws {WebBLEError} `WRITE_INCOMPLETE` -- disconnected before write completed
-   * @throws {WebBLEError} `TIMEOUT` -- write did not complete within `timeoutMs`
+   * @throws {BeacioError} `DEVICE_DISCONNECTED` -- not connected
+   * @throws {BeacioError} `CHARACTERISTIC_NOT_WRITABLE` -- characteristic does not support write
+   * @throws {BeacioError} `WRITE_INCOMPLETE` -- disconnected before write completed
+   * @throws {BeacioError} `TIMEOUT` -- write did not complete within `timeoutMs`
    *
    * @example
    * ```typescript
@@ -395,8 +436,8 @@ export class WebBLEDevice {
    * @param options - Fragmentation, retry, and write mode options.
    * @returns Result with byte counts, chunk info, and total retry count.
    *
-   * @throws {WebBLEError} `WRITE_INCOMPLETE` -- partial write after chunk retries exhausted
-   * @throws {WebBLEError} `DEVICE_DISCONNECTED` -- disconnected during write
+   * @throws {BeacioError} `WRITE_INCOMPLETE` -- partial write after chunk retries exhausted
+   * @throws {BeacioError} `DEVICE_DISCONNECTED` -- disconnected during write
    *
    * @see {@link writeLarge} for chunked writes without retry
    * @see {@link writeAuto} for automatic fragmentation decisions
@@ -427,8 +468,8 @@ export class WebBLEDevice {
    * @param options - Chunk size and write mode options.
    * @returns Result with byte counts and chunk info.
    *
-   * @throws {WebBLEError} `WRITE_INCOMPLETE` -- not all bytes were transferred
-   * @throws {WebBLEError} `DEVICE_DISCONNECTED` -- disconnected during write
+   * @throws {BeacioError} `WRITE_INCOMPLETE` -- not all bytes were transferred
+   * @throws {BeacioError} `DEVICE_DISCONNECTED` -- disconnected during write
    *
    * @see {@link writeFragmented} for chunked writes with per-chunk retry
    * @see {@link writeAuto} for automatic fragmentation decisions
@@ -462,11 +503,11 @@ export class WebBLEDevice {
    * Return the platform-reported writable payload limits and negotiated ATT MTU.
    *
    * On standard browser Web Bluetooth stacks (Chrome, Edge), these values are typically
-   * unavailable and return `null`. The Safari WebBLE extension reports actual negotiated values.
+   * unavailable and return `null`. The Safari Beacio extension reports actual negotiated values.
    *
    * @returns Object with `withResponse`, `withoutResponse`, and `mtu` fields (each `null` when unavailable).
    *
-   * @throws {WebBLEError} `DEVICE_DISCONNECTED` -- not connected
+   * @throws {BeacioError} `DEVICE_DISCONNECTED` -- not connected
    *
    * @see {@link WriteLimits}
    * @see {@link getMtu} for just the MTU value
@@ -507,8 +548,8 @@ export class WebBLEDevice {
    * @param options - All fragmentation, retry, and write mode options.
    * @returns Result indicating whether fragmentation was used.
    *
-   * @throws {WebBLEError} `WRITE_INCOMPLETE` -- partial write after chunk retries exhausted
-   * @throws {WebBLEError} `DEVICE_DISCONNECTED` -- disconnected during write
+   * @throws {BeacioError} `WRITE_INCOMPLETE` -- partial write after chunk retries exhausted
+   * @throws {BeacioError} `DEVICE_DISCONNECTED` -- disconnected during write
    *
    * @see {@link write} for single-packet writes
    * @see {@link writeFragmented} for explicit fragmentation
@@ -579,8 +620,8 @@ export class WebBLEDevice {
    * @param options - Auto-recovery options. `onError` is NOT called (errors are thrown).
    * @returns Unsubscribe function (resolves only after setup completes).
    *
-   * @throws {WebBLEError} `CHARACTERISTIC_NOT_NOTIFIABLE` -- characteristic does not support notify
-   * @throws {WebBLEError} `DEVICE_DISCONNECTED` -- not connected
+   * @throws {BeacioError} `CHARACTERISTIC_NOT_NOTIFIABLE` -- characteristic does not support notify
+   * @throws {BeacioError} `DEVICE_DISCONNECTED` -- not connected
    *
    * @see {@link subscribe} for fire-and-forget subscription
    * @see {@link notifications} for async iterator interface
@@ -592,6 +633,70 @@ export class WebBLEDevice {
     options?: SubscribeOptions,
   ): Promise<() => void> {
     return this.notificationManager.subscribeAsync(service, characteristic, callback, options);
+  }
+
+  /**
+   * Observe NATIVE notification-queue overflows for a characteristic. Returns an
+   * unsubscribe function synchronously (like {@link subscribe}); the underlying
+   * characteristic lookup + listener attach happen asynchronously.
+   *
+   * Safari's bounded Swift `EventQueue` evicts notifications under sustained
+   * high-frequency load rather than letting the page silently miss samples; the
+   * polyfill re-surfaces each eviction as a `beacio:overflow` `CustomEvent`
+   * dispatched on the underlying `BluetoothRemoteGATTCharacteristic`. This method
+   * resolves that characteristic (via the same cached lookup `read`/`subscribe`
+   * use) and forwards each `beacio:overflow` event to `listener`. The
+   * `CustomEvent.detail` carries the eviction metadata (`evictedCount`,
+   * `queueCapacity`, `seq`, `timestamp`); `@beacio/profiles` decodes it into a
+   * typed {@link NativeOverflowEvent} for you. The recommended response is a
+   * fresh `read()` to resynchronise any UI that was tracking the last notified
+   * value.
+   *
+   * This is distinct from `notifications().onOverflow` /
+   * `on('queue-overflow')`, which report the *JS* async-iterator queue (see
+   * {@link QueueOverflowEvent}). On browser stacks that never emit
+   * `beacio:overflow` (Chrome/Edge), the listener simply never fires.
+   *
+   * Setup errors (e.g. not connected) are routed to any registered
+   * {@link addErrorListener} — never thrown — since this returns synchronously.
+   *
+   * @param service - Service UUID or name.
+   * @param characteristic - Characteristic UUID or name.
+   * @param listener - Called with the raw `beacio:overflow` event on each overflow.
+   * @returns Unsubscribe function -- detaches the underlying event listener
+   *   (also cancels a still-pending attach).
+   *
+   * @see {@link NativeOverflowEvent}
+   * @see {@link decodeNativeOverflow}
+   * @see {@link subscribe}
+   */
+  onCharacteristicOverflow(
+    service: string,
+    characteristic: string,
+    listener: (event: Event) => void,
+  ): () => void {
+    let detach: (() => void) | null = null;
+    let cancelled = false;
+
+    this.getCharacteristic(service, characteristic)
+      .then((char) => {
+        if (cancelled) return;
+        char.addEventListener('beacio:overflow', listener);
+        detach = () => char.removeEventListener('beacio:overflow', listener);
+      })
+      .catch((error) => {
+        this.emitError(BeacioError.from(error), {
+          operation: 'device.onCharacteristicOverflow',
+          service,
+          characteristic,
+        });
+      });
+
+    return () => {
+      cancelled = true;
+      detach?.();
+      detach = null;
+    };
   }
 
   /**
@@ -639,11 +744,11 @@ export class WebBLEDevice {
    * Start watching for BLE advertisements from this device.
    * Not supported on all platforms.
    *
-   * @throws {WebBLEError} `GATT_OPERATION_FAILED` -- platform does not support watchAdvertisements
+   * @throws {BeacioError} `GATT_OPERATION_FAILED` -- platform does not support watchAdvertisements
    */
   async watchAdvertisements(): Promise<void> {
     if (typeof this.raw.watchAdvertisements !== 'function') {
-      throw new WebBLEError('GATT_OPERATION_FAILED', 'watchAdvertisements is not supported on this device');
+      throw new BeacioError('GATT_OPERATION_FAILED', 'watchAdvertisements is not supported on this device');
     }
     await this.raw.watchAdvertisements();
   }
@@ -651,12 +756,12 @@ export class WebBLEDevice {
   /**
    * Stop watching for BLE advertisements from this device.
    *
-   * @throws {WebBLEError} `GATT_OPERATION_FAILED` -- platform does not support unwatchAdvertisements
+   * @throws {BeacioError} `GATT_OPERATION_FAILED` -- platform does not support unwatchAdvertisements
    */
   async unwatchAdvertisements(): Promise<void> {
     const rawDevice = this.raw as BluetoothDevice & { unwatchAdvertisements?: () => Promise<void> };
     if (typeof rawDevice.unwatchAdvertisements !== 'function') {
-      throw new WebBLEError('GATT_OPERATION_FAILED', 'unwatchAdvertisements is not supported on this device');
+      throw new BeacioError('GATT_OPERATION_FAILED', 'unwatchAdvertisements is not supported on this device');
     }
     await rawDevice.unwatchAdvertisements();
   }
@@ -665,11 +770,11 @@ export class WebBLEDevice {
    * Request the browser to forget this device and revoke its permissions.
    * After calling, the device must be re-selected via `requestDevice()`.
    *
-   * @throws {WebBLEError} `GATT_OPERATION_FAILED` -- platform does not support forget
+   * @throws {BeacioError} `GATT_OPERATION_FAILED` -- platform does not support forget
    */
   async forget(): Promise<void> {
     if (typeof this.raw.forget !== 'function') {
-      throw new WebBLEError('GATT_OPERATION_FAILED', 'forget is not supported on this device');
+      throw new BeacioError('GATT_OPERATION_FAILED', 'forget is not supported on this device');
     }
     await this.raw.forget();
   }
@@ -679,10 +784,10 @@ export class WebBLEDevice {
    * Results are cached until disconnect.
    *
    * @returns Array of `BluetoothRemoteGATTService` objects.
-   * @throws {WebBLEError} `DEVICE_DISCONNECTED` -- not connected
+   * @throws {BeacioError} `DEVICE_DISCONNECTED` -- not connected
    */
   async getPrimaryServices(): Promise<BluetoothRemoteGATTService[]> {
-    if (!this.connected) throw new WebBLEError('DEVICE_DISCONNECTED');
+    if (!this.connected) throw new BeacioError('DEVICE_DISCONNECTED');
     if (this.primaryServicesCache) return this.primaryServicesCache;
 
     try {
@@ -695,7 +800,7 @@ export class WebBLEDevice {
       this.primaryServicesCache = normalizedServices;
       return normalizedServices;
     } catch (e) {
-      throw WebBLEError.from(e);
+      throw BeacioError.from(e);
     }
   }
 
@@ -839,7 +944,7 @@ export class WebBLEDevice {
       try {
         fn(reason);
       } catch (error) {
-        this.emitError(WebBLEError.from(error), { operation: 'device.disconnected-listener' });
+        this.emitError(BeacioError.from(error), { operation: 'device.disconnected-listener' });
       }
     }
 
@@ -879,7 +984,7 @@ export class WebBLEDevice {
       }
       // Exhausted attempts — emit error so consumers know
       this.emitError(
-        new WebBLEError('CONNECTION_TIMEOUT', `Auto-reconnect failed after ${maxAttempts} attempts`),
+        new BeacioError('CONNECTION_TIMEOUT', `Auto-reconnect failed after ${maxAttempts} attempts`),
         { operation: 'device.auto-reconnect' },
       );
     };
@@ -893,7 +998,7 @@ export class WebBLEDevice {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     const timeoutPromise = new Promise<T>((_, reject) => {
       timeoutId = setTimeout(() => {
-        reject(new WebBLEError('TIMEOUT', message));
+        reject(new BeacioError('TIMEOUT', message));
       }, timeoutMs);
     });
 
@@ -907,7 +1012,7 @@ export class WebBLEDevice {
   private validateTimeoutMs(timeoutMs: number | undefined): number | undefined {
     if (timeoutMs === undefined) return undefined;
     if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-      throw new WebBLEError('INVALID_PARAMETER', `Invalid timeoutMs: ${timeoutMs}. Must be a positive number.`);
+      throw new BeacioError('INVALID_PARAMETER', `Invalid timeoutMs: ${timeoutMs}. Must be a positive number.`);
     }
     return timeoutMs;
   }
@@ -922,7 +1027,7 @@ export class WebBLEDevice {
       try {
         listener(event);
       } catch (error) {
-        this.emitError(WebBLEError.from(error), { operation });
+        this.emitError(BeacioError.from(error), { operation });
       }
     }
   }
@@ -946,7 +1051,7 @@ export class WebBLEDevice {
   }
 
   private async getCharacteristic(service: string, characteristic: string): Promise<BluetoothRemoteGATTCharacteristic> {
-    if (!this.connected) throw new WebBLEError('DEVICE_DISCONNECTED');
+    if (!this.connected) throw new BeacioError('DEVICE_DISCONNECTED');
 
     const key = this.charKey(service, characteristic);
     const cached = this.charCache.get(key);
@@ -959,7 +1064,7 @@ export class WebBLEDevice {
       this.charCache.set(key, char);
       return char;
     } catch (e) {
-      throw WebBLEError.from(e);
+      throw BeacioError.from(e);
     }
   }
 
@@ -978,7 +1083,18 @@ export class WebBLEDevice {
       this.serviceCache.set(uuid, svc);
       return svc;
     } catch (e) {
-      throw WebBLEError.from(e);
+      // SB-SDK-05 AC3: the dominant real failure for a vanilla site (e.g. S&B) is
+      // forgetting to declare a service in requestDevice({ optionalServices }).
+      // WebKit then rejects getPrimaryService with a SecurityError carrying terse,
+      // jargon-laden, UUID-LESS text — the one detail (which service) the operator
+      // needs to fix is dropped, and BeacioError.from would flatten it to a generic
+      // PERMISSION_DENIED. Re-raise it as a SecurityError DOMException whose message
+      // is a complete plain-English sentence naming THIS service's canonical UUID and
+      // the optionalServices remedy, with no leaked stack / native URL / jargon.
+      if (isUndeclaredServiceSecurityError(e)) {
+        throw undeclaredServiceError(uuid);
+      }
+      throw BeacioError.from(e);
     }
   }
 

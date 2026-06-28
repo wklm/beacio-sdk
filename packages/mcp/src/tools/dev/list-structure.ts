@@ -147,9 +147,9 @@ export function runListStructure(input: ListStructureInput = {}): ListStructureO
 }
 
 export const listStructureTool: ToolDefinition<ListStructureInput, ListStructureOutput> = {
-  name: 'webble_dev_list_structure',
+  name: 'beacio_dev_list_structure',
   title: 'List monorepo directory structure',
   description:
-    'Build a tree view of the WebBLE monorepo directory structure. Optional root path, depth (1-4, default 3), and gitignore support.',
+    'Build a tree view of the Beacio monorepo directory structure. Optional root path, depth (1-4, default 3), and gitignore support.',
   run: runListStructure,
 };

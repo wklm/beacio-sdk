@@ -1,0 +1,117 @@
+# Receiving-side captured-vendor guard for the PUBLIC mirror (wklm/beacio-sdk).
+#
+# SB-INF-04, AC#7. This file lives in the private source repo under
+# sdk-public/.github/workflows/ and is mirrored to the public repo ROOT
+# (.github/workflows/no-captured-guard.yml) by mirror-sdk.sh, which extracts
+# sdk-public/ with --strip-components=1. It is the LAST belt: even if a future
+# change to either mirror path (mirror-sdk.sh / mirror-skills.sh) or a direct
+# push to the public repo carried captured Storz & Bickel vendor material, this
+# job FAILS on the public side so the bytes cannot land on main.
+#
+# It fails (exit 1) if EITHER:
+#   - any tracked path sits under a captured-vendor tree (captured/ or
+#     integration-demo/app/, anywhere in the tree), OR
+#   - any tracked, plausibly-textual file carries a high-signal captured-S&B
+#     content fingerprint (a captured byte-blob renamed to a non-captured path).
+#
+# The deliberately-mirrored clean-room GATT profile
+# packages/profiles/src/storz-bickel.ts (and its test) is interface-only,
+# defensible-provenance, and explicitly allow-listed — it legitimately contains
+# STORZ&BICKEL / the Crafty UUID base / serviceUuidCrafty1, none of which are
+# fingerprints. The fingerprints below are captured-only identifiers with zero
+# occurrences in packages/. Self-contained (no private-repo scripts), so it runs
+# unchanged on the public mirror.
+
+name: no-captured-guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  no-captured:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Reject captured Storz & Bickel vendor material
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Captured-vendor path segments (kept in lockstep with the private
+          # repo's scripts/ci/local/assert-mirror-no-captured.sh CAPTURED_SEGMENTS).
+          # SB-LEG-02 (AC#9): /.capture/ + before-after.gif cover the captured demo
+          # imagery (S&B copyright/trademark) so it cannot land on the public mirror
+          # even if relocated.
+          segments=( "/captured/" "/integration-demo/app/" "/.capture/" "before-after.gif" )
+
+          # Captured-only content fingerprints (0 occurrences under packages/;
+          # mirror of scripts/ci/check-no-captured-leak.mjs CAPTURED_FINGERPRINTS).
+          # ASSEMBLED FROM FRAGMENTS ON PURPOSE: the verbatim captured-S&B token must
+          # never appear as a contiguous literal in this published file — otherwise it
+          # (a) re-publishes the very identifier we are protecting, and (b) makes this
+          # guard flag ITSELF. The pieces are joined at runtime; the literal exists
+          # only in process memory, never on disk.
+          svc="ser""viceUuid"
+          fingerprints=(
+            "${svc}Vol""cano1"
+            "${svc}Qv""ap"
+            "${svc}Vol""cano5"
+            "19""89-01""08"
+          )
+
+          # Clean-room files that legitimately ship in this public mirror and must
+          # never be flagged (interface-only, defensible provenance).
+          allow=( "packages/profiles/src/storz-bickel.ts" "packages/profiles/tests/storz-bickel.test.ts" )
+
+          is_allowlisted() {
+            local p="$1" a
+            for a in "${allow[@]}"; do [ "$p" = "$a" ] && return 0; done
+            return 1
+          }
+
+          fails=0
+
+          # 1) Path-segment belt — over every tracked file.
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            is_allowlisted "$f" && continue
+            for seg in "${segments[@]}"; do
+              case "/$f" in
+                *"$seg"*)
+                  echo "::error file=$f::captured-vendor path (segment '$seg') must not be in the public mirror"
+                  fails=$((fails + 1))
+                  ;;
+              esac
+            done
+          done < <(git ls-files)
+
+          # 2) Content-fingerprint belt — over tracked, plausibly-textual files.
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            is_allowlisted "$f" && continue
+            case "$f" in
+              *.js|*.mjs|*.cjs|*.ts|*.tsx|*.json|*.html|*.htm|*.css|*.md|*.txt|*.map|*.svg|*.xml|*.yml|*.yaml) : ;;
+              *) continue ;;
+            esac
+            for fp in "${fingerprints[@]}"; do
+              if grep -qF -- "$fp" "$f" 2>/dev/null; then
+                echo "::error file=$f::captured-S&B fingerprint '$fp' must not be in the public mirror"
+                fails=$((fails + 1))
+              fi
+            done
+          done < <(git ls-files)
+
+          if [ "$fails" -gt 0 ]; then
+            echo "no-captured-guard: FAILED — $fails captured-vendor signal(s) found on the public mirror." >&2
+            echo "These bytes are Storz & Bickel copyright and must never be published. See the source repo's" >&2
+            echo "outreach/storz-bickel/NOTICE + THREAT-MODEL.md." >&2
+            exit 1
+          fi
+          echo "no-captured-guard: OK — no captured-vendor paths or fingerprints on the public mirror."

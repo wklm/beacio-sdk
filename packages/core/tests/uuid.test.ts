@@ -82,6 +82,13 @@ describe('resolveUUID', () => {
     expect(err).toThrow(/Invalid UUID/);
     expect(err).toThrow(/Expected a 128-bit UUID/);
   });
+
+  // §7.1: "Otherwise, throw a TypeError." — a plain Error breaks
+  // `instanceof TypeError` checks in spec-conformant callers.
+  it('throws a real TypeError for unknown names', () => {
+    expect(() => resolveUUID('totally_bogus')).toThrow(TypeError);
+    expect(() => resolveUUID('heart_rat')).toThrow(TypeError);
+  });
 });
 
 describe('getServiceName', () => {
@@ -121,6 +128,20 @@ describe('getDisplayName', () => {
     expect(getDisplayName('appearance')).toBe('Appearance');
   });
 
+  it('strips the gap./gatt. registry namespace before title-casing', () => {
+    expect(getDisplayName('gap.device_name')).toBe('Device Name');
+    expect(getDisplayName('gatt.client_characteristic_configuration')).toBe(
+      'Client Characteristic Configuration',
+    );
+  });
+
+  it('passes through registry quirk names that are not plain snake_case', () => {
+    expect(getDisplayName('local_east_coordinate.xml')).toBe('local_east_coordinate.xml');
+    expect(getDisplayName('ieee_11073-20601_regulatory_certification_data_list')).toBe(
+      'ieee_11073-20601_regulatory_certification_data_list',
+    );
+  });
+
   it('passes through a raw UUID unchanged (fallback for unknowns)', () => {
     const full = '0000abcd' + BASE;
     expect(getDisplayName(full)).toBe(full);
@@ -140,8 +161,27 @@ describe('canonicalUUID', () => {
     expect(canonicalUUID(0x12345678)).toBe('12345678' + BASE);
   });
 
-  it('throws a TypeError on non-integer aliases', () => {
-    expect(() => canonicalUUID(1.5)).toThrow(TypeError);
+  // IDL: `canonicalUUID([EnforceRange] unsigned long alias)` — [EnforceRange]
+  // applies ToNumber then truncation, so fractional inputs CONVERT, they do
+  // not throw.
+  it('truncates fractional aliases per [EnforceRange]', () => {
+    expect(canonicalUUID(2.5)).toBe('00000002' + BASE);
+    expect(canonicalUUID(0x180d + 0.9)).toBe('0000180d' + BASE);
+  });
+
+  it('converts numeric strings per [EnforceRange] ToNumber', () => {
+    expect(canonicalUUID('0x180d' as unknown as number)).toBe('0000180d' + BASE);
+    expect(canonicalUUID('6157.5' as unknown as number)).toBe('0000180d' + BASE);
+  });
+
+  it('truncates negative fractions above -1 to zero', () => {
+    expect(canonicalUUID(-0.5)).toBe('00000000' + BASE);
+  });
+
+  it('throws a TypeError on NaN and non-finite aliases', () => {
+    expect(() => canonicalUUID(NaN)).toThrow(TypeError);
+    expect(() => canonicalUUID(Infinity)).toThrow(TypeError);
+    expect(() => canonicalUUID('bogus' as unknown as number)).toThrow(TypeError);
   });
 
   it('throws a TypeError on out-of-range aliases', () => {
@@ -154,23 +194,34 @@ describe('canonicalUUID', () => {
 });
 
 describe('getDescriptor', () => {
-  it('resolves a known descriptor name to a canonical UUID', () => {
-    expect(getDescriptor('gatt_client_characteristic_configuration')).toBe('00002902' + BASE);
+  it('resolves a known descriptor name (registry dot form) to a canonical UUID', () => {
+    expect(getDescriptor('gatt.client_characteristic_configuration')).toBe('00002902' + BASE);
+  });
+
+  it('resolves the spec §7.1 worked example', () => {
+    expect(getDescriptor('gatt.characteristic_presentation_format')).toBe('00002904' + BASE);
   });
 
   it('is case-insensitive for descriptor names', () => {
-    expect(getDescriptor('GATT_Client_Characteristic_Configuration')).toBe('00002902' + BASE);
+    expect(getDescriptor('GATT.Client_Characteristic_Configuration')).toBe('00002902' + BASE);
+  });
+
+  it('does not resolve the legacy underscore spelling of gatt.* names', () => {
+    expect(() => getDescriptor('gatt_client_characteristic_configuration')).toThrow();
   });
 
   it('resolves a numeric descriptor alias', () => {
     expect(getDescriptor(0x2902)).toBe('00002902' + BASE);
   });
 
-  it('falls through to resolveUUID for hex shorthand', () => {
-    expect(getDescriptor('2902')).toBe('00002902' + BASE);
+  // §7 valid UUID is lowercase 128-bit only; bare 4/8-hex shorthand is not a
+  // valid UUID, not a registered name → TypeError.
+  it('rejects bare hex shorthand with a TypeError', () => {
+    expect(() => getDescriptor('2902')).toThrow(TypeError);
+    expect(() => getDescriptor('00002902')).toThrow(TypeError);
   });
 
-  it('falls through to resolveUUID for full UUIDs', () => {
+  it('passes through full lowercase UUIDs', () => {
     const full = '00002902' + BASE;
     expect(getDescriptor(full)).toBe(full);
   });
@@ -194,6 +245,102 @@ describe('BluetoothUUID namespace', () => {
   });
 
   it('getDescriptor resolves descriptor names', () => {
-    expect(BluetoothUUID.getDescriptor('gatt_client_characteristic_configuration')).toBe('00002902' + BASE);
+    expect(BluetoothUUID.getDescriptor('gatt.client_characteristic_configuration')).toBe('00002902' + BASE);
+  });
+
+  // §7.1 worked example: BluetoothUUID.getService("unknown-service") throws a
+  // TypeError.
+  it('throws a real TypeError for unknown names', () => {
+    expect(() => BluetoothUUID.getService('unknown-service')).toThrow(TypeError);
+    expect(() => BluetoothUUID.getCharacteristic('unknown-characteristic')).toThrow(TypeError);
+    expect(() => BluetoothUUID.getDescriptor('unknown-descriptor')).toThrow(TypeError);
+  });
+
+  // §7.1: each getter resolves against its own GATT assigned-numbers table
+  // only — no cross-category fallback.
+  it('scopes each getter to its own registry table', () => {
+    expect(() => BluetoothUUID.getService('battery_level')).toThrow(TypeError);
+    expect(() => BluetoothUUID.getCharacteristic('heart_rate')).toThrow(TypeError);
+    expect(() => BluetoothUUID.getDescriptor('heart_rate')).toThrow(TypeError);
+  });
+
+  // `current_time` is registered as BOTH service 0x1805 and characteristic
+  // 0x2A2B — per-table scoping must yield different UUIDs per getter.
+  it('resolves names shared across categories within each getter scope', () => {
+    expect(BluetoothUUID.getService('current_time')).toBe('00001805' + BASE);
+    expect(BluetoothUUID.getCharacteristic('current_time')).toBe('00002a2b' + BASE);
+  });
+
+  // §7: a valid UUID is lowercase 128-bit; the 16/32-bit hex abbreviations
+  // and uppercase spellings are not valid UUID slots on this surface.
+  it('rejects bare 4/8-hex shorthand', () => {
+    expect(() => BluetoothUUID.getService('180d')).toThrow(TypeError);
+    expect(() => BluetoothUUID.getService('0000180d')).toThrow(TypeError);
+  });
+
+  it('rejects uppercase 128-bit UUID strings', () => {
+    expect(() => BluetoothUUID.getService('0000180D-0000-1000-8000-00805F9B34FB')).toThrow(TypeError);
+  });
+
+  it('passes through valid lowercase UUIDs', () => {
+    expect(BluetoothUUID.getService('00001801' + BASE)).toBe('00001801' + BASE);
+  });
+
+  it('canonicalUUID applies [EnforceRange] conversion', () => {
+    expect(BluetoothUUID.canonicalUUID(2.5)).toBe('00000002' + BASE);
+    expect(() => BluetoothUUID.canonicalUUID(-1)).toThrow(TypeError);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Full-registry coverage (Web Bluetooth §7.1/§7.2): every name in the vendored
+// WebBluetoothCG registry files must resolve to canonicalUUID(alias). Guards
+// against the tables regressing to hand-rolled subsets.
+// ---------------------------------------------------------------------------
+
+// Jest runs CJS, so require/__dirname exist at runtime; the core tsconfig has
+// no node typings, hence the local declarations.
+declare function require(name: string): any;
+declare const __dirname: string;
+
+describe('GATT assigned-numbers registry coverage', () => {
+  const { readFileSync } = require('node:fs');
+  const { join } = require('node:path');
+  const registriesDir = join(__dirname, '..', '..', '..', 'registries');
+
+  function registryEntries(fileName: string): Array<[string, string]> {
+    return (readFileSync(join(registriesDir, fileName), 'utf8') as string)
+      .split('\n')
+      .filter((line: string) => line !== '' && !line.startsWith('#'))
+      .map((line: string) => {
+        const [name, uuid] = line.split(' ');
+        return [name.toLowerCase(), uuid.toLowerCase()] as [string, string];
+      });
+  }
+
+  it('resolves every registered service name', () => {
+    for (const [name, uuid] of registryEntries('gatt_assigned_services.txt')) {
+      expect(BluetoothUUID.getService(name)).toBe(uuid);
+    }
+  });
+
+  it('resolves every registered characteristic name', () => {
+    for (const [name, uuid] of registryEntries('gatt_assigned_characteristics.txt')) {
+      expect(BluetoothUUID.getCharacteristic(name)).toBe(uuid);
+    }
+  });
+
+  it('resolves every registered descriptor name', () => {
+    for (const [name, uuid] of registryEntries('gatt_assigned_descriptors.txt')) {
+      expect(BluetoothUUID.getDescriptor(name)).toBe(uuid);
+    }
+  });
+
+  it('resolves the spec §7.1 worked examples', () => {
+    expect(BluetoothUUID.getService('cycling_power')).toBe('00001818' + BASE);
+    expect(BluetoothUUID.getService('tx_power')).toBe('00001804' + BASE);
+    expect(BluetoothUUID.getCharacteristic('ieee_11073-20601_regulatory_certification_data_list')).toBe('00002a2a' + BASE);
+    expect(BluetoothUUID.getCharacteristic('gap.device_name')).toBe('00002a00' + BASE);
+    expect(BluetoothUUID.getDescriptor('gatt.characteristic_presentation_format')).toBe('00002904' + BASE);
   });
 });

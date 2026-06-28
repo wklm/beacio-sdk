@@ -35,7 +35,7 @@ export interface DeviceInfo {
  *
  * @example
  * ```ts
- * import { DeviceInfoProfile } from '@ios-web-bluetooth/profiles';
+ * import { DeviceInfoProfile } from '@beacio/profiles';
  *
  * const info = new DeviceInfoProfile(device);
  * await info.connect();
