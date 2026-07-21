@@ -18,12 +18,6 @@
 // optional-peer inline-pin/`typeof import(...)` dance.
 import { SETUP_URL } from '../urls';
 
-// SB-NAT-01: the canonical event-name map — the sheet's live teardown listens on
-// BOTH the package-lifecycle READY ('beacio:ready') and the extension's in-page
-// handshake EXTENSION_READY ('beacio:extension:ready'), sourced from the single
-// source of truth so neither literal can drift (events.test.ts is the control).
-import { BEACIO_EVENTS } from '../events';
-
 // SB-SDK-07: the shared localized-string seam. Every visible token routes
 // through a resolved LocaleStrings pack (explicit `lang` > navigator.language >
 // English), so a German S&B user sees German at the make-or-break moment. The
@@ -216,17 +210,7 @@ const READY_SHOWN_KEY = 'beacio_ready_shown';
 // extension goes active — with no manual reload. These mirror the canonical
 // names: the active DOM marker the content script sets (detect.ts hasActiveMarker)
 // and BEACIO_EVENTS.READY dispatched by initBeacio (index.ts:114).
-const READY_EVENT = BEACIO_EVENTS.READY;
-// SB-NAT-01 regression fix (2026-07-21): READY alone is DEAF to same-load late
-// activation. 'beacio:ready' is dispatched ONLY by initBeacio's active path — a
-// path that, by construction, never ran in the page-load that rendered this
-// non-active sheet — and visibilitychange never fires while Safari stays
-// foregrounded. On a cold-appex first load the injected polyfill announces
-// itself AFTER detect's 2s window via its OWN in-page handshake event
-// (BEACIO_EVENTS.EXTENSION_READY, the same seam observeInstallState awaits), so
-// the sheet must ALSO listen there or it sits over the operator's app forever
-// and swallows the Connect tap (hardware-observed on the S&B fork).
-const EXTENSION_READY_EVENT = BEACIO_EVENTS.EXTENSION_READY;
+const READY_EVENT = 'beacio:ready';
 // Bounded foreground re-check poll, modeled on website-src/scripts/setup-verify.js
 // (PING_ATTEMPTS/PING_INTERVAL_MS): a capped number of attempts so we never leave
 // a live timer running for battery safety if activation never happens.
@@ -519,15 +503,6 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
   // the content script setting the active marker the instant the sheet renders —
   // still tears the sheet down. Each listener and the bounded poll are unwound by
   // detachLifecycle() so nothing keeps firing after the sheet is gone (battery).
-  //
-  // SB-PRD-08 AC3 (2026-07-21 device evidence): a `forceShow: true` sheet is a
-  // USER-INITIATED recovery gesture ("Can't connect?" / the E2E selector-liveness
-  // control) — the user explicitly asked for the guidance even though the markers
-  // may already read 'active', so the automatic self-clearing lifecycle is
-  // SKIPPED for it (on hardware it removed the requested sheet in the same tick,
-  // rendering the affordance blank). The explicit dismiss controls and the
-  // reload re-check remain the ways a forced sheet leaves the page.
-  const persistent = options.forceShow === true;
   let pollTimer: ReturnType<typeof setTimeout> | null = null;
   let detached = false;
 
@@ -538,7 +513,6 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
       pollTimer = null;
     }
     window.removeEventListener(READY_EVENT, onReady);
-    window.removeEventListener(EXTENSION_READY_EVENT, onExtensionReady);
     document.removeEventListener('visibilitychange', onVisibility);
   }
 
@@ -554,15 +528,6 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
 
   function onReady(): void {
     clearIfActive();
-  }
-
-  // SB-NAT-01: the injected polyfill just announced it is live in THIS page-load
-  // (cold-appex late activation — the scenario READY structurally cannot cover).
-  // The active marker normally lands in the same tick as the event; when the
-  // ordering races, the bounded re-check absorbs it (battery-safe, capped).
-  function onExtensionReady(): void {
-    if (clearIfActive()) return;
-    startBoundedRecheck();
   }
 
   // AC4: bounded ping-style re-check on foreground return, modeled on
@@ -590,11 +555,8 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
     startBoundedRecheck();
   }
 
-  if (!persistent) {
-    window.addEventListener(READY_EVENT, onReady);
-    window.addEventListener(EXTENSION_READY_EVENT, onExtensionReady);
-    document.addEventListener('visibilitychange', onVisibility);
-  }
+  window.addEventListener(READY_EVENT, onReady);
+  document.addEventListener('visibilitychange', onVisibility);
 
   requestAnimationFrame(() => {
     overlay.querySelector('#bc-install')?.addEventListener('click', () => {
@@ -636,8 +598,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
   document.body.appendChild(overlay);
   // The sheet may render into an already-active page (marker set before init ran);
   // clear immediately so we never show stale guidance over a working extension.
-  // A forced (user-initiated) sheet is exempt — see the `persistent` note above.
-  if (!persistent) clearIfActive();
+  clearIfActive();
   return overlay;
 }
 
