@@ -142,7 +142,7 @@ export class NotificationManager {
     const queue: DataView[] = [];
     let droppedCount = 0;
     type Resolver = (v: IteratorResult<DataView>) => void;
-    type Rejecter = (reason?: unknown) => void;
+    type Rejecter = (reason?: Error) => void;
     const state: { resolve: Resolver | null; reject: Rejecter | null; done: boolean; failure: Error | null } = {
       resolve: null,
       reject: null,
@@ -255,7 +255,7 @@ export class NotificationManager {
       state.done = true;
       await release();
       this.removeFromRecoveryRegistry(key, callback);
-      if (pending) pending({ value: undefined as any, done: true });
+      if (pending) pending({ value: undefined as DataView | undefined, done: true } as IteratorResult<DataView>);
     }
   }
 

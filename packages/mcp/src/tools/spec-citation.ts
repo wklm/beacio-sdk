@@ -1,11 +1,11 @@
 import specData from '../data/spec.json' with { type: 'json' };
 import { docsUrl, ToolInputError, type ToolDefinition } from './_common.js';
 
-export interface SpecCitationInput {
+interface SpecCitationInput {
   method: string;
 }
 
-export interface SpecCitationOutput {
+interface SpecCitationOutput {
   spec_url: string;
   summary: string;
   caveats: string[];

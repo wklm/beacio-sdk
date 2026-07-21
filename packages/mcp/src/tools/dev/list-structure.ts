@@ -2,20 +2,20 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { type ToolDefinition } from '../_common.js';
 
-export interface ListStructureInput {
+interface ListStructureInput {
   rootPath?: string;
   depth?: number;
   gitignore?: boolean;
 }
 
-export interface TreeNode {
+interface TreeNode {
   name: string;
   path: string;
   type: 'file' | 'directory';
   children?: TreeNode[];
 }
 
-export interface ListStructureOutput {
+interface ListStructureOutput {
   tree: TreeNode;
   root_path: string;
   depth: number;

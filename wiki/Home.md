@@ -21,8 +21,7 @@ iOSbeacio is the SDK layer that makes Web Bluetooth work in Safari on iPhone whi
 | `@beacio/core` | Core BLE SDK and Safari iOS polyfill |
 | `@beacio/detect` | iOS Safari detection and install banners |
 | `@beacio/react` | React hooks and UI components |
-| `@beacio/profiles` | Typed device profiles for common BLE services |
-| `@beacio/testing` | Mock BLE tools for tests |
+| `@beacio/core/profiles` | Typed device profiles for common BLE services |
 | `@beacio/mcp` | MCP server for AI coding agents |
 
 ## Quick Start

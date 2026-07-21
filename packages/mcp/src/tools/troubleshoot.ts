@@ -7,13 +7,13 @@ export const TOPICS = [
   'gatt-operation-failed',
   'notifications-not-firing',
 ] as const;
-export type Topic = (typeof TOPICS)[number];
+type Topic = (typeof TOPICS)[number];
 
-export interface TroubleshootInput {
+interface TroubleshootInput {
   topic: Topic;
 }
 
-export interface TroubleshootOutput {
+interface TroubleshootOutput {
   checklist: string[];
   common_fix: string;
   source_url: string;

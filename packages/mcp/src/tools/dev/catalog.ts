@@ -16,9 +16,9 @@
  * stability snapshot test).
  */
 
-export type CatalogIntent = 'docs' | 'examples';
+type CatalogIntent = 'docs' | 'examples';
 
-export interface CatalogEntry {
+interface CatalogEntry {
   /** Stable identifier, unique within the catalog. */
   id: string;
   /** Docs facet — human-readable topic title (search-docs identity). */
@@ -46,7 +46,7 @@ export interface CatalogEntry {
  * distinct entries rather than being force-merged — merging identity-disjoint
  * rows would not change either tool's results and would muddy the snippets.
  */
-export const CATALOG: CatalogEntry[] = [
+const CATALOG: CatalogEntry[] = [
   // ── Docs facet (formerly DOC_INDEX) ──────────────────────────────────────
   {
     id: 'docs:quickstart',
@@ -98,7 +98,7 @@ export const CATALOG: CatalogEntry[] = [
     topic: 'Typed Profiles',
     url: 'https://beacio.com/docs/profiles',
     snippet:
-      '@beacio/profiles ships HeartRateProfile, BatteryProfile, DeviceInfoProfile plus defineProfile for custom BLE profiles.',
+      '@beacio/core/profiles ships HeartRateProfile, BatteryProfile, DeviceInfoProfile plus defineProfile for custom BLE profiles.',
     keywords: ['profiles', 'heart rate', 'battery', 'device info', 'defineProfile', 'typed', 'parsing', 'hr', 'bpm'],
     category: 'docs',
   },
@@ -107,7 +107,7 @@ export const CATALOG: CatalogEntry[] = [
     topic: 'iOS Detection & Install Banner',
     url: 'https://beacio.com/docs/detect',
     snippet:
-      '@beacio/detect adds an automatic install banner on iOS Safari when the Beacio extension is not installed.',
+      '@beacio/core/detect adds an automatic install banner on iOS Safari when the Beacio extension is not installed.',
     keywords: ['detect', 'ios', 'safari', 'banner', 'install', 'extension', 'initBeacio', 'window.beacioIOS'],
     category: 'docs',
   },
@@ -127,15 +127,6 @@ export const CATALOG: CatalogEntry[] = [
     snippet:
       'requestDevice() MUST be called from a user gesture (click/tap). Never call it from useEffect, setTimeout, or page load on iOS Safari.',
     keywords: ['gesture', 'click', 'tap', 'user', 'securityerror', 'useEffect', 'page load', 'button'],
-    category: 'docs',
-  },
-  {
-    id: 'docs:testing',
-    topic: 'Testing with Mocks',
-    url: 'https://beacio.com/docs/testing',
-    snippet:
-      '@beacio/testing provides mock BLE devices, mock navigator.bluetooth, and helpers for unit/integration testing.',
-    keywords: ['testing', 'mock', 'unit test', 'integration', 'jest', 'vitest', 'fake', 'stub'],
     category: 'docs',
   },
 
@@ -166,15 +157,15 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: 'ex:core-uuids',
-    file: 'packages/core/src/uuids.ts',
-    line: 1,
+    file: 'packages/core/src/uuid.ts',
+    line: 392,
     snippet: 'resolveUUID(name) getServiceName(uuid) getCharacteristicName(uuid)',
     category: 'core',
     keywords: ['uuid', 'resolve', 'service', 'characteristic', 'name', 'lookup'],
   },
   {
     id: 'ex:profiles-heart-rate',
-    file: 'packages/profiles/src/heart-rate.ts',
+    file: 'packages/core/src/profiles/heart-rate.ts',
     line: 1,
     snippet: 'class HeartRateProfile extends BaseProfile { onHeartRate(cb) readSensorLocation() }',
     category: 'profiles',
@@ -182,7 +173,7 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: 'ex:profiles-battery',
-    file: 'packages/profiles/src/battery.ts',
+    file: 'packages/core/src/profiles/battery.ts',
     line: 1,
     snippet: 'class BatteryProfile extends BaseProfile { readLevel() onLevelChange(cb) }',
     category: 'profiles',
@@ -190,7 +181,7 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: 'ex:profiles-device-info',
-    file: 'packages/profiles/src/device-info.ts',
+    file: 'packages/core/src/profiles/device-info.ts',
     line: 1,
     snippet: 'class DeviceInfoProfile extends BaseProfile { readAll() readManufacturerName() }',
     category: 'profiles',
@@ -198,43 +189,27 @@ export const CATALOG: CatalogEntry[] = [
   },
   {
     id: 'ex:profiles-define',
-    file: 'packages/profiles/src/define.ts',
-    line: 1,
+    file: 'packages/core/src/profiles/base.ts',
+    line: 271,
     snippet: 'defineProfile({ name, service, characteristics }) -> Profile class',
     category: 'profiles',
     keywords: ['defineProfile', 'custom', 'profile', 'define', 'create', 'build'],
   },
   {
     id: 'ex:react-provider',
-    file: 'packages/react-sdk/src/provider.tsx',
-    line: 1,
+    file: 'packages/react-sdk/src/core/BeacioProvider.tsx',
+    line: 47,
     snippet: 'BeacioProvider config={{ apiKey, operatorName, autoConnect }}',
     category: 'react',
     keywords: ['react', 'provider', 'beacioprovider', 'apiKey', 'config'],
   },
   {
-    id: 'ex:react-hooks',
-    file: 'packages/react-sdk/src/hooks.ts',
-    line: 1,
-    snippet: 'useBeacio() useDevice() useNotifications() useBluetooth() useCharacteristic()',
-    category: 'react',
-    keywords: ['react', 'hooks', 'useBeacio', 'useDevice', 'useNotifications', 'useBluetooth'],
-  },
-  {
     id: 'ex:detect-index',
-    file: 'packages/detect/src/index.ts',
+    file: 'packages/core/src/detect/index.ts',
     line: 1,
     snippet: 'initBeacio({ key }) detectBeacio() -> { installed, version }',
     category: 'detect',
     keywords: ['detect', 'ios', 'safari', 'banner', 'initBeacio', 'install'],
-  },
-  {
-    id: 'ex:testing-mock',
-    file: 'packages/testing/src/mock.ts',
-    line: 1,
-    snippet: 'createMockDevice(opts) mockNavigatorBluetooth() mockRequestDevice()',
-    category: 'testing',
-    keywords: ['testing', 'mock', 'fake', 'stub', 'unit test', 'jest', 'vitest'],
   },
   {
     id: 'ex:mcp-server',
@@ -285,7 +260,7 @@ export const EXAMPLE_ENTRIES: CatalogEntry[] = CATALOG.filter(
  *  - examples: exact-keyword +10, file-substring +5, snippet-substring +5,
  *              category == token +8, any-text +2, exact file == query +20
  */
-export function scoreEntry(
+function scoreEntry(
   entry: CatalogEntry,
   query: string,
   queryTokens: string[],

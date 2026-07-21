@@ -3,18 +3,26 @@ import { join, dirname } from 'node:path';
 import * as ts from 'typescript';
 import * as ReactSdk from '../src/index';
 
-// AIDEV-NOTE: Regression guard (SB-SDK-24) for the docs-drift bug where
-// docs/MIGRATION.md documented a phantom `beacio.*` namespace object
-// (`import { beacio } from '@beacio/react'`, `beacio.useBluetooth()`,
-// `<beacio.Provider>`) that the mechanical WebBLE->beacio rebrand carried
-// over. `@beacio/react` (src/index.ts) exports ONLY named symbols
-// (BeacioProvider, useBluetooth, ...), so every "After (@beacio/react)"
-// example was non-compiling and contradicted README.md. These tests assert
-// the guide stays aligned with the actual export surface so the namespace
-// cannot silently return.
+// AIDEV-NOTE: Regression guard (SB-SDK-24, retargeted by T1-F1) for the
+// docs-drift bug where the react-sdk docs documented a phantom `beacio.*`
+// namespace object (`import { beacio } from '@beacio/react'`,
+// `beacio.useBluetooth()`, `<beacio.Provider>`) that the mechanical
+// WebBLE->beacio rebrand carried over. `@beacio/react` (src/index.ts) exports
+// ONLY named symbols (BeacioProvider, useBluetooth, ...). The standalone
+// docs/MIGRATION.md + docs/API.md + PUBLISHING.md were folded into README.md
+// (T1-F1, 2026-07-02 — see git history), so this guard now targets README.md:
+// it asserts the shipped doc stays aligned with the actual export surface so
+// the namespace (or any other example drift) cannot silently return.
 
-const DOC_PATH = join(__dirname, '..', 'docs', 'MIGRATION.md');
+const DOC_PATH = join(__dirname, '..', 'README.md');
 const DOC = readFileSync(DOC_PATH, 'utf8');
+
+// All fenced code blocks (any language). Prose legitimately contains
+// `beacio.com` links, so the namespace-deref check is scoped to code.
+function codeBlocks(doc: string): string[] {
+  return [...doc.matchAll(/```[a-zA-Z]*\n([\s\S]*?)```/g)].map((m) => m[1]);
+}
+const CODE = codeBlocks(DOC).join('\n');
 
 // The real public export surface of @beacio/react.
 const EXPORTED_NAMES = new Set(Object.keys(ReactSdk));
@@ -29,6 +37,10 @@ const TYPE_ONLY_ALLOW = new Set([
   'BeacioDevice',
   'BeacioError',
   'BeacioConfig',
+  'RequestDeviceOptions',
+  // local type exports surfaced via `export type { ... } from './types'`
+  'ConnectionState',
+  'UseDeviceReturn',
 ]);
 
 function documentedReactImports(): string[] {
@@ -42,7 +54,7 @@ function documentedReactImports(): string[] {
   return [...names];
 }
 
-describe('docs/MIGRATION.md aligns with the @beacio/react export surface (SB-SDK-24)', () => {
+describe('README.md aligns with the @beacio/react export surface (SB-SDK-24)', () => {
   it('sanity: the real export surface has the named React API symbols (no `beacio` aggregate)', () => {
     expect(EXPORTED_NAMES.has('BeacioProvider')).toBe(true);
     expect(EXPORTED_NAMES.has('useBluetooth')).toBe(true);
@@ -50,8 +62,8 @@ describe('docs/MIGRATION.md aligns with the @beacio/react export surface (SB-SDK
     expect(EXPORTED_NAMES.has('beacio')).toBe(false);
   });
 
-  it('does not dereference a non-existent `beacio.*` namespace object', () => {
-    const hits = DOC.match(/\bbeacio\.[A-Za-z]/g) ?? [];
+  it('code blocks do not dereference a non-existent `beacio.*` namespace object', () => {
+    const hits = CODE.match(/\bbeacio\.[A-Za-z]/g) ?? [];
     expect(hits).toEqual([]);
   });
 
@@ -76,17 +88,17 @@ describe('docs/MIGRATION.md aligns with the @beacio/react export surface (SB-SDK
   });
 });
 
-// AIDEV-NOTE: SB-SDK-24 acceptance criterion 1 — "Every 'After' code block
+// AIDEV-NOTE: SB-SDK-24 acceptance criterion 1 — "Every example code block
 // compiles against the actual @beacio/react export surface." The import-level
 // guard above is necessary but not sufficient: the mechanical WebBLE->beacio
-// rebrand also left the example BODIES calling hooks with the OLD shape
+// rebrand also left example BODIES calling hooks with the OLD shape
 // (`useScan({...})`, `useCharacteristic('uuid').readValue/writeValue/isWriting`,
 // `useNotifications('uuid').startNotifications`, `useDevice(deviceId: string)`)
 // that never matched the real hook signatures/return types. This guard pulls
-// every `const { ... } = useHook(args)` site out of the doc and TYPE-CHECKS it
-// against the real hooks via the TypeScript compiler API, so the return-member
-// names and call arity are validated against the live types (not a hardcoded
-// list) and the drift cannot silently return.
+// every `const { ... } = useHook(args)` site out of the README and TYPE-CHECKS
+// it against the real hooks via the TypeScript compiler API, so the
+// return-member names and call arity are validated against the live types (not
+// a hardcoded list) and the drift cannot silently return.
 
 const REACT_INDEX = join(__dirname, '..', 'src', 'index.ts');
 const PKG_DIR = dirname(join(__dirname, '..', 'src')); // packages/react-sdk
@@ -109,7 +121,10 @@ interface HookSite {
 
 function hookSites(doc: string): HookSite[] {
   const sites: HookSite[] = [];
-  for (const block of tsxBlocks(doc)) {
+  for (const rawBlock of tsxBlocks(doc)) {
+    // README examples annotate destructured members with `// ...` line
+    // comments; strip them so the destructure/args parse cleanly.
+    const block = rawBlock.replace(/\/\/[^\n]*/g, '');
     for (const m of block.matchAll(DESTRUCTURE_RE)) {
       const members = m[1]
         .split(',')
@@ -207,7 +222,7 @@ function compileProbes(probes: { name: string; text: string }[]): ts.Diagnostic[
     .filter((d) => d.file != null && probeMap.has(d.file.fileName));
 }
 
-describe('docs/MIGRATION.md "After" examples compile against the real hooks (SB-SDK-24)', () => {
+describe('README.md examples compile against the real hooks (SB-SDK-24)', () => {
   const sites = hookSites(DOC);
 
   it('sanity: the doc contains @beacio/react hook destructure sites to check', () => {

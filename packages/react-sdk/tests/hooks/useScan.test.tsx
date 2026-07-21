@@ -11,7 +11,7 @@ jest.mock('../../src/core/BeacioProvider', () => ({
 describe('useScan', () => {
   let mockRequestLEScan: jest.Mock;
   let mockStopScan: jest.Mock;
-  let mockScan: any;
+  let mockScan: { active: boolean; stop: jest.Mock };
 
   beforeEach(() => {
     mockRequestLEScan = jest.fn();
@@ -163,8 +163,8 @@ describe('useScan', () => {
         gatt: { connected: false }
       };
 
-      let advertisementCallback: any;
-      mockRequestLEScan.mockImplementation(async (options) => {
+      let advertisementCallback: ((event: Event) => void) | undefined;
+      mockRequestLEScan.mockImplementation(async (_options) => {
         // Capture the event listener
         setTimeout(() => {
           if (advertisementCallback) {
@@ -181,7 +181,7 @@ describe('useScan', () => {
       const { result } = renderHook(() => useScan());
       
       // Set up listener
-      (navigator as any).bluetooth.addEventListener.mockImplementation((event: string, callback: any) => {
+      (navigator as { bluetooth?: { addEventListener: jest.Mock; removeEventListener: jest.Mock } }).bluetooth?.addEventListener.mockImplementation((event: string, callback: (event: Event) => void) => {
         if (event === 'advertisementreceived') {
           advertisementCallback = callback;
         }
@@ -198,7 +198,7 @@ describe('useScan', () => {
 
       expect(result.current.devices).toHaveLength(1);
       expect(result.current.devices[0]).toBeInstanceOf(BeacioDevice);
-      expect((result.current.devices[0] as BeacioDevice).raw).toBe(mockDevice as any);
+      expect((result.current.devices[0] as BeacioDevice).raw).toBe(mockDevice);
     });
 
     it('should prevent duplicate devices', async () => {
@@ -208,12 +208,12 @@ describe('useScan', () => {
         gatt: { connected: false }
       };
 
-      let advertisementCallback: any;
+      let advertisementCallback: ((event: Event) => void) | undefined;
       mockRequestLEScan.mockImplementation(async () => mockScan);
 
       const { result } = renderHook(() => useScan());
       
-      (navigator as any).bluetooth.addEventListener.mockImplementation((event: string, callback: any) => {
+      (navigator as { bluetooth?: { addEventListener: jest.Mock; removeEventListener: jest.Mock } }).bluetooth?.addEventListener.mockImplementation((event: string, callback: (event: Event) => void) => {
         if (event === 'advertisementreceived') {
           advertisementCallback = callback;
         }
@@ -245,8 +245,8 @@ describe('useScan', () => {
       const { result } = renderHook(() => useScan());
       
       // Add some devices first
-      let advertisementCallback: any;
-      (navigator as any).bluetooth.addEventListener.mockImplementation((event: string, callback: any) => {
+      let advertisementCallback: ((event: Event) => void) | undefined;
+      (navigator as { bluetooth?: { addEventListener: jest.Mock; removeEventListener: jest.Mock } }).bluetooth?.addEventListener.mockImplementation((event: string, callback: (event: Event) => void) => {
         if (event === 'advertisementreceived') {
           advertisementCallback = callback;
         }
@@ -310,7 +310,7 @@ describe('useScan', () => {
       unmount();
 
       expect(mockStopScan).toHaveBeenCalled();
-      expect((navigator as any).bluetooth.removeEventListener).toHaveBeenCalled();
+      expect((navigator as { bluetooth?: { addEventListener: jest.Mock; removeEventListener: jest.Mock } }).bluetooth?.removeEventListener).toHaveBeenCalled();
     });
   });
 });

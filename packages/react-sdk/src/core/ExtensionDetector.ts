@@ -4,15 +4,15 @@
 
 import { BEACIO_EVENTS } from '@beacio/core';
 // SB-SDK-12: the install-state marker derivation is now the SINGLE shared
-// accessor in @beacio/detect (consumed by the detect package's own detect.ts and
+// accessor in @beacio/core/detect (consumed by the detect package's own detect.ts and
 // the framework-agnostic headless onboarding API). This react-sdk detector reads
 // through the SAME getInstallState() so the four old copies cannot drift — AC1
-// "the detection logic is SHARED, not duplicated". @beacio/detect is already a
+// "the detection logic is SHARED, not duplicated". @beacio/core/detect is already a
 // peer this package imports at module level (see InstallationWizard's SETUP_STEPS
 // import), so this reuses the established seam.
-import { getInstallState, type ExtensionInstallState } from '@beacio/detect';
+import { getInstallState, type ExtensionInstallState } from '@beacio/core/detect';
 
-export type { ExtensionInstallState } from '@beacio/detect';
+export type { ExtensionInstallState } from '@beacio/core/detect';
 
 export class ExtensionDetector {
   private detectionPromise: Promise<ExtensionInstallState> | null = null;

@@ -30,6 +30,18 @@ Or add it to your MCP client config (example: Claude Desktop, `~/Library/Applica
 }
 ```
 
+## `beacio` scaffolding CLI
+
+This package also ships the unscoped `beacio` CLI (formerly the standalone `@beacio/cli`) alongside the MCP server. It scaffolds and verifies beacio integration in a web project:
+
+```bash
+npx beacio init       # auto-detect framework and add the detection snippet
+npx beacio migrate    # brownfield: patch an existing Web Bluetooth app for iOS Safari
+npx beacio check      # verify beacio integration (add --brownfield for an existing app)
+```
+
+`beacio migrate` applies the same three edits the `beacio_patch_existing_app` MCP tool emits (single-sourced from one transform).
+
 ## Tools
 
 ### Consumer tools

@@ -1,20 +1,43 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/auto.ts', 'src/global.ts'],
+  entry: {
+    index: 'src/index.ts',
+    auto: 'src/auto.ts',
+    global: 'src/global.ts',
+    // @beacio/core/detect subpath — folded in from the former @beacio/detect
+    // package (B10-d): the iOS install-banner / onboarding surface
+    // (initBeacio / showInstallBanner / removeInstallBanner / presentError).
+    // Maps to dist/detect/index.{js,mjs,d.ts}.
+    'detect/index': 'src/detect/index.ts',
+    // @beacio/core/profiles subpath — folded in from the former @beacio/profiles
+    // package (B10-1). Each maps to dist/profiles/<name>.{js,mjs,d.ts}.
+    'profiles/index': 'src/profiles/index.ts',
+    'profiles/heart-rate': 'src/profiles/heart-rate.ts',
+    'profiles/battery': 'src/profiles/battery.ts',
+    'profiles/device-info': 'src/profiles/device-info.ts',
+    'profiles/nordic-uart': 'src/profiles/nordic-uart.ts',
+    'profiles/serial-ffe0': 'src/profiles/serial-ffe0.ts',
+    'profiles/storz-bickel': 'src/profiles/storz-bickel.ts',
+    // @beacio/core/testing subpath — folded in from the former @beacio/testing
+    // package (B10-t): the hardware-free mock/virtual Web Bluetooth surface
+    // (installMockBluetooth / createMockBluetooth / MockBluetooth + mock GATT).
+    // Powers the "playground" first-run in the campaign narrative. Maps to
+    // dist/testing/index.{js,mjs,d.ts}. Pure e2e-harness bits (jest configs,
+    // __tests__/) were dropped — they don't belong in core.
+    'testing/index': 'src/testing/index.ts',
+  },
   format: ['cjs', 'esm'],
   dts: true,
   clean: true,
   minify: true,
   sourcemap: true,
   treeshake: true,
-  // AIDEV-NOTE: `@beacio/detect` is a runtime-optional peer that auto.ts pulls in
-  // via `await import('@beacio/detect')` for the install banner. It must stay an
-  // external runtime import — never bundled — otherwise esbuild follows detect's
-  // dist chunks, which statically `import { BEACIO_EVENTS/SETUP_URL } from '@beacio/core'`
-  // and cannot resolve core mid-build (the detect↔core cycle). Mirrors the
-  // `external: ['@beacio/core']` already used in profiles/react-sdk.
-  external: ['@beacio/detect'],
+  // AIDEV-NOTE: B10-d folded @beacio/detect INTO this package (src/detect/). The
+  // install-banner surface auto.ts pulls in via `await import('./detect')` is now
+  // local code — code-split by esbuild into its own dynamic chunk so the eager
+  // polyfill graph never carries the banner UI. There is no longer a detect↔core
+  // cycle to guard against, so no `external` entry is needed.
   // Bundle-size: mangle a precisely-audited set of PRIVATE instance-field names
   // that are pure internal state — never public API, never accessed by string /
   // bracket, never JSON-serialized/spread off an instance, and never sent across
@@ -47,8 +70,8 @@ export default defineConfig({
     // string/bracket-accessed, never serialized off an instance, never on the
     // Safari wire. We name each method EXPLICITLY (not by verb prefix) because
     // verbs like `register*` are ALSO used by PUBLIC methods (Beacio
-    // .registerServices, BackgroundSync.registerCharacteristicNotifications,
-    // Peripheral.registerService) and a prefix regex would silently rename those —
+    // .registerServices, BackgroundSync.registerCharacteristicNotifications)
+    // and a prefix regex would silently rename those —
     // breaking consumers (react-sdk calls them). Cross-module-consistent: the
     // injected WriteChunker `deps` object literal (emitError/validateTimeoutMs/…)
     // is built and read inside this same build, so esbuild mangles both ends to the

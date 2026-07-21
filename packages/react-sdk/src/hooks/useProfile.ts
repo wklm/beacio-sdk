@@ -3,7 +3,7 @@ import { BeacioError } from '@beacio/core';
 import type { BeacioDevice } from '@beacio/core';
 
 /**
- * Hook that wraps a {@link BaseProfile} subclass from `@beacio/profiles`.
+ * Hook that wraps a {@link BaseProfile} subclass from `@beacio/core/profiles`.
  *
  * Manages profile instantiation, connection, and teardown tied to the
  * React component lifecycle. A new profile instance is created whenever
@@ -18,7 +18,7 @@ import type { BeacioDevice } from '@beacio/core';
  * @example
  * ```tsx
  * import { useProfile } from '@beacio/react';
- * import { HeartRateProfile } from '@beacio/profiles';
+ * import { HeartRateProfile } from '@beacio/core/profiles';
  * import type { BeacioDevice } from '@beacio/core';
  *
  * function HeartRateMonitor({ device }: { device: BeacioDevice }) {

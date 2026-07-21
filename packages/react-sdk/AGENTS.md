@@ -3,8 +3,8 @@
 ## What this package does
 React SDK for Web Bluetooth. Provides `BeacioProvider` (context), hooks for
 device discovery/connection/notifications, and pre-built UI components.
-Optionally integrates with `@beacio/core`, `@beacio/profiles`, and
-`@beacio/detect`.
+Optionally integrates with `@beacio/core`, `@beacio/core/profiles`, and
+`@beacio/core/detect`.
 
 ## Safari iOS Support
 Add `import '@beacio/core/auto'` to your app entry point for transparent Safari iOS support. This is separate from the React hooks below.
@@ -26,7 +26,7 @@ function App() {
 
 Config options: `autoConnect`, `cacheTimeout`, `retryAttempts`, `apiKey`,
 `operatorName`, `appStoreUrl`. The `apiKey` enables automatic iOS Safari
-install prompts via `@beacio/detect`.
+install prompts via `@beacio/core/detect`.
 
 ## Hook reference
 
@@ -35,7 +35,7 @@ install prompts via `@beacio/detect`.
 | `useBluetooth()` | Main entry — availability, device requests | `isAvailable`, `isSupported`, `requestDevice`, `getDevices`, `error` |
 | `useDevice(device)` | Manage a specific device | `isConnected`, `isConnecting`, `connect`, `disconnect`, `services`, `error` |
 | `useScan()` | BLE scanning | `startScan`, `stopScan`, `isScanning`, `devices` |
-| `useProfile(ProfileClass, device)` | Bind a `@beacio/profiles` profile to a device | `profile`, `connect`, `error` |
+| `useProfile(ProfileClass, device)` | Bind a `@beacio/core/profiles` profile to a device | `profile`, `connect`, `error` |
 | `useNotifications()` | Characteristic notifications | subscribe/unsubscribe helpers |
 | `useCharacteristic()` | Read/write a single characteristic | `read`, `write`, `value`, `error` |
 | `useConnection()` | Connection state management | connection lifecycle helpers |
@@ -43,7 +43,7 @@ install prompts via `@beacio/detect`.
 ## Core pattern
 ```tsx
 import { BeacioProvider, useBluetooth, useDevice, useProfile } from '@beacio/react';
-import { HeartRateProfile } from '@beacio/profiles';
+import { HeartRateProfile } from '@beacio/core/profiles';
 
 function HeartRateMonitor() {
   const { requestDevice } = useBluetooth();
@@ -141,7 +141,7 @@ function App() {
 - Pass `apiKey` in config to enable iOS Safari extension install prompts
 
 ## DO NOT
-- Do not call `usebeacio()` or any hook outside of `<BeacioProvider>` — throws an error
+- Do not call `useBeacio()` or any hook outside of `<BeacioProvider>` — throws an error
 - Do not use raw `addEventListener` for BLE events — use the provided hooks
 - Do not forget the Provider — all hooks throw if context is missing
 - Do not mix `useDevice` manual connection with `useProfile` connection — pick one approach

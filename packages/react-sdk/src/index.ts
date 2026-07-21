@@ -63,8 +63,6 @@ export type {
 
 // Utility exports
 export {
-  getServiceName,
-  getCharacteristicName,
-  parseValue,
-  formatValue
+  getServiceDisplayName,
+  getCharacteristicDisplayName
 } from './utils/bluetooth-utils';

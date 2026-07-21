@@ -27,7 +27,7 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^@beacio/core$': '<rootDir>/../core/src/index.ts',
-    '^@beacio/detect$': '<rootDir>/../detect/src/index.ts'
+    '^@beacio/core/detect$': '<rootDir>/../core/src/detect/index.ts',
+    '^@beacio/core$': '<rootDir>/../core/src/index.ts'
   }
 };

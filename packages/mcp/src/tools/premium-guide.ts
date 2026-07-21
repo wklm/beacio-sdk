@@ -10,13 +10,13 @@ export const PREMIUM_APIS = [
   'peripheral',
   'whiteLabel',
 ] as const;
-export type PremiumApi = (typeof PREMIUM_APIS)[number];
+type PremiumApi = (typeof PREMIUM_APIS)[number];
 
-export interface PremiumGuideInput {
+interface PremiumGuideInput {
   api: PremiumApi;
 }
 
-export interface PremiumGuideOutput {
+interface PremiumGuideOutput {
   description: string;
   example: string;
   requires_app_store: boolean;

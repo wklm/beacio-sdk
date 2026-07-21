@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { BeacioDevice } from '@beacio/core';
 import { useDevice } from '../hooks/useDevice';
 import { useCharacteristic } from '../hooks/useCharacteristic';
-import { getServiceName, getCharacteristicName } from '../utils/bluetooth-utils';
+import { getServiceDisplayName, getCharacteristicDisplayName } from '../utils/bluetooth-utils';
 
 interface ServiceExplorerProps {
   device?: BeacioDevice | null;
@@ -68,12 +68,15 @@ function CharacteristicItem({ characteristic, device, onSelect }: Characteristic
     
     return {
       hex,
-      text: text.replace(/[\x00-\x1F\x7F-\x9F]/g, '.'),
+      text: text.replace(/./gs, (ch) => {
+        const c = ch.charCodeAt(0);
+        return c <= 0x1f || (c >= 0x7f && c <= 0x9f) ? '.' : ch;
+      }),
       bytes: bytes.length
     };
   }, []);
 
-  const characteristicName = getCharacteristicName(characteristic.uuid);
+  const characteristicName = getCharacteristicDisplayName(characteristic.uuid);
   const properties = characteristic.properties;
 
   return (
@@ -153,7 +156,7 @@ function CharacteristicItem({ characteristic, device, onSelect }: Characteristic
 }
 
 function ServiceItem({ service, isExpanded, onToggle, onCharacteristicSelect }: ServiceItemProps) {
-  const serviceName = getServiceName(service.uuid);
+  const serviceName = getServiceDisplayName(service.uuid);
   const [characteristics, setCharacteristics] = useState<BluetoothRemoteGATTCharacteristic[]>([]);
   const [loadingChars, setLoadingChars] = useState(false);
   
@@ -165,10 +168,9 @@ function ServiceItem({ service, isExpanded, onToggle, onCharacteristicSelect }: 
           setCharacteristics(chars);
           setLoadingChars(false);
         })
-        .catch(err => {
-          console.error('Failed to get characteristics:', err);
-          setLoadingChars(false);
-        });
+.catch(() => {
+              setLoadingChars(false);
+            });
     }
   }, [isExpanded, service, characteristics.length, loadingChars]);
   

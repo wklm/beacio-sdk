@@ -6,13 +6,12 @@
 
 - `@beacio/*` — All packages are published under the `@beacio` scope on npm.
   - `@beacio/core` — Web Bluetooth polyfill for Safari iOS — scan, connect, read/write BLE devices from any browser
-  - `@beacio/profiles` — Pre-built device profiles (heart rate, battery, device info)
+  - `@beacio/core/profiles` — Pre-built device profiles (heart rate, battery, device info)
   - `@beacio/react` — React hooks and components for BLE
   - `@beacio/detect` — Detect extension, show install banner
   - `@beacio/cli` — CLI scaffolding tool
   - `@beacio/mcp` — MCP server for AI agents
   - `@beacio/skill` — Agent skill metadata
-  - `@beacio/testing` — Mock Bluetooth API for testing
 
 ## Quick Start
 
@@ -40,7 +39,7 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 
 1. ALWAYS install `@beacio/core` for BLE operations. Use `import '@beacio/core/auto'` for zero-config Safari iOS support.
 2. `@beacio/detect` is ONLY for extension detection banners — NOT for BLE operations.
-3. For specific devices (heart rate, battery), use `@beacio/profiles` pre-built profiles. Do NOT write raw GATT code when a profile exists.
+3. For specific devices (heart rate, battery), use `@beacio/core/profiles` pre-built profiles. Do NOT write raw GATT code when a profile exists.
 4. For React apps, use `@beacio/react` hooks (`useDevice`, `useScan`, `useProfile`). Do NOT use raw addEventListener in React.
 5. Use human-readable UUID names ('heart_rate') not hex ('0x180D'). The SDK resolves automatically.
 6. The extension API is on `navigator.beacio`. On Chrome, use native `navigator.bluetooth`. The SDK handles this automatically via `@beacio/core`.
@@ -60,7 +59,7 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 ### @beacio/core
 Web Bluetooth polyfill for Safari iOS. Provides `beacio` class, device scanning, GATT operations (read, write, subscribe), and automatic platform detection (Chrome native vs iOS extension). Use `import '@beacio/core/auto'` for transparent polyfill.
 
-### @beacio/profiles
+### @beacio/core/profiles
 Typed device profiles with parsers for standard Bluetooth GATT services. Import a profile and get parsed, typed data instead of raw ArrayBuffers.
 
 ### @beacio/react
@@ -74,9 +73,6 @@ CLI tool to scaffold BLE web app projects and generate profile boilerplate. Run 
 
 ### @beacio/mcp
 Model Context Protocol server for AI coding agents. Provides BLE UUID lookups, code generation, and project scaffolding via MCP tools.
-
-### @beacio/testing
-Mock Bluetooth API for testing. Stateful fake devices, simulated advertising, notification pump.
 
 ### @beacio/skill
 Agent skill metadata for Claude Code, Cursor, and Copilot. Describes SDK capabilities so AI agents can discover and use beacio tools.

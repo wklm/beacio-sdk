@@ -48,11 +48,9 @@ device.disconnect()
 \`\`\`
 
 ## Step 3: Add iOS detection (optional)
-\`\`\`bash
-npm install @beacio/detect
-\`\`\`
+The install-banner surface ships with @beacio/core (no extra package):
 \`\`\`typescript
-import { initBeacio } from '@beacio/detect'
+import { initBeacio } from '@beacio/core/detect'
 initBeacio({ key: 'wbl_YOUR_API_KEY' })
 \`\`\`
 
@@ -72,7 +70,7 @@ No-op on Chrome/Android where Web Bluetooth is native.
   // Resource 2: Full API Reference
   server.resource(
     'beacio://docs/api',
-    'Full API reference for @beacio/core, @beacio/profiles, and @beacio/react',
+    'Full API reference for @beacio/core, @beacio/core/profiles, and @beacio/react',
     async () => ({
       contents: [
         {
@@ -123,7 +121,7 @@ getServiceName(uuid: string): string | undefined
 getCharacteristicName(uuid: string): string | undefined
 \`\`\`
 
-## @beacio/profiles
+## @beacio/core/profiles
 
 ### HeartRateProfile — service: heart_rate (0x180D)
 - \`onHeartRate(cb: (data: HeartRateData) => void): () => void\`
@@ -184,7 +182,7 @@ p.stop()
           text: `# Built-in BLE Profiles
 
 ## HeartRateProfile
-- **Package**: \`@beacio/profiles\`
+- **Package**: \`@beacio/core/profiles\`
 - **Service**: \`heart_rate\` (0x180D)
 - **Characteristics**:
   - \`heart_rate_measurement\` (0x2A37) — Notify: BPM, contact, energy, RR intervals
@@ -194,14 +192,14 @@ p.stop()
 - **Data type**: \`HeartRateData { bpm, contact, energyExpended, rrIntervals }\`
 
 ## BatteryProfile
-- **Package**: \`@beacio/profiles\`
+- **Package**: \`@beacio/core/profiles\`
 - **Service**: \`battery_service\` (0x180F)
 - **Characteristics**:
   - \`battery_level\` (0x2A19) — Read/Notify: 0-100%
 - **Methods**: \`readLevel()\`, \`onLevelChange(cb)\`, \`stop()\`
 
 ## DeviceInfoProfile
-- **Package**: \`@beacio/profiles\`
+- **Package**: \`@beacio/core/profiles\`
 - **Service**: \`device_information\` (0x180A)
 - **Characteristics**:
   - \`model_number_string\` (0x2A24), \`serial_number_string\` (0x2A25)
@@ -214,7 +212,7 @@ p.stop()
 ## Custom profiles
 Use \`defineProfile()\` to create typed profiles for any BLE service:
 \`\`\`typescript
-import { defineProfile } from '@beacio/profiles'
+import { defineProfile } from '@beacio/core/profiles'
 const MyProfile = defineProfile({
   name: 'My Sensor',
   service: 'my-service-uuid',
@@ -317,7 +315,7 @@ Each has a \`.code\` (string) and \`.suggestion\` (human-readable fix).
 | Code | Cause | Suggestion |
 |------|-------|------------|
 | BLUETOOTH_UNAVAILABLE | Browser/device has no Bluetooth support | Check browser supports Web Bluetooth and Bluetooth is enabled |
-| EXTENSION_NOT_INSTALLED | iOS Safari without Beacio extension | Install Beacio app and enable Safari extension. Use @beacio/detect for auto-banner |
+| EXTENSION_NOT_INSTALLED | iOS Safari without Beacio extension | Install Beacio app and enable Safari extension. Use @beacio/core/detect for auto-banner |
 | PERMISSION_DENIED | User denied Bluetooth permission | Request from user gesture (button click). If denied, user must re-grant in Settings |
 | DEVICE_NOT_FOUND | No device matching scan filters | Check device is powered on, in range, and filters are correct |
 | DEVICE_DISCONNECTED | GATT op on disconnected device | Call device.connect() first. Use device.on('disconnected', ...) for detection |
@@ -419,7 +417,7 @@ export interface RequestDeviceOptions {
   acceptAllDevices?: boolean
 }
 
-// @beacio/profiles — Public API Types
+// @beacio/core/profiles — Public API Types
 
 export abstract class BaseProfile {
   constructor(device: BeacioDevice)
@@ -465,7 +463,7 @@ export function useNotifications(): { subscribe: (service: string, char: string,
 export function useCharacteristic(): { read: (service: string, char: string) => Promise<DataView>; write: (service: string, char: string, value: BufferSource) => Promise<void>; value: DataView | null; error: BeacioError | null }
 export function useConnection(): { connect: () => Promise<void>; disconnect: () => void; isConnected: boolean }
 
-// @beacio/detect — Public API Types
+// @beacio/core/detect — Public API Types
 
 export function initBeacio(options: { key: string; appStoreUrl?: string; operatorName?: string }): void
 export function isBeacioInstalled(): boolean
@@ -503,7 +501,7 @@ export function BeacioProvider(props: { apiKey: string; children: React.ReactNod
 - Service and characteristic caching
 - Automatic subscription cleanup on disconnect
 
-### @beacio/profiles
+### @beacio/core/profiles
 - \`HeartRateProfile\` — heart rate measurement, sensor location, energy reset
 - \`BatteryProfile\` — battery level read and notifications
 - \`DeviceInfoProfile\` — device information service with readAll()
@@ -511,12 +509,12 @@ export function BeacioProvider(props: { apiKey: string; children: React.ReactNod
 - \`BaseProfile\` abstract class with connect/stop/read/write/subscribe
 
 ### @beacio/react
-- \`BeacioProvider\` context with @beacio/detect integration
+- \`BeacioProvider\` context with @beacio/core/detect integration
 - Hooks: useBeacio, useDevice, useNotifications, useCharacteristic, useScan, useConnection, useProfile, useBluetooth
 - Components: DeviceScanner, ServiceExplorer, InstallationWizard
 - Auto-detection of @beacio/core when installed alongside react SDK
 
-### @beacio/detect
+### @beacio/core/detect
 - iOS Safari extension detection
 - Auto install banner for iOS users
 - React provider component

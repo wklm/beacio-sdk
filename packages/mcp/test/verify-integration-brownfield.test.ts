@@ -109,7 +109,7 @@ describe('verify-integration — brownfield mode (AC#5)', () => {
 describe('verify-integration brownfield — no_third_party_browser_string is connect-gate-scoped (AC#5)', () => {
   // AC#5 says the check is for "no active-path third-party-browser string". The CLI
   // counterpart (`beacio check --brownfield` via hasThirdPartyBrowserMessage in
-  // packages/cli migrate.ts) is DELIBERATELY scoped to the active connect gate so it
+  // packages/mcp/src/cli/commands/migrate.ts) is DELIBERATELY scoped to the active connect gate so it
   // does NOT false-positive on a dead capability-only notice — e.g. the VOLCANO
   // "update firmware first; on iOS use Bluefy" message guarded by
   // browserSupportsWriteWithoutResponse==false, which never fires on beacio

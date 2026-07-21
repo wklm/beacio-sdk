@@ -20,12 +20,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 
-// AIDEV-NOTE: @beacio/core's tsconfig does NOT pull in '@types/node' (see
-// tests/setup.ts), so Node globals/builtins are reached via a locally-declared
-// `require` (ts-jest emits CommonJS) instead of `import … from 'node:*'` — no
-// '@types/node' dependency, no tsconfig change.
-declare const require: (id: string) => any;
-declare const __dirname: string;
+// Node builtins via require() (ts-jest emits CommonJS); typed by @types/node
+// through tests/tsconfig.json.
 const { existsSync, readFileSync } = require('fs');
 const path = require('path');
 const vm = require('vm');
@@ -37,6 +33,47 @@ const IOS_SAFARI_UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) ' +
   'AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
+/** window.beacioDetect as attached by the IIFE's globalName (the src/browser-auto.ts re-exports). */
+interface BeacioDetectGlobal {
+  initBeacio: (options?: { operatorName?: string }) => Promise<void>;
+  showInstallBanner: (options?: { operatorName?: string }) => unknown;
+}
+
+/** The element shape the mock document.createElement hands to the IIFE. */
+interface BrowserAutoMockElement {
+  style: Record<string, unknown>;
+  dataset: Record<string, string>;
+  setAttribute: () => void;
+  appendChild: () => void;
+  querySelector: () => null;
+  addEventListener: () => void;
+  remove: () => void;
+}
+
+/** The mock document the IIFE touches (currentScript dataset, body.appendChild capture). */
+interface BrowserAutoDocument {
+  title: string;
+  readyState: string;
+  currentScript: object;
+  documentElement: { dataset: Record<string, string> };
+  addEventListener: (t: string, cb: () => void) => void;
+  removeEventListener: () => void;
+  querySelector: () => null;
+  createElement: () => BrowserAutoMockElement;
+  body: { appendChild: (el: Node) => void };
+}
+
+/**
+ * The vm realm's global object IS the window (a classic <script>'s scope), so it
+ * also carries primitives (isSecureContext, location.href), the pass-through
+ * globals, and members attached AFTER the literal is created — beacioDetect by
+ * the IIFE, __fireDOMContentLoaded by the test hook.
+ */
+type BrowserAutoWindow = Record<string, unknown> & {
+  beacioDetect?: BeacioDetectGlobal;
+  __fireDOMContentLoaded?: () => void;
+};
+
 function runBrowserAuto(opts: {
   /** Pre-existing navigator.bluetooth (Chrome/Android path) when provided. */
   existingBluetooth?: unknown;
@@ -46,14 +83,14 @@ function runBrowserAuto(opts: {
   userAgent?: string;
   /** documentElement dataset markers (e.g. beacioInstalled / beacioExtension). */
   documentMarkers?: Record<string, string>;
-}): { window: any; navigator: any; document: any } {
+}): { window: BrowserAutoWindow; navigator: Record<string, unknown>; document: BrowserAutoDocument } {
   const src = readFileSync(ARTIFACT, 'utf8');
 
   // Minimal DOM the IIFE touches: a secure-context window, a navigator (optionally
   // already carrying a native bluetooth), and a document whose currentScript
   // exposes the operator-name dataset + a DOMContentLoaded dispatch hook.
   const listeners: Record<string, Array<() => void>> = {};
-  const navigator: any = { userAgent: opts.userAgent ?? 'jsdom', permissions: undefined };
+  const navigator: Record<string, unknown> = { userAgent: opts.userAgent ?? 'jsdom', permissions: undefined };
   if (opts.existingBluetooth !== undefined) navigator.bluetooth = opts.existingBluetooth;
 
   const currentScript = {
@@ -62,16 +99,17 @@ function runBrowserAuto(opts: {
       k === 'data-operator-name' ? opts.operatorName ?? null : null,
   };
 
-  const win: any = {
+  const localStorageStore: Record<string, string> = {};
+  const win: BrowserAutoWindow = {
     isSecureContext: true,
     location: { href: 'https://app.example.com/' },
     localStorage: {
-      _s: {} as Record<string, string>,
-      getItem(k: string) {
-        return this._s[k] ?? null;
+      getItem: (k: string) => localStorageStore[k] ?? null,
+      setItem: (k: string, v: string) => {
+        localStorageStore[k] = v;
       },
-      setItem(k: string, v: string) {
-        this._s[k] = v;
+      removeItem: (k: string) => {
+        delete localStorageStore[k];
       },
     },
     addEventListener: (t: string, cb: () => void) => {
@@ -87,7 +125,7 @@ function runBrowserAuto(opts: {
   };
   win.window = win;
 
-  const doc: any = {
+  const doc: BrowserAutoDocument = {
     title: 'StockSite',
     readyState: 'loading',
     currentScript,
@@ -113,9 +151,9 @@ function runBrowserAuto(opts: {
   // The polyfill builds an EventTarget-derived bluetooth stub and rejects with a
   // DOMException; the banner uses CustomEvent/TextEncoder. A fresh vm realm has
   // none of these — pass through the ones jsdom already provides to this test.
-  const g = globalThis as any;
+  const g = globalThis as unknown as Record<string, unknown>;
   for (const name of ['EventTarget', 'DOMException', 'CustomEvent', 'Event', 'TextEncoder', 'TextDecoder', 'URL']) {
-    if (g[name] !== undefined) (win as any)[name] = g[name];
+    if (g[name] !== undefined) win[name] = g[name];
   }
   vm.createContext(win);
   vm.runInContext(src, win);
@@ -150,8 +188,8 @@ describe('SB-SDK-02 @beacio/core/browser-auto classic IIFE', () => {
   it('self-attaches window.beacioDetect with a callable showInstallBanner and initBeacio', () => {
     const { window } = runBrowserAuto({});
     expect(window.beacioDetect).toBeTruthy();
-    expect(typeof window.beacioDetect.showInstallBanner).toBe('function');
-    expect(typeof window.beacioDetect.initBeacio).toBe('function');
+    expect(typeof window.beacioDetect!.showInstallBanner).toBe('function');
+    expect(typeof window.beacioDetect!.initBeacio).toBe('function');
   });
 
   it('no-ops when a working navigator.bluetooth already exists (Chrome/Android unaffected)', () => {
@@ -162,7 +200,7 @@ describe('SB-SDK-02 @beacio/core/browser-auto classic IIFE', () => {
   });
 
   it('auto-shows the install banner on DOMContentLoaded on stock iOS Safari (Bluetooth absent), honoring data-operator-name', async () => {
-    let appended: any = null;
+    let appended: (Node & { id?: string }) | null = null;
     const { window, document } = runBrowserAuto({
       operatorName: 'STORZ & BICKEL',
       userAgent: IOS_SAFARI_UA,
@@ -172,25 +210,25 @@ describe('SB-SDK-02 @beacio/core/browser-auto classic IIFE', () => {
       documentMarkers: { beacioInstalled: 'true' },
     });
     // Capture the banner element the SDK appends to document.body.
-    document.body.appendChild = (el: any) => {
+    document.body.appendChild = (el: Node) => {
       appended = el;
     };
-    (window as any).__fireDOMContentLoaded();
+    window.__fireDOMContentLoaded!();
     // initBeacio() is async (getExtensionInstallState + maybeShowBanner); let its
     // microtasks settle.
     await new Promise((r) => setTimeout(r, 0));
     expect(appended).toBeTruthy();
-    expect(appended.id).toBe('beacio-banner');
+    expect(appended!.id).toBe('beacio-banner');
   });
 
   it('does NOT auto-show the banner on DOMContentLoaded when a native navigator.bluetooth exists (Chrome/Android)', async () => {
-    let appended: any = null;
+    let appended: (Node & { id?: string }) | null = null;
     const native = { requestDevice() {}, getAvailability() {}, getDevices() {} };
     const { window, document } = runBrowserAuto({ existingBluetooth: native, userAgent: IOS_SAFARI_UA });
-    document.body.appendChild = (el: any) => {
+    document.body.appendChild = (el: Node) => {
       appended = el;
     };
-    (window as any).__fireDOMContentLoaded();
+    window.__fireDOMContentLoaded!();
     await new Promise((r) => setTimeout(r, 0));
     expect(appended).toBeNull();
   });
@@ -230,10 +268,11 @@ describe('SB-SDK-02 @beacio/core/browser-auto classic IIFE', () => {
   describe('SB-SDK-05: presentError is on the beacioDetect classic global', () => {
     const SOURCE = path.resolve(__dirname, '..', 'src', 'browser-auto.ts');
 
-    it('re-exports presentError from @beacio/detect (so window.beacioDetect.presentError exists)', () => {
+    it('re-exports presentError from the local detect surface (so window.beacioDetect.presentError exists)', () => {
       const src = readFileSync(SOURCE, 'utf8');
-      // It must be IMPORTED from the detect surface...
-      expect(/import\s*\{[^}]*\bpresentError\b[^}]*\}\s*from\s*['"]@beacio\/detect['"]/.test(src)).toBe(
+      // It must be IMPORTED from the detect surface (now the intra-package
+      // ./detect module — B10-d folded @beacio/detect into @beacio/core)...
+      expect(/import\s*\{[^}]*\bpresentError\b[^}]*\}\s*from\s*['"]\.\/detect['"]/.test(src)).toBe(
         true,
       );
       // ...AND re-exported so the IIFE globalName attaches it to window.beacioDetect

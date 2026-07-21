@@ -3,13 +3,13 @@ import { generateAttributionToken } from '../attribution.js';
 import { docsUrl, ToolInputError, type ToolDefinition } from './_common.js';
 
 export const PROFILES = ['heart-rate', 'battery', 'cgm', 'lock', 'beacon', 'peripheral-chat'] as const;
-export type Profile = (typeof PROFILES)[number];
+type Profile = (typeof PROFILES)[number];
 
-export interface ExampleInput {
+interface ExampleInput {
   profile: Profile;
 }
 
-export interface ExampleOutput {
+interface ExampleOutput {
   code: string;
   html: string;
   preconditions: string[];

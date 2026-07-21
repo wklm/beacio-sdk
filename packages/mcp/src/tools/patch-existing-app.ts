@@ -30,9 +30,9 @@ import { docsUrl, ToolInputError, type ToolDefinition } from './_common.js';
 export const CANONICAL_BOOTSTRAP_URL =
   'https://cdn.beacio.com/@beacio/core@1.0.0/dist/browser-auto.global.js';
 
-export type FileEditOp = 'insert' | 'create' | 'replace';
+type FileEditOp = 'insert' | 'create' | 'replace';
 
-export interface FileEdit {
+interface FileEdit {
   /**
    * 'insert' adds `insert` into an existing file (`position` says where, default top);
    * 'replace' swaps the first occurrence of `find` for `insert`;
@@ -49,7 +49,7 @@ export interface FileEdit {
   note?: string;
 }
 
-export interface PatchExistingAppInput {
+interface PatchExistingAppInput {
   /** Full text of the app's entry HTML (e.g. the served index.html). */
   entry_html: string;
   /** Full text of the JS module that runs the requestDevice() flow. */
@@ -60,7 +60,7 @@ export interface PatchExistingAppInput {
   js_path: string;
 }
 
-export interface PatchExistingAppOutput {
+interface PatchExistingAppOutput {
   files_to_edit: FileEdit[];
   /** Echoes the ONE canonical bootstrap artifact used (AC#6 "no fourth variant"). */
   canonical_bootstrap_url: string;
@@ -70,7 +70,7 @@ export interface PatchExistingAppOutput {
   source_url: string;
 }
 
-// --- pure transform helpers (shared shape with packages/cli migrate) ---------
+// --- pure transform helpers (single-sourced by the `beacio migrate` CLI at src/cli/commands/migrate.ts) ---------
 
 const BOOTSTRAP_COMMENT =
   '<!-- beacio: @beacio/core polyfill (the canonical classic browser-auto.global.js build) loaded FIRST — before jQuery and the app entry — so navigator.bluetooth is patched before any parse-time `if (navigator.bluetooth)` gate runs. Self-no-ops on Chrome/Android and on iOS with the extension active. Vendor (self-host) this file for a security-sensitive deploy. -->';

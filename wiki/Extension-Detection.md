@@ -34,10 +34,10 @@ if (isIOSSafari()) {
 ## React Setup
 
 ```tsx
-import { BeacioProvider } from '@beacio/detect/react';
+import { BeacioProvider } from '@beacio/react';
 
 export default function App({ children }) {
-  return <BeacioProvider>{children}</BeacioProvider>;
+  return <BeacioProvider config={{ operatorName: 'YourApp' }}>{children}</BeacioProvider>;
 }
 ```
 

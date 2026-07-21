@@ -249,6 +249,98 @@ import type { BeacioDevice, BeacioError, RequestDeviceOptions } from '@beacio/re
 import type { ConnectionState, UseDeviceReturn } from '@beacio/react';
 ```
 
+## Migrating from Vanilla Web Bluetooth
+
+Wrap your app with `<BeacioProvider>` (see Quick Start), then replace direct
+`navigator.bluetooth` calls with the hooks. The hooks own the connection and
+subscription lifecycle and clean up automatically on unmount, so manual
+`gattserverdisconnected` listeners and teardown code can be deleted.
+
+### Before (vanilla)
+
+```javascript
+navigator.bluetooth.requestDevice({
+  filters: [{ services: ['heart_rate'] }]
+})
+.then(device => device.gatt.connect())
+.then(server => server.getPrimaryService('heart_rate'))
+.then(service => service.getCharacteristic('heart_rate_measurement'))
+.then(characteristic => {
+  characteristic.addEventListener('characteristicvaluechanged', (event) => {
+    console.log('Heart Rate:', event.target.value.getUint8(1));
+  });
+  return characteristic.startNotifications();
+})
+.catch(error => console.error('Error:', error));
+```
+
+### After (@beacio/react)
+
+```tsx
+import { useBluetooth, useDevice, useNotifications } from '@beacio/react';
+import type { BeacioDevice } from '@beacio/react';
+
+function HeartRateMonitor() {
+  const { requestDevice } = useBluetooth();
+  const [device, setDevice] = useState<BeacioDevice | null>(null);
+  const { connect } = useDevice(device);
+  const { value, subscribe } = useNotifications(
+    device,
+    'heart_rate',
+    'heart_rate_measurement',
+  );
+
+  const handleConnect = async () => {
+    try {
+      const paired = await requestDevice({
+        filters: [{ services: ['heart_rate'] }]
+      });
+      if (paired) {
+        setDevice(paired);
+        await connect();
+        await subscribe();
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+  const heartRate = value ? value.getUint8(1) : 0;
+
+  return (
+    <div>
+      <button onClick={handleConnect}>Connect</button>
+      {heartRate > 0 && <div>Heart Rate: {heartRate} BPM</div>}
+    </div>
+  );
+}
+```
+
+### Migration map
+
+| Vanilla Web Bluetooth | @beacio/react |
+|---|---|
+| `navigator.bluetooth.requestDevice(options)` | `useBluetooth().requestDevice(options)` |
+| `navigator.bluetooth.getDevices()` | `useBluetooth().getDevices()` |
+| `device.gatt.connect()` / `.disconnect()` | `useDevice(device).connect()` / `.disconnect()` |
+| `gattserverdisconnected` listener + manual retry | `useDevice(device, { autoReconnect: true })` |
+| `server.getPrimaryServices()` | `useDevice(device).services` |
+| `characteristic.readValue()` | `useCharacteristic(...).read()` |
+| `characteristic.writeValue(data)` | `useCharacteristic(...).write(data)` |
+| `startNotifications()` + `characteristicvaluechanged` | `useNotifications(...)` or `useCharacteristic(...).subscribe(handler)` |
+| `navigator.bluetooth.requestLEScan(options)` | `useScan().start(options)` |
+
+Migration gotchas:
+
+- `requestDevice` must still be called from a user gesture (button click) —
+  the hook does not lift that platform requirement.
+- Hook state replaces module-level `device` / `server` variables; keep the
+  `BeacioDevice` in React state and pass it to the other hooks.
+- Errors surface both from the thrown promise and the hook's `error` field
+  (a `BeacioError` with `.code` / `.suggestion`).
+- Custom service classes wrapping raw characteristics usually collapse into a
+  small custom hook composed from `useCharacteristic` / `useNotifications`.
+
 ## Browser Support
 
 | Browser | Support | Notes |
@@ -256,6 +348,23 @@ import type { ConnectionState, UseDeviceReturn } from '@beacio/react';
 | Safari iOS | Full | Requires beacio Extension |
 | Chrome 56+ | Full | Native Web Bluetooth |
 | Edge 79+ | Full | Native Web Bluetooth |
+
+## Publishing (maintainers)
+
+Published to npm as [`@beacio/react`](https://www.npmjs.com/package/@beacio/react)
+under the `@beacio` org (granular org read+write token required).
+The tarball ships only `dist/`, `README.md`, `CHANGELOG.md`, `AGENTS.md` and
+`LICENSE` (see `files` in `package.json`).
+
+```bash
+npm run build          # tsup: ESM + CJS + type declarations
+npm pack --dry-run     # verify tarball contents
+npm publish --access public            # production release
+npm publish --access public --tag beta # prerelease
+```
+
+> The former standalone `docs/MIGRATION.md`, `docs/API.md` and `PUBLISHING.md`
+> were folded into this README (archived 2026-07-02 — see git history).
 
 ## License
 

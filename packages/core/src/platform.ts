@@ -24,15 +24,20 @@ export const CDN_STUB_MARKER = '__beacioCDNStub';
  *
  * @see {@link getBluetoothAPI} for getting the actual API object
  */
+interface NavigatorWithBeacio {
+  beacio?: { __beacio?: boolean } & Bluetooth;
+  bluetooth?: Bluetooth;
+}
+
 export function detectPlatform(): Platform {
   if (typeof navigator === 'undefined') return 'unsupported';
 
   // Safari extension: navigator.beacio with sentinel
-  const nav = navigator as any;
+  const nav = navigator as NavigatorWithBeacio;
   if (nav.beacio?.__beacio === true) return 'safari-extension';
 
   // Native Web Bluetooth (Chrome, Edge, etc.) — exclude CDN stubs
-  if (nav.bluetooth && !nav.bluetooth[CDN_STUB_MARKER]) return 'native';
+  if (nav.bluetooth && !(nav.bluetooth as { __beacioCDNStub?: boolean })[CDN_STUB_MARKER]) return 'native';
 
   return 'unsupported';
 }
@@ -51,13 +56,13 @@ export function detectPlatform(): Platform {
 export function getBluetoothAPI(): Bluetooth | null {
   if (typeof navigator === 'undefined') return null;
 
-  const nav = navigator as any;
+  const nav = navigator as NavigatorWithBeacio;
 
   // Safari extension provides full API on navigator.beacio
   if (nav.beacio?.__beacio === true) return nav.beacio as Bluetooth;
 
   // Native Web Bluetooth
-  if (nav.bluetooth && !nav.bluetooth[CDN_STUB_MARKER]) return nav.bluetooth;
+  if (nav.bluetooth && !(nav.bluetooth as { __beacioCDNStub?: boolean })[CDN_STUB_MARKER]) return nav.bluetooth;
 
   return null;
 }

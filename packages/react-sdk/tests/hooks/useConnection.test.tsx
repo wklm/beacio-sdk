@@ -4,6 +4,8 @@ import { useConnection } from '../../src/hooks/useConnection';
 import { useBluetooth } from '../../src/hooks/useBluetooth';
 import { useDevice } from '../../src/hooks/useDevice';
 
+type MockDevice = { id: string; name: string; watchAdvertisements: jest.Mock; unwatchAdvertisements?: jest.Mock; raw: { addEventListener: jest.Mock; removeEventListener: jest.Mock } };
+
 jest.mock('../../src/hooks/useBluetooth');
 jest.mock('../../src/hooks/useDevice');
 
@@ -14,7 +16,7 @@ function createDevice(id = 'device-1') {
   return {
     id,
     name: `Device ${id}`,
-  } as any;
+  } as { id: string; name: string };
 }
 
 // RSSI-02: shared connection-state backing the deferred useDevice mock. In real
@@ -40,9 +42,9 @@ describe('useConnection', () => {
       isExtensionInstalled: false,
       extensionInstallState: 'not-installed',
       isSupported: true,
-      ble: {} as any,
-      backgroundSync: {} as any,
-      peripheral: {} as any,
+      ble: {} as Record<string, never>,
+      backgroundSync: {} as Record<string, never>,
+      peripheral: {} as Record<string, never>,
       requestDevice: mockRequestDevice,
       getDevices: jest.fn(),
       error: null,
@@ -53,7 +55,7 @@ describe('useConnection', () => {
     // the same phase (post-GATT-connect) as it would in real code.
     mockUseDevice.mockImplementation((device) => ({
       device,
-      connectionState: (mockConnected ? 'connected' : 'disconnected') as any,
+      connectionState: (mockConnected ? 'connected' : 'disconnected'),
       isConnected: mockConnected && device != null,
       isConnecting: false,
       services: [],
@@ -133,10 +135,10 @@ describe('useConnection', () => {
     // keeping the production-faithful isConnected phase.
     mockUseDevice.mockImplementation((device) => ({
       device,
-      connectionState: (mockConnected ? 'connected' : 'disconnected') as any,
+      connectionState: (mockConnected ? 'connected' : 'disconnected'),
       isConnected: mockConnected && !!device,
       isConnecting: false,
-      services: mockConnected ? [{ uuid: '180d' }] as any : [],
+      services: mockConnected ? [{ uuid: '180d' }] : [],
       error: null,
       connect: mockDeviceConnect,
       disconnect: mockDeviceDisconnect,
@@ -205,7 +207,7 @@ describe('useConnection', () => {
   });
 
   it('surfaces live RSSI of a connected device when monitorRssi is enabled, and clears it on disconnect', async () => {
-    const listeners: Record<string, (e: any) => void> = {};
+    const listeners: Record<string, (e: Event) => void> = {};
     const watchAdvertisements = jest.fn().mockResolvedValue(undefined);
     const unwatchAdvertisements = jest.fn().mockResolvedValue(undefined);
     const device = {
@@ -214,10 +216,10 @@ describe('useConnection', () => {
       watchAdvertisements,
       unwatchAdvertisements,
       raw: {
-        addEventListener: jest.fn((type: string, cb: any) => { listeners[type] = cb; }),
+        addEventListener: jest.fn((type: string, cb: EventListener) => { listeners[type] = cb; }),
         removeEventListener: jest.fn((type: string) => { delete listeners[type]; }),
       },
-    } as any;
+    } as MockDevice;
     mockRequestDevice.mockResolvedValue(device);
     // Uses the default deferred mock (RSSI-02): isConnected flips to true only
     // after mockDeviceConnect() resolves, so the monitor effect arms at the
@@ -254,7 +256,7 @@ describe('useConnection', () => {
 
   it('does not watch advertisements when monitorRssi is not set (opt-in)', async () => {
     const watchAdvertisements = jest.fn().mockResolvedValue(undefined);
-    const device = { id: 'no-rssi', name: 'No RSSI', watchAdvertisements, raw: { addEventListener: jest.fn(), removeEventListener: jest.fn() } } as any;
+    const device = { id: 'no-rssi', name: 'No RSSI', watchAdvertisements, raw: { addEventListener: jest.fn(), removeEventListener: jest.fn() } } as { id: string; name: string; watchAdvertisements: jest.Mock; raw: { addEventListener: jest.Mock; removeEventListener: jest.Mock } };
     mockRequestDevice.mockResolvedValue(device);
     // Uses the default deferred mock (RSSI-02). monitorRssi is unset → the
     // auto-start effect never arms, regardless of isConnected timing.
@@ -299,8 +301,8 @@ describe('useConnection', () => {
           addEventListener: jest.fn(),
           removeEventListener: jest.fn(),
         },
-      } as any;
-      mockRequestDevice.mockResolvedValue(device);
+    } as { id: string; name: string; watchAdvertisements: jest.Mock; raw: { addEventListener: jest.Mock; removeEventListener: jest.Mock } };
+    mockRequestDevice.mockResolvedValue(device);
 
       const { result } = renderHook(() => useConnection({ monitorRssi: true }));
 
@@ -355,7 +357,7 @@ describe('useConnection', () => {
       watchAdvertisements: jest.fn().mockResolvedValue(undefined),
       unwatchAdvertisements: jest.fn().mockResolvedValue(undefined),
       raw: { addEventListener: jest.fn(), removeEventListener: jest.fn() },
-    } as any;
+    } as MockDevice;
     mockRequestDevice.mockResolvedValue(device);
 
     // Deferred deviceConnect: mirrors production where isConnected only flips
@@ -405,7 +407,7 @@ describe('useConnection', () => {
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
       },
-    } as any;
+    } as MockDevice;
     mockRequestDevice.mockResolvedValue(device);
 
     const { result, unmount } = renderHook(() => useConnection({ monitorRssi: true }));
@@ -458,7 +460,7 @@ describe('useConnection', () => {
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
       },
-    } as any;
+    } as MockDevice;
     mockRequestDevice.mockResolvedValue(device);
 
     const { result, unmount } = renderHook(() => useConnection({ monitorRssi: true }));

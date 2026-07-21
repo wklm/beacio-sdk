@@ -52,9 +52,10 @@ describe('beacio_install_plan', () => {
 
   it('returns machine-actionable actions an agent can apply without judgment', () => {
     const out = runInstallPlan({ framework: 'react', package_manager: 'npm' });
-    // exact install command — no prose to interpret
+    // exact install command — no prose to interpret. B10-d folded @beacio/detect
+    // into @beacio/core (@beacio/core/detect), so no separate detect package.
     expect(out.actions.commands).toContain(
-      'npm install @beacio/core @beacio/react @beacio/detect',
+      'npm install @beacio/core @beacio/react',
     );
     // the polyfill bootstrap is a concrete, executable file edit
     const bootstrap = out.actions.files_to_edit.find((f) =>

@@ -1,5 +1,4 @@
 import { defineConfig } from 'tsup';
-import path from 'node:path';
 
 // SB-SDK-02 (Part A): the consolidated CLASSIC auto-installing browser bundle.
 //
@@ -10,17 +9,14 @@ import path from 'node:path';
 // window.beacioDetect.{showInstallBanner,initBeacio,…} AND auto-shows the banner
 // on DOMContentLoaded.
 //
-// `@beacio/detect` is BUNDLED IN (noExternal) so the output is a single
-// self-contained file servable as a classic <script src=...> with no bare
-// specifiers left to resolve. This is safe ONLY because SB-SDK-02 Part B removed
-// detect's STATIC `@beacio/core` imports — detect now reaches core solely via a
-// lazy `await import('@beacio/core')`, so bundling no longer trips the
-// detect↔core cycle the main tsup.config.ts guards against. The lazy
-// `import('@beacio/core')` inside the bundled detect is aliased to a MINIMAL
-// internal core entry (src/_auto-core.ts) so it resolves into THIS bundle
-// instead of emitting an unresolvable bare module specifier into a classic
-// script — see the alias note below for why it is the minimal entry, not the
-// full barrel.
+// The detect surface (install banner / initBeacio / presentError) now lives
+// INSIDE @beacio/core (src/detect/), so browser-auto.ts imports it with a plain
+// intra-package `./detect` specifier and it bundles straight into this single
+// self-contained IIFE — no bare module specifiers left to resolve, so no
+// external/noExternal juggling and no `@beacio/core` self-alias. The detect
+// modules reach only core's minimal platform/events/urls modules (never the full
+// BLE wrapper graph), so the classic drop-in stays lean without the former
+// `_auto-core.ts` alias trick (deleted in B10-d).
 export default defineConfig({
   entry: { 'browser-auto': 'src/browser-auto.ts' },
   format: ['iife'],
@@ -32,22 +28,4 @@ export default defineConfig({
   treeshake: true,
   dts: false,
   splitting: false,
-  noExternal: ['@beacio/detect'],
-  esbuildOptions(options) {
-    options.alias = {
-      ...options.alias,
-      // Resolve the bundled detect's lazy `import('@beacio/core')` to a MINIMAL
-      // internal core entry (NOT the full src/index.ts barrel), folding only the
-      // surface this classic auto path actually touches into the self-contained
-      // IIFE. detect's lazy core import is used solely for detectPlatform()
-      // (getExtensionInstallState fast-path) plus a few fully-erased type pins;
-      // pointing it at the whole barrel used to drag the entire unused BLE
-      // wrapper machinery (device / notification-manager / beacio / write-chunker
-      // / dataview-helpers / errors) into a vanilla <script> drop-in that never
-      // instantiates a Beacio wrapper. _auto-core.ts exposes exactly that
-      // surface, dropping ~9 KiB gzip of dead code while preserving every feature
-      // for real `@beacio/core` consumers (the published barrel is unchanged).
-      '@beacio/core': path.resolve(__dirname, 'src/_auto-core.ts'),
-    };
-  },
 });

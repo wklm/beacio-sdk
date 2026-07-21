@@ -1,6 +1,10 @@
+import { existsSync, statSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { runSearchDocs } from '../src/tools/dev/search-docs.js';
 import { runFindExamples } from '../src/tools/dev/find-examples.js';
+import { EXAMPLE_ENTRIES } from '../src/tools/dev/catalog.js';
 
 /**
  * Ranking-stability snapshot for the developer-tool catalogs.
@@ -23,7 +27,6 @@ const DOC_QUERIES = [
   'battery',
   'ios safari banner',
   'user gesture click',
-  'testing mock vitest',
   'profiles',
   'device connect',
   'getAvailability',
@@ -46,7 +49,6 @@ const EXAMPLE_QUERIES = [
   'react provider',
   'react hooks',
   'detect ios',
-  'testing mock',
   'mcp server',
   'install plan framework',
   'example code profile',
@@ -77,6 +79,20 @@ describe('dev catalog ranking stability — find_examples', () => {
   for (const query of EXAMPLE_QUERIES) {
     it(`top-5 order is stable for: "${query}"`, () => {
       expect(exampleTop5(query)).toMatchSnapshot();
+    });
+  }
+});
+
+describe('dev catalog file facets exist on disk', () => {
+  // Guards against phantom file facets: every examples-facet path must point at
+  // a real file in the repo (paths are repo-root-relative).
+  const repoRoot = resolve(fileURLToPath(import.meta.url), '../../../..');
+
+  for (const entry of EXAMPLE_ENTRIES) {
+    it(`catalog entry "${entry.id}" points at a real file: ${entry.file}`, () => {
+      const abs = resolve(repoRoot, entry.file!);
+      expect(existsSync(abs), `missing file: ${entry.file}`).toBe(true);
+      expect(statSync(abs).isFile(), `not a regular file: ${entry.file}`).toBe(true);
     });
   }
 });

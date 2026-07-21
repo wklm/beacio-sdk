@@ -2,13 +2,14 @@ import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useNotifications } from '../../src/hooks/useNotifications';
+import type { BeacioDevice } from '@beacio/core';
 
 /**
  * Factory for creating mock BeacioDevice objects.
  * The new useNotifications API: useNotifications(device, service, characteristic, options?)
  * uses device.subscribe(service, characteristic, callback) which returns an unsub fn.
  */
-function createMockDevice(overrides: Record<string, any> = {}) {
+function createMockDevice(overrides: Record<string, unknown> = {}) {
   return {
     id: 'test-device-id',
     name: 'Test Device',
@@ -56,7 +57,7 @@ describe('useNotifications Hook', () => {
 
     it('should accept a device', () => {
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -70,7 +71,7 @@ describe('useNotifications Hook', () => {
       mockDevice.subscribeAsync.mockReturnValue(unsubFn);
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -92,7 +93,7 @@ describe('useNotifications Hook', () => {
       mockDevice.subscribeAsync.mockReturnValue(unsubFn);
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -117,7 +118,7 @@ describe('useNotifications Hook', () => {
       mockDevice.subscribeAsync.mockImplementation(() => { throw error; });
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -148,7 +149,7 @@ describe('useNotifications Hook', () => {
       mockDevice.connected = false;
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -179,7 +180,7 @@ describe('useNotifications Hook', () => {
       );
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -218,7 +219,7 @@ describe('useNotifications Hook', () => {
       );
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC, { maxHistory: 3 }),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC, { maxHistory: 3 }),
         { wrapper }
       );
 
@@ -257,7 +258,7 @@ describe('useNotifications Hook', () => {
       );
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -288,7 +289,7 @@ describe('useNotifications Hook', () => {
       mockDevice.subscribeAsync.mockReturnValue(jest.fn());
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC, { autoSubscribe: true }),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC, { autoSubscribe: true }),
         { wrapper }
       );
 
@@ -305,7 +306,7 @@ describe('useNotifications Hook', () => {
 
     it('should not auto-subscribe when autoSubscribe is false', async () => {
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC, { autoSubscribe: false }),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC, { autoSubscribe: false }),
         { wrapper }
       );
 
@@ -323,7 +324,7 @@ describe('useNotifications Hook', () => {
       mockDevice.subscribeAsync.mockReturnValue(unsubFn);
 
       const { result, unmount } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -341,7 +342,7 @@ describe('useNotifications Hook', () => {
 
     it('should handle cleanup when not subscribed', () => {
       const { unmount } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -363,7 +364,7 @@ describe('useNotifications Hook', () => {
   describe('Hook return values', () => {
     it('should return all expected properties', () => {
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -383,7 +384,7 @@ describe('useNotifications Hook', () => {
       mockDevice.subscribeAsync.mockReturnValue(unsubFn);
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 
@@ -406,7 +407,7 @@ describe('useNotifications Hook', () => {
       mockDevice.subscribeAsync.mockReturnValue(unsubFn);
 
       const { result } = renderHook(
-        () => useNotifications(mockDevice as any, SERVICE, CHARACTERISTIC),
+        () => useNotifications(mockDevice as unknown as BeacioDevice, SERVICE, CHARACTERISTIC),
         { wrapper }
       );
 

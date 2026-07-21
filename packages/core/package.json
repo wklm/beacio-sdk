@@ -18,6 +18,11 @@
       "import": "./dist/auto.mjs",
       "require": "./dist/auto.js"
     },
+    "./detect": {
+      "types": "./dist/detect/index.d.ts",
+      "import": "./dist/detect/index.mjs",
+      "require": "./dist/detect/index.js"
+    },
     "./browser-auto": {
       "default": "./dist/browser-auto.global.js"
     },
@@ -25,6 +30,46 @@
       "types": "./dist/global.d.ts",
       "import": "./dist/global.mjs",
       "require": "./dist/global.js"
+    },
+    "./profiles": {
+      "types": "./dist/profiles/index.d.ts",
+      "import": "./dist/profiles/index.mjs",
+      "require": "./dist/profiles/index.js"
+    },
+    "./profiles/heart-rate": {
+      "types": "./dist/profiles/heart-rate.d.ts",
+      "import": "./dist/profiles/heart-rate.mjs",
+      "require": "./dist/profiles/heart-rate.js"
+    },
+    "./profiles/battery": {
+      "types": "./dist/profiles/battery.d.ts",
+      "import": "./dist/profiles/battery.mjs",
+      "require": "./dist/profiles/battery.js"
+    },
+    "./profiles/device-info": {
+      "types": "./dist/profiles/device-info.d.ts",
+      "import": "./dist/profiles/device-info.mjs",
+      "require": "./dist/profiles/device-info.js"
+    },
+    "./profiles/nordic-uart": {
+      "types": "./dist/profiles/nordic-uart.d.ts",
+      "import": "./dist/profiles/nordic-uart.mjs",
+      "require": "./dist/profiles/nordic-uart.js"
+    },
+    "./profiles/serial-ffe0": {
+      "types": "./dist/profiles/serial-ffe0.d.ts",
+      "import": "./dist/profiles/serial-ffe0.mjs",
+      "require": "./dist/profiles/serial-ffe0.js"
+    },
+    "./profiles/storz-bickel": {
+      "types": "./dist/profiles/storz-bickel.d.ts",
+      "import": "./dist/profiles/storz-bickel.mjs",
+      "require": "./dist/profiles/storz-bickel.js"
+    },
+    "./testing": {
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.mjs",
+      "require": "./dist/testing/index.js"
     }
   },
   "sideEffects": [
@@ -86,14 +131,14 @@
     "access": "public"
   },
   "devDependencies": {
-    "@beacio/detect": "^1.0.0",
     "@types/jest": "^30",
     "@types/web-bluetooth": "^0.0.21",
     "jest": "^30",
     "jest-environment-jsdom": "^30",
     "ts-jest": "^29",
     "tsup": "^8.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-native": "npm:typescript@^7.0.2"
   },
   "engines": {
     "node": ">=18"

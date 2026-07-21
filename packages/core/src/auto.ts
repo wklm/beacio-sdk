@@ -29,19 +29,19 @@ import type { RawAutoReconnectConfig } from './types';
  *   descriptor.filters matching needs advertisement data the page does not
  *   have, so filters are ignored (best-effort superset, never an error).
  */
-function patchPermissionsAPI(api: { getDevices?: () => Promise<unknown[]> }): void {
+function patchPermissionsAPI(api: { getDevices?: () => Promise<BluetoothDevice[]> }): void {
   if (typeof navigator === 'undefined' || !navigator.permissions) return;
 
   const originalQuery = navigator.permissions.query.bind(navigator.permissions);
   navigator.permissions.query = async function (
     descriptor: PermissionDescriptor
   ): Promise<PermissionStatus> {
-    if ((descriptor as any).name !== 'bluetooth') {
+    if ((descriptor as { name: string }).name !== 'bluetooth') {
       return originalQuery(descriptor);
     }
 
     const requestedDeviceId = (descriptor as { deviceId?: string }).deviceId;
-    let devices: unknown[] = [];
+    let devices: BluetoothDevice[] = [];
     if (typeof api.getDevices === 'function') {
       try {
         const granted = await api.getDevices();
@@ -130,12 +130,12 @@ function isEventHandlerMember(prop: string): boolean {
 function buildW3CFacade(api: object): object {
   class BeacioW3CBluetooth extends EventTarget {}
   const facade = new BeacioW3CBluetooth();
-  const source = api as Record<string, unknown>;
+  const source = api as { [key: string]: EventListener | BluetoothServiceUUID | BluetoothCharacteristicUUID | object };
 
   for (const member of W3C_BLUETOOTH_MEMBERS) {
     if (isEventHandlerMember(member)) {
       Object.defineProperty(facade, member, {
-        get: () => (source[member] as unknown) ?? null,
+        get: () => (source[member] as EventListener) ?? null,
         set: (value) => { source[member] = value; },
         enumerable: true,
         configurable: true,
@@ -144,7 +144,7 @@ function buildW3CFacade(api: object): object {
     }
     if (member === 'referringDevice') {
       Object.defineProperty(facade, member, {
-        get: () => (source[member] as unknown) ?? null,
+        get: () => (source[member] as EventListener) ?? null,
         enumerable: true,
         configurable: true,
       });
@@ -153,7 +153,7 @@ function buildW3CFacade(api: object): object {
     const value = source[member];
     if (typeof value === 'function') {
       Object.defineProperty(facade, member, {
-        value: (value as (...args: unknown[]) => unknown).bind(api),
+        value: (value as (...args: object[]) => object).bind(api),
         writable: true,
         enumerable: true,
         configurable: true,
@@ -203,7 +203,7 @@ interface ResolvedBackoff {
 
 function resolveAutoReconnectConfig(): { enabled: boolean; backoff: ResolvedBackoff } {
   const raw = (typeof window !== 'undefined'
-    ? (window as unknown as { beacioAutoReconnect?: RawAutoReconnectConfig }).beacioAutoReconnect
+    ? (window as { beacioAutoReconnect?: RawAutoReconnectConfig }).beacioAutoReconnect
     : undefined) ?? {};
   return {
     enabled: raw.enabled !== false,
@@ -241,7 +241,7 @@ interface SupervisorState {
  * instance). This is why a plain forwarding interposer is safe here even though the
  * facade (which had to HIDE non-configurable vendor own props) could not be a Proxy.
  */
-function forwardingProxy<T extends object>(target: T, overrides: Record<string, unknown>): T {
+function forwardingProxy<T extends object>(target: T, overrides: { [key: string]: object }): T {
   // PROTOTYPE methods (EventTarget's addEventListener, the GATT class methods) are
   // bound to the target so they keep a valid `this` when called as `proxy.method()`
   // — otherwise WebKit throws "Illegal invocation" / private-field brand-check
@@ -249,7 +249,7 @@ function forwardingProxy<T extends object>(target: T, overrides: Record<string, 
   // handlers (navigator.bluetooth.onX = fn) round-trip with their exact identity
   // and so partial-mock own methods keep their jest-spy reference. Bindings are
   // cached per key for a STABLE identity across reads ([SameObject]).
-  const boundCache = new Map<PropertyKey, unknown>();
+  const boundCache = new Map<PropertyKey, (...args: object[]) => object>();
   return new Proxy(target, {
     get(obj, prop, receiver) {
       if (typeof prop === 'string' && Object.prototype.hasOwnProperty.call(overrides, prop)) {
@@ -258,9 +258,9 @@ function forwardingProxy<T extends object>(target: T, overrides: Record<string, 
       const value = Reflect.get(obj, prop, receiver);
       if (typeof value !== 'function') return value;
       if (Object.prototype.hasOwnProperty.call(obj, prop)) return value;
-      let bound = boundCache.get(prop) as ((...a: unknown[]) => unknown) | undefined;
+      let bound = boundCache.get(prop) as ((...a: object[]) => object) | undefined;
       if (!bound) {
-        bound = value.bind(obj);
+        bound = value.bind(obj) as (...a: object[]) => object;
         boundCache.set(prop, bound);
       }
       return bound;
@@ -300,7 +300,7 @@ function superviseService(
       return superviseCharacteristic(characteristic, service.uuid, state);
     },
     getCharacteristics: async (uuid?: BluetoothCharacteristicUUID) => {
-      const characteristics = await (service as unknown as {
+      const characteristics = await (service as {
         getCharacteristics: (u?: BluetoothCharacteristicUUID) => Promise<BluetoothRemoteGATTCharacteristic[]>;
       }).getCharacteristics(uuid);
       return characteristics.map((c) => superviseCharacteristic(c, service.uuid, state));
@@ -384,7 +384,7 @@ function startReconnectLoop(state: SupervisorState, backoff: ResolvedBackoff): v
       await new Promise<void>((resolve) => setTimeout(resolve, delay));
       if (state.intentional) break;
       try {
-        const fastPath = (server as unknown as {
+        const fastPath = (server as {
           connectAndDiscover?: (uuids: BluetoothServiceUUID[]) => Promise<BluetoothRemoteGATTService[]>;
         }).connectAndDiscover;
         if (typeof fastPath === 'function' && serviceUUIDs.length > 0) {
@@ -440,7 +440,7 @@ function superviseDevice(device: BluetoothDevice, backoff: ResolvedBackoff): Blu
       if (!supervisedGatt) supervisedGatt = superviseGatt(raw, state);
       return supervisedGatt;
     },
-  } as Record<string, unknown>) as BluetoothDevice;
+  } as { [key: string]: object }) as BluetoothDevice;
 }
 
 /**
@@ -450,12 +450,12 @@ function superviseDevice(device: BluetoothDevice, backoff: ResolvedBackoff): Blu
  */
 function withAutoReconnect(api: object): object {
   const config = resolveAutoReconnectConfig();
-  const source = api as { requestDevice?: (...args: unknown[]) => Promise<BluetoothDevice> };
+  const source = api as { requestDevice?: (...args: RequestDeviceOptions[]) => Promise<BluetoothDevice> };
   if (!config.enabled || typeof source.requestDevice !== 'function') return api;
 
   const originalRequestDevice = source.requestDevice.bind(api);
   return forwardingProxy(api, {
-    requestDevice: async (...args: unknown[]) => {
+    requestDevice: async (...args: RequestDeviceOptions[]) => {
       const device = await originalRequestDevice(...args);
       return superviseDevice(device, config.backoff);
     },
@@ -474,21 +474,24 @@ function createUnsupportedBluetoothStub(): object {
   const stub = new BeacioUnsupportedBluetooth();
 
   Object.defineProperty(stub, 'requestDevice', {
-    value: async (..._args: unknown[]) => {
-      // Attempt dynamic import of @beacio/detect for install banner.
+    value: async (..._args: RequestDeviceOptions[]) => {
+      // Lazy-load the local detect surface for the install banner. detect now
+      // lives INSIDE @beacio/core (src/detect/), so this is an intra-package
+      // dynamic import — code-split into its own chunk so the eager polyfill
+      // graph never carries the banner UI until the unsupported stub is used.
       // SB-SDK-07: this zero-config call passes NO lang, so the banner's i18n
-      // seam (packages/detect/src/i18n.ts resolveStrings) derives the language
-      // from navigator.language — a German-locale iPhone gets the German banner
-      // with no config here. An explicit `lang` is only ever supplied by a
-      // caller that wires showInstallBanner/initBeacio directly (e.g. the S&B
-      // demo passes lang:'de'); core's stub stays config-free and localizable.
+      // seam (src/detect/i18n.ts resolveStrings) derives the language from
+      // navigator.language — a German-locale iPhone gets the German banner with
+      // no config here. An explicit `lang` is only ever supplied by a caller that
+      // wires showInstallBanner/initBeacio directly (e.g. the S&B demo passes
+      // lang:'de'); core's stub stays config-free and localizable.
       try {
-        const detect = await import('@beacio/detect');
+        const detect = await import('./detect');
         if (typeof detect.showInstallBanner === 'function') {
           detect.showInstallBanner();
         }
       } catch {
-        // @beacio/detect not installed — reject with the guidance below
+        // Defensive — the banner import must never break the rejection path.
       }
       // §4 requestDevice: when no device/chooser can ever match, the spec
       // rejection class is NotFoundError — never a plain Error.
@@ -527,7 +530,7 @@ function createUnsupportedBluetoothStub(): object {
     let current: EventListener | null = null;
     Object.defineProperty(stub, member, {
       get: () => current,
-      set: (next: unknown) => {
+      set: (next: EventListener | null) => {
         if (current !== null) stub.removeEventListener(eventType, current);
         current = typeof next === 'function' ? (next as EventListener) : null;
         if (current !== null) stub.addEventListener(eventType, current);
@@ -571,8 +574,8 @@ export function applyPolyfill(): void {
   };
 
   // Expose BluetoothUUID global (spec §4) on all platforms
-  if (typeof window !== 'undefined' && !(window as any).BluetoothUUID) {
-    (window as any).BluetoothUUID = BluetoothUUID;
+  if (typeof window !== 'undefined' && !(window as { BluetoothUUID?: object }).BluetoothUUID) {
+    (window as { BluetoothUUID?: object }).BluetoothUUID = BluetoothUUID;
   }
 
   // §10 [SecureContext] (polyfill-installs-in-insecure-contexts): the spec
@@ -616,20 +619,21 @@ export function applyPolyfill(): void {
         configurable: true,
       });
     }
-    if (typeof window !== 'undefined' && !(window as any).beacioIOS) {
-      const ios = (api as any)?.peripheral || (api as any)?.backgroundSync
-        ? { peripheral: (api as any).peripheral, backgroundSync: (api as any).backgroundSync, getCapabilities: () => (api as any).getCapabilities?.() }
+    if (typeof window !== 'undefined' && !(window as { beacioIOS?: object }).beacioIOS) {
+      const apiRec = api as { peripheral?: object; backgroundSync?: object; getCapabilities?: () => object } | undefined;
+      const ios = apiRec?.peripheral || apiRec?.backgroundSync
+        ? { peripheral: apiRec.peripheral, backgroundSync: apiRec.backgroundSync, getCapabilities: () => apiRec?.getCapabilities?.() }
         : undefined;
       if (ios) {
         Object.defineProperty(window, 'beacioIOS', {
-          value: Object.freeze(ios), writable: false, enumerable: true, configurable: false,
+          value: Object.freeze(ios as { peripheral?: object; backgroundSync?: object; getCapabilities?: () => object }), writable: false, enumerable: true, configurable: false,
         });
       }
     }
     // Permissions API (§4.1): extension active — honest shim backed by the
     // native grant query. State is 'prompt' (never synthetic 'granted').
     if (api) {
-      patchPermissionsAPI(api as { getDevices?: () => Promise<unknown[]> });
+      patchPermissionsAPI(api as { getDevices?: () => Promise<BluetoothDevice[]> });
     }
     return;
   }
@@ -655,8 +659,8 @@ export function applyPolyfill(): void {
     if (typeof window !== 'undefined') {
       window.addEventListener(BEACIO_EVENTS.EXTENSION_READY, () => {
         const api = getBluetoothAPI();
-        if (!api || (api as unknown) === stub) return;
-        const current = (navigator as { bluetooth?: unknown }).bluetooth;
+        if (!api || (api as object) === stub) return;
+        const current = (navigator as { bluetooth?: object }).bluetooth;
         if (current !== undefined && current !== stub) return; // page/native owns it now
         const upgraded = buildW3CFacade(withAutoReconnect(api));
         Object.defineProperty(navigator, 'bluetooth', {
@@ -664,7 +668,7 @@ export function applyPolyfill(): void {
           configurable: true,
         });
         // Extension active — the honest §4.1 permissions shim now applies.
-        patchPermissionsAPI(api as { getDevices?: () => Promise<unknown[]> });
+        patchPermissionsAPI(api as { getDevices?: () => Promise<BluetoothDevice[]> });
       }, { once: true });
     }
   }

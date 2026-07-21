@@ -8,7 +8,7 @@ Agent skill file for beacio integration. Contains a `SKILL.md` that AI coding ag
 
 ## What is SKILL.md?
 
-`SKILL.md` is a structured markdown file with frontmatter that agents match on keywords like `bluetooth`, `ios`, `safari`, `ble`, `web-bluetooth`, and `requestDevice`. When an agent detects a relevant task, it reads the skill file for step-by-step integration instructions -- install `@beacio/detect`, add the snippet, verify with `npx beacio check`.
+`SKILL.md` is a structured markdown file with frontmatter that agents match on keywords like `bluetooth`, `ios`, `safari`, `ble`, `web-bluetooth`, and `requestDevice`. When an agent detects a relevant task, it reads the skill file for step-by-step integration instructions -- install `@beacio/core` (import the `@beacio/core/detect` banner), add the snippet, verify with `npx beacio check`.
 
 ## Install
 
@@ -23,7 +23,7 @@ The package ships only `SKILL.md` -- no runtime code. Agents resolve the file vi
 1. User asks "add Bluetooth support to my iOS web app"
 2. Agent matches keywords in `SKILL.md` frontmatter (`bluetooth`, `ios`, `safari`)
 3. Agent reads the skill and follows the integration steps
-4. Result: `@beacio/detect` installed, snippet added, `npx beacio check` passes
+4. Result: `@beacio/core` installed (with the `@beacio/core/detect` banner wired in), snippet added, `npx beacio check` passes
 
 ## AI agent integration
 

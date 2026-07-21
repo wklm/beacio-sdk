@@ -1,5 +1,5 @@
 import React from 'react';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useCharacteristic } from '../../src/hooks/useCharacteristic';
 

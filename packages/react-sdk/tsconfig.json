@@ -6,7 +6,6 @@
     "declarationMap": false,
     "outDir": "./dist",
     "rootDir": "..",
-    "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": false,
@@ -17,7 +16,7 @@
     "allowSyntheticDefaultImports": true,
     "paths": {
       "@beacio/core": ["../core/src/index.ts"],
-      "@beacio/detect": ["../detect/src/index.ts"]
+      "@beacio/core/detect": ["../core/src/detect/index.ts"]
     },
     "typeRoots": ["./node_modules/@types", "../../node_modules/@types"],
     "types": ["web-bluetooth", "jest", "node"]

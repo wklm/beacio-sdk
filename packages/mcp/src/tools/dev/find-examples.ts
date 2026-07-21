@@ -1,11 +1,11 @@
 import { ToolInputError, type ToolDefinition } from '../_common.js';
 import { EXAMPLE_ENTRIES, rankCatalog } from './catalog.js';
 
-export interface FindExamplesInput {
+interface FindExamplesInput {
   query: string;
 }
 
-export interface ExampleMatch {
+interface ExampleMatch {
   file: string;
   line: number;
   snippet: string;
@@ -13,7 +13,7 @@ export interface ExampleMatch {
   relevance: number;
 }
 
-export interface FindExamplesOutput {
+interface FindExamplesOutput {
   matches: ExampleMatch[];
   query: string;
 }

@@ -39,7 +39,7 @@ applyPolyfill();
 // SB-SDK-05: presentError joins this surface so a vanilla site can call
 // beacioDetect.presentError(error) from its connect-catch / generateErrorMsg with
 // NO module setup — exactly like showInstallBanner.
-import { initBeacio, showInstallBanner, removeInstallBanner, presentError } from '@beacio/detect';
+import { initBeacio, showInstallBanner, removeInstallBanner, presentError } from './detect';
 
 export { initBeacio, showInstallBanner, removeInstallBanner, presentError };
 
@@ -72,7 +72,7 @@ const OPERATOR_NAME = operatorNameFromScript();
  */
 function autoShowBannerWhenUnsupported(): void {
   if (typeof navigator !== 'undefined' && (navigator as Navigator).bluetooth) {
-    const bt = (navigator as Navigator & { bluetooth?: Record<string, unknown> }).bluetooth;
+    const bt = (navigator as Navigator & { bluetooth?: { [key: string]: string | number | boolean | object | null | undefined } }).bluetooth;
     // A real (native or extension-backed) API → Bluetooth works, no banner.
     // Our own "unsupported" stub carries CDN_STUB_MARKER; treat that as absent.
     if (bt && !bt[CDN_STUB_MARKER]) return;

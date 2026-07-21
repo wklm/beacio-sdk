@@ -1,10 +1,7 @@
 {
   "extends": "../tsconfig.base.json",
   "compilerOptions": {
-    "forceConsistentCasingInFileNames": true,
     "types": ["web-bluetooth"],
-    "declarationMap": true,
-    "sourceMap": true,
     "outDir": "./dist",
     "rootDir": "./src"
   },

@@ -14,9 +14,9 @@ beacio is a Web Bluetooth SDK for web apps. It works on Chrome natively and on i
 | You want to... | Install | Scope |
 |---|---|---|
 | Scan, connect, read/write BLE devices | `npm install @beacio/core` | @beacio |
-| Use typed device profiles (heart rate, battery, device info) | `npm install @beacio/profiles` | @beacio |
+| Use typed device profiles (heart rate, battery, device info) | `npm install @beacio/core` (import from `@beacio/core/profiles`) | @beacio |
 | React hooks and components for BLE | `npm install @beacio/react` | @beacio |
-| Detect iOS Safari extension, show install banner | `npm install @beacio/detect` | @beacio |
+| Detect iOS Safari extension, show install banner | `npm install @beacio/core` (import from `@beacio/core/detect`) | @beacio |
 | AI agent MCP tools | `npx -y @beacio/mcp` | @beacio |
 | CLI scaffolding | `npx beacio init` | @beacio |
 
@@ -33,7 +33,7 @@ npm install @beacio/core
 ```typescript
 import { beacio } from '@beacio/core'
 
-const ble = new beacio()
+const ble = new Beacio()
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }]
 })
@@ -50,11 +50,12 @@ device.subscribe('heart_rate', 'heart_rate_measurement', (data) => {
 ```
 
 ### Step 4 (optional): Use a typed profile
+Profiles ship inside `@beacio/core` — no separate install; import the `/profiles` subpath:
 ```
-npm install @beacio/profiles
+npm install @beacio/core
 ```
 ```typescript
-import { HeartRateProfile } from '@beacio/profiles'
+import { HeartRateProfile } from '@beacio/core/profiles'
 
 const profile = new HeartRateProfile(device)
 profile.onHeartRate((data) => {
@@ -63,11 +64,12 @@ profile.onHeartRate((data) => {
 ```
 
 ### Step 5 (optional): Add iOS Safari support
+The detect helpers ship inside `@beacio/core` — import the `/detect` subpath:
 ```
-npm install @beacio/detect
+npm install @beacio/core
 ```
 ```typescript
-import { initBeacio } from '@beacio/detect'
+import { initBeacio } from '@beacio/core/detect'
 initBeacio({})
 ```
 
@@ -95,11 +97,11 @@ const device = await navigator.bluetooth.requestDevice({
 ### Step 3: Show the install banner + verify
 
 ```
-npm install @beacio/detect
+npm install @beacio/core
 ```
 ```typescript
-import { initBeacio } from '@beacio/detect'
-initBeacio({}) // React/Next.js: wrap with <BeacioProvider> from '@beacio/detect/react'
+import { initBeacio } from '@beacio/core/detect'
+initBeacio({}) // React/Next.js: wrap with <BeacioProvider> from '@beacio/react'
 ```
 ```
 npx beacio check
@@ -118,7 +120,7 @@ npx beacio check
 ## Rules
 - Do NOT modify existing `navigator.bluetooth` calls except to add the filtered services to `optionalServices` on iOS (the one edit Path B requires) — the extension handles the rest
 - Use human-readable UUID names (`'heart_rate'`) not hex (`'0x180D'`) — the SDK resolves automatically
-- Use `@beacio/profiles` for standard devices instead of writing raw GATT parsing code
+- Use `@beacio/core/profiles` for standard devices instead of writing raw GATT parsing code
 - For React, use `@beacio/react` hooks instead of raw event listeners
 - API key is optional (campaign tracking only)
 - The detect snippet only shows an install banner on iOS Safari when the extension is not installed

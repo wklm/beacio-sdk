@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { Beacio } from '../src/beacio';
+import { DEFAULT_BEACIO_OPTIONS } from '../src/types';
 
 type MockBluetooth = {
   requestDevice: ReturnType<typeof jest.fn>;
@@ -117,7 +118,7 @@ describe('Beacio.registerServices / defaultOptionalServices (SB-SDK-08)', () => 
 
   it('(b2) defaultOptionalServices constructor option seeds the registry', async () => {
     const requestDevice = mockBluetooth();
-    const ble = new Beacio({ defaultOptionalServices: ['battery_service'] });
+    const ble = new Beacio({ ...DEFAULT_BEACIO_OPTIONS, defaultOptionalServices: ['battery_service'] });
 
     await ble.requestDevice({ acceptAllDevices: true });
 
@@ -244,7 +245,6 @@ describe('Beacio.getDevices', () => {
     const peripheral = {
       advertising: false,
       advertise: jest.fn(),
-      startAdvertising: jest.fn(),
       stopAdvertising: jest.fn(),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
@@ -274,6 +274,6 @@ describe('Beacio.getDevices', () => {
     const ble = new Beacio();
 
     expect(() => ble.backgroundSync.list()).toThrow('This Beacio feature requires the iOS Safari Beacio extension runtime.');
-    expect(() => ble.peripheral.startAdvertising()).toThrow('This Beacio feature requires the iOS Safari Beacio extension runtime.');
+    expect(() => ble.peripheral.advertise({})).toThrow('This Beacio feature requires the iOS Safari Beacio extension runtime.');
   });
 });

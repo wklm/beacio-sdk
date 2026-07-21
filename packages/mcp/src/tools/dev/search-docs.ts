@@ -1,18 +1,18 @@
 import { ToolInputError, type ToolDefinition } from '../_common.js';
 import { DOC_ENTRIES, rankCatalog } from './catalog.js';
 
-export interface SearchDocsInput {
+interface SearchDocsInput {
   query: string;
 }
 
-export interface SearchDocsResult {
+interface SearchDocsResult {
   topic: string;
   url: string;
   snippet: string;
   relevance: number;
 }
 
-export interface SearchDocsOutput {
+interface SearchDocsOutput {
   results: SearchDocsResult[];
   query: string;
 }

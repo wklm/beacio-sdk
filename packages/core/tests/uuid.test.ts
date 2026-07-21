@@ -8,6 +8,11 @@ import {
   getDescriptor,
   BluetoothUUID,
 } from '../src/uuid';
+import {
+  GATT_ASSIGNED_SERVICES,
+  GATT_ASSIGNED_CHARACTERISTICS,
+  GATT_ASSIGNED_DESCRIPTORS,
+} from '../src/gatt-registry.generated';
 
 const BASE = '-0000-1000-8000-00805f9b34fb';
 
@@ -298,11 +303,6 @@ describe('BluetoothUUID namespace', () => {
 // against the tables regressing to hand-rolled subsets.
 // ---------------------------------------------------------------------------
 
-// Jest runs CJS, so require/__dirname exist at runtime; the core tsconfig has
-// no node typings, hence the local declarations.
-declare function require(name: string): any;
-declare const __dirname: string;
-
 describe('GATT assigned-numbers registry coverage', () => {
   const { readFileSync } = require('node:fs');
   const { join } = require('node:path');
@@ -314,7 +314,11 @@ describe('GATT assigned-numbers registry coverage', () => {
       .filter((line: string) => line !== '' && !line.startsWith('#'))
       .map((line: string) => {
         const [name, uuid] = line.split(' ');
-        return [name.toLowerCase(), uuid.toLowerCase()] as [string, string];
+        // Mirror the generator's D2-001 sanitize (scripts/registries/generate.mjs
+        // parseAssignedNumbers): strip the leaked `.xml` source-filename suffix so
+        // this "every registered name resolves" check tests the REAL bare name
+        // (`local_east_coordinate`), which is what the fixed table now keys on.
+        return [name.toLowerCase().replace(/\.xml$/, ''), uuid.toLowerCase()] as [string, string];
       });
   }
 
@@ -342,5 +346,48 @@ describe('GATT assigned-numbers registry coverage', () => {
     expect(BluetoothUUID.getCharacteristic('ieee_11073-20601_regulatory_certification_data_list')).toBe('00002a2a' + BASE);
     expect(BluetoothUUID.getCharacteristic('gap.device_name')).toBe('00002a00' + BASE);
     expect(BluetoothUUID.getDescriptor('gatt.characteristic_presentation_format')).toBe('00002904' + BASE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D2-001 (ACTION-PLAN #8): a stray `.xml` source-filename suffix leaked from the
+// vendored WebBluetoothCG registry into the generated characteristic key
+// (`local_east_coordinate.xml` → 0x2AB1), so the REAL Web Bluetooth name
+// `local_east_coordinate` is unreachable — it throws on iOS while resolving on
+// Chrome (bluetooth_uuid.cc:250 has the bare name). The generator must strip the
+// suffix and fail loudly on any other stray file-extension suffix. These guards
+// lock the fix and prevent a future silent leak.
+// ---------------------------------------------------------------------------
+describe('D2-001 stray .xml registry-key leak (local_east_coordinate / 0x2AB1)', () => {
+  it('resolves the real characteristic name local_east_coordinate to 0x2AB1', () => {
+    expect(BluetoothUUID.getCharacteristic('local_east_coordinate')).toBe('00002ab1' + BASE);
+  });
+
+  it('does NOT treat the leaked .xml source-filename as a real name', () => {
+    expect(() => BluetoothUUID.getCharacteristic('local_east_coordinate.xml')).toThrow(TypeError);
+  });
+
+  it('keys the characteristic table on the bare name, not the .xml filename', () => {
+    expect(
+      Object.prototype.hasOwnProperty.call(GATT_ASSIGNED_CHARACTERISTICS, 'local_east_coordinate'),
+    ).toBe(true);
+    expect(
+      Object.prototype.hasOwnProperty.call(GATT_ASSIGNED_CHARACTERISTICS, 'local_east_coordinate.xml'),
+    ).toBe(false);
+  });
+
+  // Durable table-invariant: no generated registry key may carry a stray
+  // trailing file-extension suffix (`.xml`, `.txt`, …). Legit GATT names are
+  // dot-namespaced (`gap.device_name`, `gatt.service_changed`) but their final
+  // segment is always a long identifier (≥6 chars), so a short trailing
+  // dot-segment (1–5 alnum) is only ever a leaked source-filename suffix.
+  it('has no generated key with a stray trailing file-extension suffix', () => {
+    const STRAY_SUFFIX_RE = /\.[a-z0-9]{1,5}$/;
+    const offenders = [
+      ...Object.keys(GATT_ASSIGNED_SERVICES),
+      ...Object.keys(GATT_ASSIGNED_CHARACTERISTICS),
+      ...Object.keys(GATT_ASSIGNED_DESCRIPTORS),
+    ].filter((key) => STRAY_SUFFIX_RE.test(key));
+    expect(offenders).toEqual([]);
   });
 });

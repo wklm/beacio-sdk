@@ -41,9 +41,8 @@
  * suite RED — proving the test binds on the real hash, not a tautology.
  *
  * jsdom; @jest/globals import style (project_jest_globals_import_gotcha).
- * @beacio/core's tsconfig does NOT pull in '@types/node' (see tests/setup.ts), so
- * Node builtins are reached via a locally-declared `require` (ts-jest emits
- * CommonJS) instead of `import … from 'node:*'` — mirrors tests/browser-auto.test.ts.
+ * Node builtins via require() (ts-jest emits CommonJS), typed by @types/node
+ * through tests/tsconfig.json.
  *
  * Run via
  *   npm --prefix packages/core test -- sri-integrity-table
@@ -51,9 +50,6 @@
  * freshly-regenerated integrity.json) exist by the time this runs.
  */
 import { beforeAll, describe, expect, it } from '@jest/globals';
-
-declare const require: (id: string) => any;
-declare const __dirname: string;
 
 const { existsSync, readFileSync } = require('fs');
 const { createHash } = require('crypto');
@@ -67,7 +63,7 @@ const PKG_JSON = path.join(ROOT, 'package.json');
 const ENTRIES = ['auto.mjs', 'browser-auto.global.js'] as const;
 type EntryName = (typeof ENTRIES)[number];
 
-function sha384(bytes: any): string {
+function sha384(bytes: string | ArrayBufferView): string {
   return createHash('sha384').update(bytes).digest('base64');
 }
 
@@ -82,7 +78,11 @@ function readBundle(name: EntryName) {
 }
 
 describe('W15 SRI-01 — @beacio/core dist/integrity.json drift guard', () => {
-  let table: any;
+  let table: {
+    version: string;
+    generatedAt?: string;
+    entries: Record<EntryName, { sha384: string; size: number }>;
+  };
   let tableVersion: string;
   let pkgVersion: string;
 

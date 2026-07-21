@@ -8,15 +8,15 @@ export type Framework = (typeof FRAMEWORKS)[number];
 export const PACKAGE_MANAGERS = ['npm', 'pnpm', 'yarn', 'bun', 'cdn'] as const;
 export type PackageManager = (typeof PACKAGE_MANAGERS)[number];
 
-export interface InstallPlanInput {
+interface InstallPlanInput {
   framework: Framework;
   package_manager: PackageManager;
   include_premium?: boolean;
 }
 
-export type FileEditOp = 'insert' | 'create';
+type FileEditOp = 'insert' | 'create';
 
-export interface FileEdit {
+interface FileEdit {
   /** 'insert' adds `insert` into an existing entry file; 'create' writes a new file whose full contents are `insert`. */
   op: FileEditOp;
   path: string;
@@ -26,12 +26,12 @@ export interface FileEdit {
 }
 
 /** Machine-actionable spec an agent can apply with zero judgment (no prose to interpret). */
-export interface InstallActions {
+interface InstallActions {
   commands: string[];
   files_to_edit: FileEdit[];
 }
 
-export interface InstallPlanOutput {
+interface InstallPlanOutput {
   steps: string[];
   code_snippet: string;
   actions: InstallActions;
@@ -111,8 +111,8 @@ const CDN_SCRIPT_EDIT: FileEdit = {
 
 /**
  * SB-SDK-01 / AC#5: the install-banner wiring as a CONCRETE files_to_edit (not free-text prose).
- * `initBeacio({ operatorName })` is the single recommended @beacio/detect call (see
- * packages/detect/README.md + AGENTS.md + onboarding-manifest.json `banner.recommendedCall`); it is
+ * `initBeacio({ operatorName })` is the single recommended @beacio/core/detect call (see
+ * packages/core/detect/README.md + AGENTS.md + onboarding-manifest.json `banner.recommendedCall`); it is
  * GATED on `navigator.bluetooth === undefined` so it is a no-op where the W3C surface already exists
  * (Chrome/Edge, or iOS Safari once the extension is active) and only guides install when it is
  * missing. An agent can apply this edit verbatim with zero judgment.
@@ -125,8 +125,8 @@ const BANNER_EDIT: FileEdit = {
   op: 'create',
   path: 'src/beacio-install.ts',
   insert:
-    "import { initBeacio } from '@beacio/detect';\n\n// The one recommended @beacio/detect call. Gated on the missing native API: only guide install\n// when the W3C surface is absent (iOS Safari without the extension); a no-op everywhere else.\nif (navigator.bluetooth === undefined) {\n  initBeacio({ operatorName: 'YourApp' });\n}\n",
-  note: "The recommended install-banner wiring. Import it once from your app entry: `import './beacio-install';`. showInstallBanner({ operatorName }) and <BeacioProvider> are lower-level primitives. Set operatorName to your app name; add `key: 'wbl_xxxxx'` for campaign tracking. Requires `@beacio/detect` installed.",
+    "import { initBeacio } from '@beacio/core/detect';\n\n// The one recommended @beacio/core/detect call. Gated on the missing native API: only guide install\n// when the W3C surface is absent (iOS Safari without the extension); a no-op everywhere else.\nif (navigator.bluetooth === undefined) {\n  initBeacio({ operatorName: 'YourApp' });\n}\n",
+  note: "The recommended install-banner wiring. Import it once from your app entry: `import './beacio-install';`. showInstallBanner({ operatorName }) and <BeacioProvider> are lower-level primitives. Set operatorName to your app name; add `key: 'wbl_xxxxx'` for campaign tracking. The @beacio/core/detect surface ships with @beacio/core (installed for the polyfill), so no extra package is needed.",
 };
 
 /**
@@ -134,8 +134,9 @@ const BANNER_EDIT: FileEdit = {
  *
  * Every plan ends with the BANNER_EDIT (SB-SDK-01 / AC#5) — the one recommended
  * `initBeacio({ operatorName })` install-guidance call, gated on navigator.bluetooth===undefined —
- * as a concrete files_to_edit (not free-text prose). It needs `@beacio/detect`, so the detect package
- * is added to the install command for the non-CDN paths that don't already pull it in.
+ * as a concrete files_to_edit (not free-text prose). It imports from `@beacio/core/detect`, which
+ * ships with `@beacio/core` (already installed for the polyfill on every non-CDN path), so no extra
+ * package is appended to the install command.
  */
 function buildActions(
   entry: FrameworkEntry,
@@ -160,10 +161,9 @@ function buildActions(
     };
   }
   const commands: string[] = [];
-  // The banner edit imports @beacio/detect; ensure it is installed alongside the polyfill packages.
-  const packages = entry.packages.includes('@beacio/detect')
-    ? entry.packages
-    : [...entry.packages, '@beacio/detect'];
+  // The banner edit imports from @beacio/core/detect, which ships with @beacio/core
+  // (already in entry.packages for the polyfill), so no extra package is appended.
+  const packages = entry.packages;
   if (packages.length > 0) {
     commands.push(`${PM_INSTALL_PREFIX[pm]} ${packages.join(' ')}`);
   }

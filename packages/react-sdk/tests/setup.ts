@@ -2,8 +2,8 @@ import '@testing-library/jest-dom';
 import { TextEncoder, TextDecoder } from 'util';
 
 // Add TextEncoder/TextDecoder to global
-(global as any).TextEncoder = TextEncoder;
-(global as any).TextDecoder = TextDecoder;
+(global as { TextEncoder: typeof TextEncoder; TextDecoder: typeof TextDecoder }).TextEncoder = TextEncoder;
+(global as { TextEncoder: typeof TextEncoder; TextDecoder: typeof TextDecoder }).TextDecoder = TextDecoder;
 
 // Mock Web Bluetooth API
 const mockBluetooth = {
@@ -20,7 +20,7 @@ const mockBluetooth = {
 class MockBluetoothDevice {
   id = 'mock-device-id';
   name = 'Mock Device';
-  gatt?: any;
+  gatt?: MockBluetoothRemoteGATTServer;
   watchAdvertisements = jest.fn();
   unwatchAdvertisements = jest.fn();
   addEventListener = jest.fn();
@@ -101,10 +101,10 @@ Object.defineProperty(global.navigator, 'bluetooth', {
   configurable: true
 });
 
-(global as any).BluetoothDevice = MockBluetoothDevice;
-(global as any).BluetoothRemoteGATTServer = MockBluetoothRemoteGATTServer;
-(global as any).BluetoothRemoteGATTService = MockBluetoothRemoteGATTService;
-(global as any).BluetoothRemoteGATTCharacteristic = MockBluetoothRemoteGATTCharacteristic;
+(global as { BluetoothDevice: typeof MockBluetoothDevice; BluetoothRemoteGATTServer: typeof MockBluetoothRemoteGATTServer; BluetoothRemoteGATTService: typeof MockBluetoothRemoteGATTService; BluetoothRemoteGATTCharacteristic: typeof MockBluetoothRemoteGATTCharacteristic }).BluetoothDevice = MockBluetoothDevice;
+(global as { BluetoothDevice: typeof MockBluetoothDevice; BluetoothRemoteGATTServer: typeof MockBluetoothRemoteGATTServer; BluetoothRemoteGATTService: typeof MockBluetoothRemoteGATTService; BluetoothRemoteGATTCharacteristic: typeof MockBluetoothRemoteGATTCharacteristic }).BluetoothRemoteGATTServer = MockBluetoothRemoteGATTServer;
+(global as { BluetoothDevice: typeof MockBluetoothDevice; BluetoothRemoteGATTServer: typeof MockBluetoothRemoteGATTServer; BluetoothRemoteGATTService: typeof MockBluetoothRemoteGATTService; BluetoothRemoteGATTCharacteristic: typeof MockBluetoothRemoteGATTCharacteristic }).BluetoothRemoteGATTService = MockBluetoothRemoteGATTService;
+(global as { BluetoothDevice: typeof MockBluetoothDevice; BluetoothRemoteGATTServer: typeof MockBluetoothRemoteGATTServer; BluetoothRemoteGATTService: typeof MockBluetoothRemoteGATTService; BluetoothRemoteGATTCharacteristic: typeof MockBluetoothRemoteGATTCharacteristic }).BluetoothRemoteGATTCharacteristic = MockBluetoothRemoteGATTCharacteristic;
 
 // Keep console.log for debugging during development
 // Comment out when tests are passing

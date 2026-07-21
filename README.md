@@ -8,10 +8,9 @@ Web Bluetooth SDK for iOS Safari. Scan, connect, and talk to BLE devices from an
 |---------|---------|------|
 | [`@beacio/core`](packages/core) | BLE scanning, connecting, GATT read/write/subscribe | ~4KB gzip |
 | [`@beacio/detect`](packages/detect) | iOS extension detection + install banner | ~2KB gzip |
-| [`@beacio/profiles`](packages/profiles) | Typed BLE profiles (heart rate, battery, etc.) | Optional |
+| [`@beacio/core/profiles`](packages/core/src/profiles) | Typed BLE profiles (heart rate, battery, etc.) | Optional |
 | [`@beacio/react`](packages/react-sdk) | React hooks (`useDevice`, `useCharacteristic`) | Optional |
-| [`@beacio/cli`](packages/cli) | CLI tooling | Optional |
-| [`@beacio/mcp`](packages/mcp) | MCP server for AI coding agents | Optional |
+| [`@beacio/mcp`](packages/mcp) | MCP server for AI coding agents + the `beacio` scaffolding CLI (`npx beacio init`) | Optional |
 
 ## Quick Start
 
@@ -94,7 +93,7 @@ Each package has its own README with full API reference:
 
 - [SDK wiki](https://github.com/wklm/beacio-sdk/wiki) -- curated getting-started guides, troubleshooting, and background sync usage
 - [`@beacio/core` README](packages/core/README.md) -- scanning, connecting, GATT operations, error codes
-- [`@beacio/detect` README](packages/detect/README.md) -- extension detection, install banners, React provider
+- [`@beacio/core/detect` README](packages/core/detect/README.md) -- extension detection, install banners, React provider
 - [`@beacio/react` README](packages/react-sdk/README.md) -- React hooks, provider setup, and UI components
 
 ## Wiki

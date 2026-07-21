@@ -1,9 +1,9 @@
 import detectData from '../data/detect.json' with { type: 'json' };
 import { docsUrl, type ToolDefinition } from './_common.js';
 
-export interface DetectIOSSupportInput {}
+interface DetectIOSSupportInput {}
 
-export interface DetectIOSSupportOutput {
+interface DetectIOSSupportOutput {
   detection_snippet: string;
   global_name: 'window.beacioIOS';
   notes: string[];

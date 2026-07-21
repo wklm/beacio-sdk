@@ -22,7 +22,7 @@ export type BeacioErrorCode =
   | 'INVALID_PARAMETER'
   /** Browser or platform does not support Web Bluetooth at all. Not retriable. */
   | 'BLUETOOTH_UNAVAILABLE'
-  /** The Beacio Safari extension is not installed. Show an install banner via `@beacio/detect`. Not retriable. */
+  /** The Beacio Safari extension is not installed. Show an install banner via `@beacio/core/detect`. Not retriable. */
   | 'EXTENSION_NOT_INSTALLED'
   /** User denied Bluetooth permission, or the call was not triggered by a user gesture. Not retriable. */
   | 'PERMISSION_DENIED'
@@ -60,16 +60,33 @@ export type BeacioErrorCode =
  *
  * **Backoff formula:** `delay = delayMs * backoffMultiplier^(attempt - 1)`
  *
+ * All fields are required with documented sentinel defaults (no optional arguments).
+ * Pass {@link DEFAULT_RETRY_OPTIONS} (optionally spread with overrides) rather than a
+ * partial object. A sentinel in any field resolves to that field's documented default.
+ *
  * @see {@link withRetry}
+ * @see {@link DEFAULT_RETRY_OPTIONS}
  */
 export interface RetryOptions {
-  /** Total attempts including the first call. Defaults to 3. Must be a positive integer. */
-  maxAttempts?: number;
-  /** Base delay between retries in milliseconds. Defaults to 250. Must be non-negative. */
-  delayMs?: number;
-  /** Multiplier applied after each failed attempt. Defaults to 1.5. Must be >= 1. */
-  backoffMultiplier?: number;
+  /** Total attempts including the first call. Sentinel: `0` (use default 3). Otherwise must be a positive integer. */
+  maxAttempts: number;
+  /** Base delay between retries in milliseconds. Sentinel: any negative value (use default 250). Otherwise must be non-negative. */
+  delayMs: number;
+  /** Multiplier applied after each failed attempt. Sentinel: any value `< 1` (use default 1.5). Otherwise must be >= 1. */
+  backoffMultiplier: number;
 }
+
+/**
+ * Canonical sentinel {@link RetryOptions} bag. Pass this (optionally spread with
+ * overrides) to {@link withRetry} / `device.connectWithRetry` instead of building a
+ * partial object: `withRetry(fn, { ...DEFAULT_RETRY_OPTIONS, maxAttempts: 5 })`. Each
+ * field carries its documented default (3 attempts, 250 ms base delay, 1.5x backoff).
+ */
+export const DEFAULT_RETRY_OPTIONS: RetryOptions = {
+  maxAttempts: 0,
+  delayMs: -1,
+  backoffMultiplier: 0,
+};
 
 const RETRIABLE_CODES: Set<BeacioErrorCode> = new Set([
   'DEVICE_DISCONNECTED',
@@ -83,7 +100,7 @@ const RETRIABLE_CODES: Set<BeacioErrorCode> = new Set([
 const SUGGESTIONS: Record<BeacioErrorCode, string> = {
   INVALID_PARAMETER: 'One or more input parameters were invalid. Check UUIDs, payload sizes, and option values.',
   BLUETOOTH_UNAVAILABLE: 'Check that the browser supports Web Bluetooth and the device has Bluetooth enabled.',
-  EXTENSION_NOT_INSTALLED: 'Install the Beacio iOS app and enable the Safari extension. Use @beacio/detect to show an install banner.',
+  EXTENSION_NOT_INSTALLED: 'Install the Beacio iOS app and enable the Safari extension. Use @beacio/core/detect to show an install banner.',
   PERMISSION_DENIED: 'The user denied Bluetooth permission or the request was not triggered by a user gesture. Call requestDevice() from a click/tap handler and try again.',
   DEVICE_NOT_FOUND: 'No matching device found. Check your scan filters or ensure the device is advertising.',
   DEVICE_DISCONNECTED: 'Call device.connect() before performing GATT operations.',
@@ -154,10 +171,10 @@ export class BeacioError extends Error {
   }
 
   /** Convert a native error to a BeacioError with automatic code detection. */
-  static from(error: unknown, code: BeacioErrorCode = 'GATT_OPERATION_FAILED'): BeacioError {
+  static from<T>(error: T, code: BeacioErrorCode = 'GATT_OPERATION_FAILED'): BeacioError {
     if (error instanceof BeacioError) return error;
     const domName =
-      typeof error === 'object' && error !== null && 'name' in error && typeof (error as { name: unknown }).name === 'string'
+      typeof error === 'object' && error !== null && 'name' in error && typeof (error as { name: string }).name === 'string'
         ? (error as { name: string }).name
         : undefined;
     // SB-SDK-05 AC6: a native DOMException/Error message can carry a multi-line
@@ -260,10 +277,13 @@ export class BeacioError extends Error {
  * @see {@link RetryOptions}
  * @see {@link BeacioError.isRetriable}
  */
-export async function withRetry<T>(fn: (attempt: number) => Promise<T>, options: RetryOptions = {}): Promise<T> {
-  const maxAttempts = options.maxAttempts ?? 3;
-  const delayMs = options.delayMs ?? 250;
-  const backoffMultiplier = options.backoffMultiplier ?? 1.5;
+export async function withRetry<T>(fn: (attempt: number) => Promise<T>, options: RetryOptions = DEFAULT_RETRY_OPTIONS): Promise<T> {
+  // Sentinel resolution (see RetryOptions): a sentinel in any field falls back to
+  // that field's documented default, preserving the historical `?? default` behavior
+  // for callers who now pass DEFAULT_RETRY_OPTIONS instead of {}/undefined.
+  const maxAttempts = options.maxAttempts > 0 ? options.maxAttempts : 3;
+  const delayMs = options.delayMs >= 0 ? options.delayMs : 250;
+  const backoffMultiplier = options.backoffMultiplier >= 1 ? options.backoffMultiplier : 1.5;
 
   if (!Number.isInteger(maxAttempts) || maxAttempts <= 0) {
     throw new BeacioError('INVALID_PARAMETER', `Invalid maxAttempts: ${maxAttempts}. Must be a positive integer.`);

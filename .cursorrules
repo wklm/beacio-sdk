@@ -28,7 +28,6 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 - React app → also `@beacio/react` (hooks: `useDevice`, `useScan`, `useProfile`)
 - iOS Safari detection/install banner → `@beacio/detect`
 - Device profiles (heart rate, battery) → `@beacio/profiles`
-- Testing/mocking → `@beacio/testing`
 
 ## Common Mistakes
 - DON'T call `requestDevice()` outside a user gesture (click/tap handler) — Safari iOS silently fails with SecurityError. Never in `useEffect`, `componentDidMount`, or on page load.

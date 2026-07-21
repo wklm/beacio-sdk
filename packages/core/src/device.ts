@@ -1,5 +1,5 @@
 import type { RetryOptions } from './errors';
-import { BeacioError, withRetry } from './errors';
+import { BeacioError, DEFAULT_RETRY_OPTIONS, withRetry } from './errors';
 import { resolveUUID } from './uuid';
 import { WriteChunker } from './write-chunker';
 import { NotificationManager } from './notification-manager';
@@ -51,9 +51,9 @@ type DeviceTransportInfo = {
  * engine wording, while genuine non-permission GATT failures still fall through to
  * BeacioError.from.
  */
-function isUndeclaredServiceSecurityError(error: unknown): boolean {
+function isUndeclaredServiceSecurityError<T>(error: T): boolean {
   const name =
-    typeof error === 'object' && error !== null && 'name' in error && typeof (error as { name: unknown }).name === 'string'
+    typeof error === 'object' && error !== null && 'name' in error && typeof (error as { name: string }).name === 'string'
       ? (error as { name: string }).name
       : '';
   if (name === 'SecurityError') return true;
@@ -302,7 +302,7 @@ export class BeacioDevice {
    * @see {@link connect}
    * @see {@link withRetry}
    */
-  async connectWithRetry(options: RetryOptions = {}): Promise<void> {
+  async connectWithRetry(options: RetryOptions = DEFAULT_RETRY_OPTIONS): Promise<void> {
     await withRetry(async () => {
       await this.connect();
     }, options);
@@ -315,7 +315,7 @@ export class BeacioDevice {
    * Service and characteristic names (e.g. `'battery_service'`, `'battery_level'`)
    * are resolved to full 128-bit UUIDs via {@link resolveUUID}.
    *
-   * For typed reads, use the overload with a parse function (e.g. from `@beacio/profiles`):
+   * For typed reads, use the overload with a parse function (e.g. from `@beacio/core/profiles`):
    * ```typescript
    * const hr = await device.read('heart_rate', 'heart_rate_measurement', parseHeartRate)
    * console.log(hr.bpm) // typed HeartRateData
@@ -647,7 +647,7 @@ export class BeacioDevice {
    * resolves that characteristic (via the same cached lookup `read`/`subscribe`
    * use) and forwards each `beacio:overflow` event to `listener`. The
    * `CustomEvent.detail` carries the eviction metadata (`evictedCount`,
-   * `queueCapacity`, `seq`, `timestamp`); `@beacio/profiles` decodes it into a
+   * `queueCapacity`, `seq`, `timestamp`); `@beacio/core/profiles` decodes it into a
    * typed {@link NativeOverflowEvent} for you. The recommended response is a
    * fresh `read()` to resynchronise any UI that was tracking the last notified
    * value.

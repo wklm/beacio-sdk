@@ -19,6 +19,7 @@ import type {
   BeacioPeripheralSendOptions,
   BeacioPeripheralSendResult,
 } from './types';
+import { DEFAULT_BEACIO_OPTIONS } from './types';
 
 type RuntimeBluetooth = Bluetooth & {
   backgroundSync?: BeacioBackgroundSync;
@@ -86,11 +87,11 @@ class UnsupportedBackgroundSync implements BeacioBackgroundSync {
 class UnsupportedPeripheral extends EventTarget implements BeacioPeripheral {
   private readonly errorFactory: () => BeacioError;
 
-  onwriterequest: ((this: BeacioPeripheral, ev: Event) => unknown) | null = null;
-  onsubscriptionchange: ((this: BeacioPeripheral, ev: Event) => unknown) | null = null;
-  onconnectionstatechange: ((this: BeacioPeripheral, ev: Event) => unknown) | null = null;
-  onadvertisingstatechange: ((this: BeacioPeripheral, ev: Event) => unknown) | null = null;
-  onnotificationready: ((this: BeacioPeripheral, ev: Event) => unknown) | null = null;
+  onwriterequest: ((this: BeacioPeripheral, ev: Event) => void) | null = null;
+  onsubscriptionchange: ((this: BeacioPeripheral, ev: Event) => void) | null = null;
+  onconnectionstatechange: ((this: BeacioPeripheral, ev: Event) => void) | null = null;
+  onadvertisingstatechange: ((this: BeacioPeripheral, ev: Event) => void) | null = null;
+  onnotificationready: ((this: BeacioPeripheral, ev: Event) => void) | null = null;
 
   constructor(errorFactory: () => BeacioError) {
     super();
@@ -105,20 +106,12 @@ class UnsupportedPeripheral extends EventTarget implements BeacioPeripheral {
     throw this.errorFactory();
   }
 
-  advertise(_options?: BeacioPeripheralAdvertisingOptions): Promise<void> {
+  advertise(_options: BeacioPeripheralAdvertisingOptions): Promise<void> {
     this.unsupported();
   }
 
   addService(_service: BeacioPeripheralServiceDefinition): Promise<BeacioPeripheralServiceRecord> {
     this.unsupported();
-  }
-
-  registerService(service: BeacioPeripheralServiceDefinition): Promise<BeacioPeripheralServiceRecord> {
-    return this.addService(service);
-  }
-
-  startAdvertising(options?: BeacioPeripheralAdvertisingOptions): Promise<void> {
-    return this.advertise(options);
   }
 
   stopAdvertising(): Promise<void> {
@@ -127,10 +120,6 @@ class UnsupportedPeripheral extends EventTarget implements BeacioPeripheral {
 
   send(_options: BeacioPeripheralSendOptions): Promise<BeacioPeripheralSendResult> {
     this.unsupported();
-  }
-
-  sendNotification(options: BeacioPeripheralSendOptions): Promise<BeacioPeripheralSendResult> {
-    return this.send(options);
   }
 
   destroy(): void {}
@@ -169,10 +158,14 @@ export class Beacio {
    */
   private readonly registeredOptionalServices = new Set<string>();
 
-  constructor(options?: BeacioOptions) {
-    this.platform = options?.platform ?? detectPlatform();
-    this.maxConnections = this.normalizeMaxConnections(options?.maxConnections);
-    if (options?.defaultOptionalServices) {
+  constructor(options: BeacioOptions = DEFAULT_BEACIO_OPTIONS) {
+    // Sentinel resolution (see BeacioOptions / DEFAULT_BEACIO_OPTIONS):
+    //  - platform 'auto' → detect the real platform at runtime.
+    //  - maxConnections 0 → unlimited (null internally).
+    //  - defaultOptionalServices [] → seed nothing.
+    this.platform = options.platform === 'auto' ? detectPlatform() : options.platform;
+    this.maxConnections = this.normalizeMaxConnections(options.maxConnections);
+    if (options.defaultOptionalServices.length > 0) {
       this.registerServices(options.defaultOptionalServices);
     }
     this.bluetooth = this.platform !== 'unsupported' ? getBluetoothAPI() : null;
@@ -270,7 +263,7 @@ export class Beacio {
 
     try {
       const device = await this.bluetooth.requestDevice(
-        (this.normalizeRequestDeviceOptions(options) as any) ?? { acceptAllDevices: true },
+        (this.normalizeRequestDeviceOptions(options) ?? { acceptAllDevices: true }) as Parameters<Bluetooth['requestDevice']>[0],
       );
       return this.wrapDevice(device);
     } catch (e) {
@@ -301,7 +294,7 @@ export class Beacio {
    * @example
    * ```typescript
    * import { Beacio } from '@beacio/core'
-   * import { StorzBickel } from '@beacio/profiles'
+   * import { StorzBickel } from '@beacio/core/profiles'
    *
    * const ble = new Beacio()
    * ble.registerServices(StorzBickel.allServices()) // declare every S&B family once
@@ -458,12 +451,14 @@ export class Beacio {
     return [...merged];
   }
 
-  private normalizeMaxConnections(maxConnections: number | undefined): number | null {
-    if (maxConnections === undefined) return null;
-    if (!Number.isInteger(maxConnections) || maxConnections <= 0) {
+  private normalizeMaxConnections(maxConnections: number): number | null {
+    // Sentinel: 0 = unlimited (represented as null internally). Any other value
+    // must be a positive integer; negatives / fractions / NaN are rejected.
+    if (maxConnections === 0) return null;
+    if (!Number.isInteger(maxConnections) || maxConnections < 0) {
       throw new BeacioError(
         'INVALID_PARAMETER',
-        `Invalid maxConnections: ${maxConnections}. Must be a positive integer.`,
+        `Invalid maxConnections: ${maxConnections}. Must be 0 (unlimited) or a positive integer.`,
       );
     }
     return maxConnections;

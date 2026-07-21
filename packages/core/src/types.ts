@@ -1,18 +1,33 @@
 /**
  * Runtime platform where Beacio is executing.
  *
+ * - `'auto'` -- Sentinel: resolve the real platform at runtime via {@link detectPlatform}.
+ *   This is the default value of {@link BeacioOptions.platform}; it never appears as a
+ *   resolved `Beacio.platform` value (that is always one of the three concrete states below).
  * - `'safari-extension'` -- iOS Safari with the Beacio extension installed
  * - `'native'` -- Browser with built-in Web Bluetooth (Chrome, Edge, etc.)
  * - `'unsupported'` -- No Web Bluetooth capability detected
  */
-export type Platform = 'safari-extension' | 'native' | 'unsupported';
+export type Platform = 'auto' | 'safari-extension' | 'native' | 'unsupported';
 
-/** Configuration options for the {@link Beacio} constructor. */
+/**
+ * Configuration options for the {@link Beacio} constructor.
+ *
+ * All fields are required with documented sentinel defaults so the public surface has
+ * no optional arguments. {@link DEFAULT_BEACIO_OPTIONS} is the canonical sentinel bag —
+ * pass it (optionally spread with overrides) rather than constructing a partial object.
+ */
 export interface BeacioOptions {
-  /** Force a specific platform instead of auto-detecting via {@link detectPlatform}. */
-  platform?: Platform;
-  /** Maximum concurrently connected SDK-managed devices for this Beacio instance. Throws `CONNECTION_LIMIT_REACHED` when exceeded. */
-  maxConnections?: number;
+  /**
+   * Force a specific platform, or `'auto'` to auto-detect via {@link detectPlatform}.
+   * Sentinel: `'auto'` (auto-detect).
+   */
+  platform: Platform;
+  /**
+   * Maximum concurrently connected SDK-managed devices for this Beacio instance.
+   * Throws `CONNECTION_LIMIT_REACHED` when exceeded. Sentinel: `0` (unlimited).
+   */
+  maxConnections: number;
   /**
    * Service UUIDs to seed the instance-wide optionalServices registry once, so
    * they are merged into every {@link Beacio.requestDevice} call's effective
@@ -21,9 +36,23 @@ export interface BeacioOptions {
    * de-duped. Equivalent to calling {@link Beacio.registerServices} in the constructor.
    * This NEVER widens the device picker (it does not touch `filters` or synthesize
    * `acceptAllDevices`) — it only declares post-connection GATT access intent.
+   * Sentinel: `[]` (none).
    */
-  defaultOptionalServices?: string[];
+  defaultOptionalServices: string[];
 }
+
+/**
+ * Canonical sentinel {@link BeacioOptions} bag. Pass this (optionally spread with
+ * overrides) to the {@link Beacio} constructor instead of building a partial object:
+ * `new Beacio({ ...DEFAULT_BEACIO_OPTIONS, maxConnections: 4 })`. Each field carries
+ * the documented default: `'auto'` platform detection, `0` (unlimited) connections,
+ * and an empty default-optional-services registry.
+ */
+export const DEFAULT_BEACIO_OPTIONS: BeacioOptions = {
+  platform: 'auto',
+  maxConnections: 0,
+  defaultOptionalServices: [],
+};
 
 /**
  * Declarative native periodic-write keep-warm request (SB-NAT-04).
@@ -292,7 +321,7 @@ export interface BeacioPeripheralWriteRequest {
   /** Target characteristic UUID. */
   characteristicUuid?: string;
   /** Written value (type depends on platform encoding). */
-  value?: unknown;
+  value?: ArrayBuffer | DataView | number[];
   /** Byte offset for prepared writes. */
   offset?: number;
   /** True if the central used write-without-response. */
@@ -451,19 +480,13 @@ export interface BeacioPeripheral {
   /** Whether the peripheral is currently advertising. */
   readonly advertising: boolean;
   /** Start advertising with the given options. Registers any included services first. */
-  advertise(options?: BeacioPeripheralAdvertisingOptions): Promise<void>;
-  /** Alias for {@link advertise}. */
-  startAdvertising(options?: BeacioPeripheralAdvertisingOptions): Promise<void>;
+  advertise(options: BeacioPeripheralAdvertisingOptions): Promise<void>;
   /** Register a GATT service. Must be called before advertising if not included in advertise options. */
   addService(service: BeacioPeripheralServiceDefinition): Promise<BeacioPeripheralServiceRecord>;
-  /** Alias for {@link addService}. */
-  registerService(service: BeacioPeripheralServiceDefinition): Promise<BeacioPeripheralServiceRecord>;
   /** Stop advertising. Does not unregister services. */
   stopAdvertising(): Promise<void>;
   /** Send a notification/indication value update to all subscribed centrals. */
   send(options: BeacioPeripheralSendOptions): Promise<BeacioPeripheralSendResult>;
-  /** Alias for {@link send}. */
-  sendNotification(options: BeacioPeripheralSendOptions): Promise<BeacioPeripheralSendResult>;
   /** Release all resources, stop advertising, and unregister services. */
   destroy(): void;
   /** Register an event listener. See {@link BeacioPeripheralEventMap} for event types. */
@@ -471,15 +494,15 @@ export interface BeacioPeripheral {
   /** Remove a previously registered event listener. */
   removeEventListener(type: string, listener: EventListenerOrEventListenerObject | null, options?: boolean | EventListenerOptions): void;
   /** Called when a central writes to a characteristic. */
-  onwriterequest: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
+  onwriterequest: ((this: BeacioPeripheral, ev: Event) => void) | null;
   /** Called when a central subscribes to or unsubscribes from notifications. */
-  onsubscriptionchange: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
+  onsubscriptionchange: ((this: BeacioPeripheral, ev: Event) => void) | null;
   /** Called when a central connects or disconnects. */
-  onconnectionstatechange: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
+  onconnectionstatechange: ((this: BeacioPeripheral, ev: Event) => void) | null;
   /** Called when advertising state changes. */
-  onadvertisingstatechange: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
-  /** Called when a queued notification has been delivered and the characteristic is ready for more. */
-  onnotificationready: ((this: BeacioPeripheral, ev: Event) => unknown) | null;
+  onadvertisingstatechange: ((this: BeacioPeripheral, ev: Event) => void) | null;
+  /** Called when a notification is ready to be sent. */
+  onnotificationready: ((this: BeacioPeripheral, ev: Event) => void) | null;
 }
 
 /**
@@ -581,7 +604,7 @@ export interface DeviceErrorContext {
   /** Characteristic UUID involved in the failed operation, when applicable. */
   characteristic?: string;
   /** Additional diagnostic details. */
-  details?: Record<string, unknown>;
+  details?: { [key: string]: string | number | boolean | null };
 }
 
 /**

@@ -47,7 +47,7 @@ Or use the explicit API for full control:
 ```typescript
 import { beacio } from '@beacio/core';
 
-const ble = new beacio();
+const ble = new Beacio();
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }],
 });
@@ -72,7 +72,7 @@ import { resolveUUID, getServiceName } from '@beacio/core';
 import { detectPlatform } from '@beacio/core';
 ```
 
-You do **not** need `@beacio/profiles` or `@beacio/react-sdk` for basic BLE operations. `@beacio/core` is fully self-contained.
+You do **not** need `@beacio/core/profiles` or `@beacio/react-sdk` for basic BLE operations. `@beacio/core` is fully self-contained.
 
 ## Scanning for devices
 
@@ -81,7 +81,7 @@ You do **not** need `@beacio/profiles` or `@beacio/react-sdk` for basic BLE oper
 ```typescript
 import { beacio } from '@beacio/core';
 
-const ble = new beacio();
+const ble = new Beacio();
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }],
 });
@@ -128,7 +128,7 @@ const device = await ble.requestDevice({
 ```typescript
 import { beacio, BeacioError } from '@beacio/core';
 
-const ble = new beacio();
+const ble = new Beacio();
 try {
   const device = await ble.requestDevice({
     filters: [{ services: ['heart_rate'] }],
@@ -154,7 +154,7 @@ try {
 }
 ```
 
-> **iOS Safari note:** The beacio Safari extension must be installed and enabled under Settings > Apps > Safari > Extensions. Use `@beacio/detect` to auto-prompt users when the extension is missing.
+> **iOS Safari note:** The beacio Safari extension must be installed and enabled under Settings > Apps > Safari > Extensions. Use the `@beacio/core/detect` banner to auto-prompt users when the extension is missing.
 
 ## Connecting & GATT service access
 
@@ -241,7 +241,7 @@ For long-running monitors, start with the smallest queue that still covers your 
 If your app fans out across several peripherals, you can set a soft SDK-side pool limit up front:
 
 ```typescript
-const ble = new beacio({ maxConnections: 2 });
+const ble = new Beacio({ maxConnections: 2 });
 ```
 
 When that limit is reached, `connect()` and `connectWithRetry()` throw `CONNECTION_LIMIT_REACHED` with a suggestion to disconnect another device or raise the limit.
@@ -337,7 +337,7 @@ await withRetry(async () => {
 ```typescript
 import { beacio, BeacioError } from '@beacio/core';
 
-const ble = new beacio({ maxConnections: 2 });
+const ble = new Beacio({ maxConnections: 2 });
 
 // 1. Check availability
 if (!ble.isSupported) {
@@ -418,7 +418,7 @@ try {
 
 | Member | Description |
 |--------|-------------|
-| `new beacio(options?)` | Create SDK instance |
+| `new Beacio(options?)` | Create SDK instance |
 | `requestDevice(options?): Promise<BeacioDevice>` | Scan and select a BLE device |
 | `getDevices(): Promise<BeacioDevice[]>` | Return already-granted devices when supported by the browser |
 | `getAvailability(): Promise<boolean>` | Check if Bluetooth is available |

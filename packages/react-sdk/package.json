@@ -28,24 +28,13 @@
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
-    "type-check": "npm run typecheck",
     "lint": "eslint src/**/*.{ts,tsx}",
     "prepublishOnly": "npm run build && npm run typecheck"
   },
   "peerDependencies": {
     "@beacio/core": "^1.0.0",
-    "@beacio/detect": "^1.0.0",
-    "@beacio/profiles": "^1.0.0",
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"
-  },
-  "peerDependenciesMeta": {
-    "@beacio/detect": {
-      "optional": true
-    },
-    "@beacio/profiles": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
@@ -55,16 +44,14 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/web-bluetooth": "^0.0.21",
-    "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^7.1.1",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "ts-jest": "^29.4.11",
-    "tslib": "^2.6.2",
     "tsup": "^8.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-native": "npm:typescript@^7.0.2"
   },
   "keywords": [
     "bluetooth",

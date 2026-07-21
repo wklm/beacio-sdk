@@ -92,5 +92,5 @@ try {
   validate();
 } catch (err) {
   const message = err instanceof Error ? err.message : String(err);
-  throw new Error(`[beacio-mcp] data validation failed: ${message}`);
+  throw new Error(`[beacio-mcp] data validation failed: ${message}`, { cause: err });
 }

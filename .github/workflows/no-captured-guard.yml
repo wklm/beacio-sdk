@@ -15,7 +15,7 @@
 #     content fingerprint (a captured byte-blob renamed to a non-captured path).
 #
 # The deliberately-mirrored clean-room GATT profile
-# packages/profiles/src/storz-bickel.ts (and its test) is interface-only,
+# packages/core/src/profiles/storz-bickel.ts (and its test) is interface-only,
 # defensible-provenance, and explicitly allow-listed — it legitimately contains
 # STORZ&BICKEL / the Crafty UUID base / serviceUuidCrafty1, none of which are
 # fingerprints. The fingerprints below are captured-only identifiers with zero
@@ -68,7 +68,7 @@ jobs:
 
           # Clean-room files that legitimately ship in this public mirror and must
           # never be flagged (interface-only, defensible provenance).
-          allow=( "packages/profiles/src/storz-bickel.ts" "packages/profiles/tests/storz-bickel.test.ts" )
+          allow=( "packages/core/src/profiles/storz-bickel.ts" "packages/core/tests/profiles/storz-bickel.test.ts" )
 
           is_allowlisted() {
             local p="$1" a

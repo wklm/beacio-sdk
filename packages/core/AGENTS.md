@@ -15,7 +15,7 @@ import '@beacio/core/auto';
 ```typescript
 import { beacio } from '@beacio/core';
 
-const ble = new beacio();
+const ble = new Beacio();
 const device = await ble.requestDevice({
   filters: [{ services: ['heart_rate'] }]
 });
@@ -24,7 +24,7 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 ```
 
 ## Key API surface
-- `new beacio(options?)` — creates SDK instance, detects platform
+- `new Beacio(options?)` — creates SDK instance, detects platform
 - `ble.requestDevice(options?)` — opens device picker, returns `BeacioDevice`
 - `ble.getAvailability()` — checks if Bluetooth is available
 - `device.connect()` / `device.disconnect()` — GATT connection lifecycle
@@ -35,19 +35,19 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 - `device.notifications(service, characteristic)` — async iterable of DataView values
 - `device.on('disconnected', fn)` / `device.off('disconnected', fn)` — disconnect events
 - `resolveUUID(name)` — converts human-readable names to full UUIDs
-- `BeacioError` — typed error with `.code` (`UNSUPPORTED`, `NOT_CONNECTED`, `DEVICE_NOT_FOUND`, `USER_CANCELLED`, `GATT_ERROR`, `TIMEOUT`)
+- `BeacioError` — typed error with `.code` (`BLUETOOTH_UNAVAILABLE`, `DEVICE_DISCONNECTED`, `DEVICE_NOT_FOUND`, `USER_CANCELLED`, `GATT_OPERATION_FAILED`, `TIMEOUT`) and a human/agent-readable `.suggestion`
 
 ## DO
 - Use human-readable service/characteristic names (`'heart_rate'`, `'battery_level'`) — `resolveUUID` handles conversion
 - Call `device.connect()` before any read/write/subscribe
 - Check `BeacioError.code` for programmatic error handling
 - Store the unsubscribe function returned by `device.subscribe()` and call it on cleanup
-- Use `@beacio/profiles` when a built-in profile exists for your device type
+- Use `@beacio/core/profiles` when a built-in profile exists for your device type
 
 ## DO NOT
-- Do not write raw GATT parsing code when a profile exists in `@beacio/profiles`
-- Do not catch errors silently — surface `BeacioError.code` and `.hint` to the user
-- Do not call `device.read()` / `device.write()` before `device.connect()` — throws `NOT_CONNECTED`
+- Do not write raw GATT parsing code when a profile exists in `@beacio/core/profiles`
+- Do not catch errors silently — surface `BeacioError.code` and `.suggestion` to the user
+- Do not call `device.read()` / `device.write()` before `device.connect()` — throws `DEVICE_DISCONNECTED`
 - Do not access `device.raw` unless you need the underlying `BluetoothDevice` for an unsupported operation
 
 ## Safari iOS Constraints (CRITICAL)
@@ -143,8 +143,8 @@ try {
 } catch (e) {
   if (e instanceof BeacioError) {
     switch (e.code) {
-      case 'NOT_CONNECTED': /* reconnect */ break;
-      case 'GATT_ERROR': /* retry or surface */ break;
+      case 'DEVICE_DISCONNECTED': /* reconnect */ break;
+      case 'GATT_OPERATION_FAILED': /* retry or surface */ break;
     }
   }
 }

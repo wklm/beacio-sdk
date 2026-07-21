@@ -24,7 +24,7 @@ const localStorageMock = (() => {
 Object.defineProperty(window, 'localStorage', { value: localStorageMock });
 
 describe('InstallationWizard', () => {
-  let mockDetector: any;
+  let mockDetector: { detect: jest.Mock; detectInstallState: jest.Mock; getInstallState: jest.Mock };
 
   beforeEach(() => {
     jest.clearAllMocks();

@@ -41,7 +41,6 @@ async function shutdown(signal: string) {
   shuttingDown = true;
 
   void setTimeout(() => {
-    // eslint-disable-next-line no-console
     console.error(`[beacio-mcp] forced exit after ${signal}`);
     process.exit(1);
   }, 5000).unref();
@@ -58,13 +57,11 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 
 process.on('unhandledRejection', (reason) => {
-  // eslint-disable-next-line no-console
   console.error('[beacio-mcp] unhandled rejection:', reason);
   process.exit(1);
 });
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error('[beacio-mcp] fatal:', err);
   process.exit(1);
 });

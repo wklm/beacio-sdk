@@ -7,9 +7,9 @@ import {
   type PackageManager,
 } from './install-plan.js';
 
-export type VerifyMode = 'greenfield' | 'brownfield';
+type VerifyMode = 'greenfield' | 'brownfield';
 
-export interface VerifyIntegrationInput {
+interface VerifyIntegrationInput {
   framework: Framework;
   package_manager?: PackageManager;
   /**
@@ -32,7 +32,7 @@ export interface VerifyCheck {
   required: boolean;
 }
 
-export interface VerifyIntegrationOutput {
+interface VerifyIntegrationOutput {
   checks: VerifyCheck[];
   pass_criteria: string;
   source_url: string;
@@ -193,8 +193,8 @@ export function runVerifyIntegration(input: VerifyIntegrationInput): VerifyInteg
     id: 'banner_wired',
     description:
       'The extension-detection / install banner is mounted so end-users without the extension are guided to enable it.',
-    command: 'grep -RF "@beacio/detect" .',
-    expect: 'At least one match — the detect/banner package is wired (recommended).',
+    command: 'grep -RF "@beacio/core/detect" .',
+    expect: 'At least one match — the @beacio/core/detect banner surface is wired (recommended).',
     required: false,
   });
 

@@ -2,23 +2,27 @@ import React from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useDevice } from '../../src/hooks/useDevice';
+import type { BeacioDevice } from '@beacio/core';
 
 /**
  * Factory for creating mock BeacioDevice objects that match the interface
  * expected by useDevice: connect(), disconnect(), getPrimaryServices(),
  * watchAdvertisements(), forget(), on(), off(), subscribe(), raw, id, name, connected.
  */
-function createMockDevice(overrides: Record<string, any> = {}) {
-  const device: Record<string, any> = {
+function createMockDevice(overrides: Record<string, unknown> = {}) {
+  const device = {
     id: 'test-device-id',
     name: 'Test Device',
     raw: {
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
       watchingAdvertisements: false,
-      watchAdvertisements: jest.fn().mockResolvedValue(undefined),
-      unwatchAdvertisements: jest.fn().mockResolvedValue(undefined),
-      forget: jest.fn().mockResolvedValue(undefined),
+      // The three capability entries are typed `jest.Mock | undefined` because the
+      // GATT_OPERATION_FAILED tests below simulate a raw device that LACKS the
+      // capability by assigning `undefined` (matching the hook's runtime probe).
+      watchAdvertisements: jest.fn().mockResolvedValue(undefined) as jest.Mock | undefined,
+      unwatchAdvertisements: jest.fn().mockResolvedValue(undefined) as jest.Mock | undefined,
+      forget: jest.fn().mockResolvedValue(undefined) as jest.Mock | undefined,
       gatt: {
         connected: false,
         requestConnectionPriority: jest.fn().mockResolvedValue(undefined),
@@ -60,7 +64,7 @@ describe('useDevice Hook', () => {
 
   describe('Device connection', () => {
     it('should connect to a device', async () => {
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       expect(result.current.isConnected).toBe(false);
       expect(result.current.isConnecting).toBe(false);
@@ -75,7 +79,7 @@ describe('useDevice Hook', () => {
     });
 
     it('should disconnect from a device', async () => {
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       // First connect
       await act(async () => {
@@ -97,7 +101,7 @@ describe('useDevice Hook', () => {
       const error = new Error('Connection failed');
       mockDevice.connect.mockRejectedValue(error);
 
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       await act(async () => {
         await result.current.connect();
@@ -118,7 +122,7 @@ describe('useDevice Hook', () => {
       ];
       mockDevice.getPrimaryServices.mockResolvedValue(mockServices);
 
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       // Connect first
       await act(async () => {
@@ -135,7 +139,7 @@ describe('useDevice Hook', () => {
       const error = new Error('Service discovery failed');
       mockDevice.getPrimaryServices.mockRejectedValue(error);
 
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       await act(async () => {
         await result.current.connect();
@@ -158,7 +162,7 @@ describe('useDevice Hook', () => {
         return jest.fn(); // unsub fn
       });
 
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       // Connect first
       await act(async () => {
@@ -181,7 +185,7 @@ describe('useDevice Hook', () => {
       const unsubFn = jest.fn();
       mockDevice.on.mockReturnValue(unsubFn);
 
-      const { unmount } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { unmount } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       unmount();
 
@@ -192,7 +196,7 @@ describe('useDevice Hook', () => {
 
   describe('Hook return values', () => {
     it('should return all expected properties', () => {
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       expect(result.current).toHaveProperty('device');
       expect(result.current).toHaveProperty('isConnected');
@@ -214,7 +218,7 @@ describe('useDevice Hook', () => {
     });
 
     it('should delegate advertisement watching to the device', async () => {
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       await act(async () => {
         await result.current.watchAdvertisements();
@@ -234,13 +238,13 @@ describe('useDevice Hook', () => {
     it('should initialize advertisement watching state from the raw device', () => {
       mockDevice.raw.watchingAdvertisements = true;
 
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       expect(result.current.isWatchingAdvertisements).toBe(true);
     });
 
     it('should delegate forget to the device', async () => {
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       await act(async () => {
         await result.current.forget();
@@ -254,12 +258,12 @@ describe('useDevice Hook', () => {
     it('should report GATT_OPERATION_FAILED when watchAdvertisements is not supported', async () => {
       mockDevice.raw.watchAdvertisements = undefined;
 
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       await act(async () => {
         try {
           await result.current.watchAdvertisements();
-        } catch (_) {}
+        } catch (_) { /* error surfaces via result.current.error, asserted below */ }
       });
 
       expect(result.current.error).toBeInstanceOf(Error);
@@ -269,12 +273,12 @@ describe('useDevice Hook', () => {
     it('should report GATT_OPERATION_FAILED when unwatchAdvertisements is not supported', async () => {
       mockDevice.raw.unwatchAdvertisements = undefined;
 
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       await act(async () => {
         try {
           await result.current.unwatchAdvertisements();
-        } catch (_) {}
+        } catch (_) { /* error surfaces via result.current.error, asserted below */ }
       });
 
       expect(result.current.error).toBeInstanceOf(Error);
@@ -284,12 +288,12 @@ describe('useDevice Hook', () => {
     it('should report GATT_OPERATION_FAILED when forget is not supported', async () => {
       mockDevice.raw.forget = undefined;
 
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       await act(async () => {
         try {
           await result.current.forget();
-        } catch (_) {}
+        } catch (_) { /* error surfaces via result.current.error, asserted below */ }
       });
 
       expect(result.current.error).toBeInstanceOf(Error);
@@ -297,7 +301,7 @@ describe('useDevice Hook', () => {
     });
 
     it('should delegate connection priority requests to raw GATT', async () => {
-      const { result } = renderHook(() => useDevice(mockDevice as any), { wrapper });
+      const { result } = renderHook(() => useDevice(mockDevice as unknown as BeacioDevice), { wrapper });
 
       await act(async () => {
         await result.current.setConnectionPriority('high');

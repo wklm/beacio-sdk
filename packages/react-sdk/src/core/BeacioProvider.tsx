@@ -7,7 +7,7 @@ import { BeacioContext, type BeacioContextValue } from './BeacioContext';
 
 function reportBLEEvent(apiKey: string | undefined, event: string) {
   if (!apiKey) return;
-  import('@beacio/detect').then(m => m.reportEvent(apiKey, event)).catch(() => {});
+  import('@beacio/core/detect').then(m => m.reportEvent(apiKey, event)).catch(() => {});
 }
 
 interface BeacioProviderProps {
@@ -25,7 +25,7 @@ interface BeacioProviderProps {
  * Place this near the root of your application. It handles:
  * - Bluetooth availability detection
  * - Safari Web Extension detection (via `beacio:extension:ready` event)
- * - Optional iOS install prompt (when `apiKey` is provided and `@beacio/detect` is installed)
+ * - Optional iOS install prompt (when `apiKey` is provided and `@beacio/core/detect` is installed)
  * - Core Beacio instance creation and delegation
  *
  * @param props.children - React children to render inside the provider.
@@ -119,7 +119,7 @@ export function BeacioProvider({ children, config, ble }: BeacioProviderProps) {
     let cancelled = false;
     (async () => {
       try {
-        const detect = await import('@beacio/detect');
+        const detect = await import('@beacio/core/detect');
         if (cancelled) return;
         await detect.initBeacio({
           key: config?.apiKey ?? '',
@@ -141,7 +141,7 @@ export function BeacioProvider({ children, config, ble }: BeacioProviderProps) {
           },
         });
       } catch {
-        // @beacio/detect not installed -- silent fallback
+        // @beacio/core/detect not installed -- silent fallback
       }
     })();
 

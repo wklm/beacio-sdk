@@ -4,6 +4,9 @@ import { BeacioProvider } from '../../src/core/BeacioProvider';
 import { useBluetooth } from '../../src/hooks/useBluetooth';
 import { BeacioDevice, BeacioError } from '@beacio/core';
 
+type MockBTDevice = { id: string; name: string; gatt?: { connect: jest.Mock; disconnect?: jest.Mock; getPrimaryService?: jest.Mock; getPrimaryServices?: jest.Mock } };
+type MockBTGlobal = { BluetoothDevice: new () => MockBTDevice };
+
 describe('useBluetooth Hook', () => {
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <BeacioProvider>{children}</BeacioProvider>
@@ -29,7 +32,7 @@ describe('useBluetooth Hook', () => {
     });
 
     it('should detect extension installation', async () => {
-      const originalBeacio = (navigator as any).beacio;
+      const originalBeacio = (navigator as { beacio?: object }).beacio;
       Object.defineProperty(navigator, 'beacio', {
         value: { __beacio: true },
         writable: true,
@@ -43,7 +46,7 @@ describe('useBluetooth Hook', () => {
           expect(result.current.isExtensionInstalled).toBe(true);
         });
 
-        expect((navigator as any).beacio?.__beacio).toBe(true);
+        expect((navigator as { beacio?: { __beacio?: boolean } }).beacio?.__beacio).toBe(true);
       } finally {
         Object.defineProperty(navigator, 'beacio', {
           value: originalBeacio,
@@ -69,7 +72,7 @@ describe('useBluetooth Hook', () => {
 
   describe('Device management', () => {
     it('should request a device', async () => {
-      const mockDevice = new (global as any).BluetoothDevice();
+      const mockDevice = new (global as MockBTGlobal).BluetoothDevice();
       mockDevice.id = 'test-device-123';
       mockDevice.name = 'Test Device';
       
@@ -92,7 +95,7 @@ describe('useBluetooth Hook', () => {
         acceptAllDevices: true
       });
       expect(device).toBeInstanceOf(BeacioDevice);
-      expect((device as any).raw).toBe(mockDevice);
+      expect((device as { raw: object }).raw).toBe(mockDevice);
     });
 
     it('should handle device request cancellation', async () => {
@@ -137,8 +140,8 @@ describe('useBluetooth Hook', () => {
 
     it('should get previously paired devices', async () => {
       const mockDevices = [
-        new (global as any).BluetoothDevice(),
-        new (global as any).BluetoothDevice()
+      new (global as MockBTGlobal).BluetoothDevice(),
+      new (global as MockBTGlobal).BluetoothDevice()
       ];
       mockDevices[0].id = 'device-1';
       mockDevices[1].id = 'device-2';
@@ -158,12 +161,12 @@ describe('useBluetooth Hook', () => {
       expect(devices).toHaveLength(2);
       expect(devices[0]).toBeInstanceOf(BeacioDevice);
       expect(devices[1]).toBeInstanceOf(BeacioDevice);
-      expect((devices[0] as any).raw).toBe(mockDevices[0]);
-      expect((devices[1] as any).raw).toBe(mockDevices[1]);
+      expect((devices[0] as { raw: object }).raw).toBe(mockDevices[0]);
+      expect((devices[1] as { raw: object }).raw).toBe(mockDevices[1]);
     });
 
     it('should filter devices by service UUID', async () => {
-      const mockDevice = new (global as any).BluetoothDevice();
+      const mockDevice = new (global as MockBTGlobal).BluetoothDevice();
       mockDevice.id = 'heart-rate-device';
       
       const mockRequestDevice = jest.fn().mockResolvedValue(mockDevice);
@@ -187,7 +190,7 @@ describe('useBluetooth Hook', () => {
     });
 
     it('should filter devices by name', async () => {
-      const mockDevice = new (global as any).BluetoothDevice();
+      const mockDevice = new (global as MockBTGlobal).BluetoothDevice();
       mockDevice.name = 'My Device';
       
       const mockRequestDevice = jest.fn().mockResolvedValue(mockDevice);
@@ -209,7 +212,7 @@ describe('useBluetooth Hook', () => {
     });
 
     it('should handle optional services', async () => {
-      const mockDevice = new (global as any).BluetoothDevice();
+      const mockDevice = new (global as MockBTGlobal).BluetoothDevice();
       
       const mockRequestDevice = jest.fn().mockResolvedValue(mockDevice);
       if (navigator.bluetooth) {
@@ -239,7 +242,7 @@ describe('useBluetooth Hook', () => {
   describe('Error handling', () => {
     it('should clear error on successful operation', async () => {
       const error = new Error('Previous error');
-      const mockDevice = new (global as any).BluetoothDevice();
+      const mockDevice = new (global as MockBTGlobal).BluetoothDevice();
       
       // First set an error
       const mockRequestDevice = jest.fn()

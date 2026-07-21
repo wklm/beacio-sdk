@@ -12,13 +12,13 @@ export const BEST_PRACTICES_TOPICS = [
   'profiles',
   'testing',
 ] as const;
-export type BestPracticesTopic = (typeof BEST_PRACTICES_TOPICS)[number];
+type BestPracticesTopic = (typeof BEST_PRACTICES_TOPICS)[number];
 
-export interface BestPracticesInput {
+interface BestPracticesInput {
   topic?: BestPracticesTopic;
 }
 
-export interface BestPracticesOutput {
+interface BestPracticesOutput {
   content: string;
   topics_available: readonly string[];
   source_file: string;

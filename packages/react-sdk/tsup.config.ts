@@ -11,7 +11,6 @@ export default defineConfig({
     'react',
     'react-dom',
     '@beacio/core',
-    '@beacio/detect',
-    '@beacio/profiles',
+    '@beacio/core/detect',
   ],
 });

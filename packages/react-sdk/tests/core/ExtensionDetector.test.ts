@@ -7,7 +7,7 @@ describe('ExtensionDetector', () => {
 
   beforeEach(() => {
     detector = new ExtensionDetector();
-    delete (global.window as any).__beacio;
+    delete (global.window as { __beacio?: { status: string } }).__beacio;
     Object.defineProperty(global.navigator, 'bluetooth', {
       value: undefined,
       writable: true,
@@ -40,7 +40,7 @@ describe('ExtensionDetector', () => {
     jest.clearAllMocks();
     jest.clearAllTimers();
     jest.useRealTimers();
-    delete (global.window as any).__beacio;
+    delete (global.window as { __beacio?: { status: string } }).__beacio;
     delete document.documentElement.dataset.beacioExtension;
     delete document.documentElement.dataset.beacioInstalled;
     Object.defineProperty(global.navigator, 'bluetooth', {
@@ -57,7 +57,7 @@ describe('ExtensionDetector', () => {
 
   describe('getInstallState', () => {
     it('should return installed-inactive when window.__beacio is set with status installed', () => {
-      (global.window as any).__beacio = { status: 'installed' };
+      (global.window as { __beacio?: { status: string } }).__beacio = { status: 'installed' };
 
       expect(detector.getInstallState()).toBe('installed-inactive');
     });
@@ -98,7 +98,7 @@ describe('ExtensionDetector', () => {
     });
 
     it('should return not-installed for non-installed window marker status', () => {
-      (global.window as any).__beacio = { status: 'detecting' };
+      (global.window as { __beacio?: { status: string } }).__beacio = { status: 'detecting' };
 
       expect(detector.getInstallState()).toBe('not-installed');
     });
@@ -110,7 +110,7 @@ describe('ExtensionDetector', () => {
 
   describe('detect', () => {
     it('should resolve immediately if already detected', async () => {
-      (global.window as any).__beacio = { status: 'installed' };
+      (global.window as { __beacio?: { status: string } }).__beacio = { status: 'installed' };
 
       // First detection sets the flag
       detector.getInstallState();
@@ -187,7 +187,7 @@ describe('ExtensionDetector', () => {
       const detectPromise = detector.detect();
       
       // Simulate extension setting the __beacio marker
-      (global.window as any).__beacio = { status: 'installed' };
+      (global.window as { __beacio?: { status: string } }).__beacio = { status: 'installed' };
       
       // Timeout check re-reads the install state
       jest.advanceTimersByTime(3000);

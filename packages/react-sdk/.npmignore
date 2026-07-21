@@ -35,10 +35,6 @@ yarn-error.log*
 # Development dependencies
 node_modules/
 
-# Documentation source files (keep README.md)
-docs/
-!README.md
-
 # Git files
 .git/
 .gitignore

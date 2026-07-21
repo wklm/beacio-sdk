@@ -4,7 +4,7 @@ import { detectPlatform, getBluetoothAPI } from '../src/platform';
 // Save original navigator
 const originalNavigator = globalThis.navigator;
 
-function mockNavigator(value: any) {
+function mockNavigator(value: object | undefined) {
   Object.defineProperty(globalThis, 'navigator', {
     value,
     writable: true,
@@ -26,7 +26,7 @@ describe('detectPlatform', () => {
     // detectPlatform checks typeof navigator === 'undefined'
     // With jsdom, navigator always exists, so we need to remove it
     // @ts-ignore
-    delete (globalThis as any).navigator;
+    delete (globalThis as { navigator?: Navigator }).navigator;
     expect(detectPlatform()).toBe('unsupported');
   });
 
@@ -54,7 +54,7 @@ describe('detectPlatform', () => {
 describe('getBluetoothAPI', () => {
   it('returns null when navigator is undefined', () => {
     // @ts-ignore
-    delete (globalThis as any).navigator;
+    delete (globalThis as { navigator?: Navigator }).navigator;
     expect(getBluetoothAPI()).toBeNull();
   });
 

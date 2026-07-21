@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ES2020",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -8,6 +9,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "declaration": true,
-    "ignoreDeprecations": "6.0"
+    "forceConsistentCasingInFileNames": true,
+    "declarationMap": true,
+    "sourceMap": true
   }
 }

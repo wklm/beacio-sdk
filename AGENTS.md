@@ -35,10 +35,9 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 | BLE in a web app (scan, connect, read/write) | `@beacio/core` |
 | React hooks for BLE | `@beacio/core` + `@beacio/react` |
 | iOS Safari detection / install banner | `@beacio/detect` |
-| Typed device profiles (heart rate, battery, etc.) | `@beacio/core` + `@beacio/profiles` |
+| Typed device profiles (heart rate, battery, etc.) | `@beacio/core` + `@beacio/core/profiles` |
 | AI agent MCP integration | `npx -y @beacio/mcp` |
 | CLI scaffolding | `npx beacio init` |
-| Mock BLE for testing | `@beacio/testing` |
 
 ## Safari iOS Constraints (CRITICAL)
 - `requestDevice()` MUST be called from a user gesture (click/tap handler). Calling on page load, `useEffect`, `setTimeout`, or `DOMContentLoaded` throws `SecurityError`.
@@ -49,12 +48,10 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 ## Per-package instructions
 Each package has its own `AGENTS.md` with detailed API surface, DO/DON'T rules, and common mistakes:
 - [`packages/core/AGENTS.md`](packages/core/AGENTS.md)
-- [`packages/profiles/AGENTS.md`](packages/profiles/AGENTS.md)
+- [`packages/core/src/profiles/AGENTS.md`](packages/core/src/profiles/AGENTS.md)
 - [`packages/react-sdk/AGENTS.md`](packages/react-sdk/AGENTS.md)
-- [`packages/detect/AGENTS.md`](packages/detect/AGENTS.md)
+- [`packages/core/detect/AGENTS.md`](packages/core/detect/AGENTS.md)
 - [`packages/mcp/AGENTS.md`](packages/mcp/AGENTS.md)
-- [`packages/cli/AGENTS.md`](packages/cli/AGENTS.md)
-- [`packages/testing/AGENTS.md`](packages/testing/AGENTS.md)
 
 ## Security: Agent-Generated Code
 

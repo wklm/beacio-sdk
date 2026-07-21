@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { SETUP_URL, BEACIO_EVENTS } from '@beacio/core';
 // SB-PRD-03: reuse the SINGLE canonical onboarding copy block authored in
-// @beacio/detect so the web banner and this react wizard never drift on the
+// @beacio/core/detect so the web banner and this react wizard never drift on the
 // decisive aA → Manage Extensions → Allow Every Website gesture + the first-scan
 // Bluetooth prompt.
-import { SETUP_STEPS } from '@beacio/detect';
+import { SETUP_STEPS } from '@beacio/core/detect';
 import { ExtensionDetector, type ExtensionInstallState } from '../core/ExtensionDetector';
 
 const RETURN_KEY = 'beacio_return';
@@ -59,7 +59,7 @@ interface InstallationWizardProps {
 }
 
 /**
- * SB-SDK-11 AC2 injection guard (mirrors @beacio/detect banner.ts safeLogoUrl):
+ * SB-SDK-11 AC2 injection guard (mirrors @beacio/core/detect banner.ts safeLogoUrl):
  * a partner logo is accepted ONLY as a URL resolving to an http(s) resource. A
  * `javascript:`/`data:`/`ftp:` (or any non-http) value is rejected so it can never
  * inject script; relative URLs resolve against the page origin and are allowed.
@@ -217,7 +217,7 @@ export function InstallationWizard({
         </div>
 
         {/* SB-PRD-03: the real tapped sequence, each grant with its "why" — the
-            aA gesture + the first-scan Bluetooth prompt — reused from @beacio/detect. */}
+            aA gesture + the first-scan Bluetooth prompt — reused from @beacio/core/detect. */}
         <ol style={stepsStyle} data-beacio-wizard-steps="">
           {SETUP_STEPS.map((s, i) => (
             <li key={s.label} style={stepStyle}>

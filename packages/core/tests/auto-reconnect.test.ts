@@ -26,7 +26,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 
 const originalNavigator = globalThis.navigator;
 
-function mockNavigator(value: any) {
+function mockNavigator(value: object | undefined) {
   Object.defineProperty(globalThis, 'navigator', {
     value,
     writable: true,
@@ -61,7 +61,7 @@ afterEach(() => {
  * recovery path attaches its listener to.
  */
 function makeMockCharacteristic() {
-  const characteristic: any = {
+  const characteristic = {
     uuid: '0000180d-0000-1000-8000-00805f9b34fb',
     value: null,
     addEventListener: jest.fn(),
@@ -73,6 +73,53 @@ function makeMockCharacteristic() {
     writeValueWithoutResponse: jest.fn(async () => undefined),
   };
   return characteristic;
+}
+
+/** The mock characteristic shape returned by makeMockCharacteristic. */
+type TestCharacteristic = ReturnType<typeof makeMockCharacteristic>;
+
+/** Test-local mirror of Chromium's BluetoothRemoteGATTService (uuid + getCharacteristic). */
+interface TestService {
+  uuid: string;
+  getCharacteristic: jest.Mock<(uuid: string) => Promise<TestCharacteristic>>;
+}
+
+/**
+ * Test-local mirror of Chromium's BluetoothRemoteGATTServer (connected,
+ * connect, disconnect, getPrimaryService(s)) — see
+ * third_party/blink/renderer/modules/bluetooth/bluetooth_remote_gatt_server.idl.
+ *
+ * `connectAndDiscover` is NOT a Chromium Web Bluetooth concept: it is the
+ * beacio extension's GATT fast-path (SB-SDK-13). When the extension exposes it,
+ * the polyfill supervisor prefers it over connect()+getPrimaryServices(); the
+ * tests deliberately assert its presence/absence, so it stays an optional,
+ * clearly-typed extra here.
+ */
+interface TestGattServer {
+  connected: boolean;
+  connect: jest.Mock<() => Promise<TestGattServer>>;
+  disconnect: jest.Mock<() => void>;
+  getPrimaryService: jest.Mock<(uuid: string) => Promise<TestService>>;
+  getPrimaryServices: jest.Mock<() => Promise<TestService[]>>;
+  connectAndDiscover?: jest.Mock<() => Promise<TestService[]>>;
+}
+
+/**
+ * Test-local mirror of Chromium's BluetoothDevice surface the tests consume
+ * (bluetooth_device.idl: id, name, gatt, addEventListener/removeEventListener).
+ */
+interface TestDevice {
+  id: string;
+  name: string;
+  gatt: TestGattServer;
+  addEventListener: jest.Mock<(type: string, listener: (ev?: Event) => void) => void>;
+  removeEventListener: jest.Mock;
+  watchAdvertisements: jest.Mock;
+}
+
+/** The polyfilled `navigator.bluetooth` surface the drop-in app consumes. */
+interface TestBluetooth {
+  requestDevice: (options?: unknown) => Promise<TestDevice>;
 }
 
 /**
@@ -87,12 +134,12 @@ function makeMockCharacteristic() {
 function makeExtensionNavigatorWithDevice(opts?: { withConnectAndDiscover?: boolean }) {
   const characteristic = makeMockCharacteristic();
 
-  const service: any = {
+  const service: TestService = {
     uuid: characteristic.uuid,
     getCharacteristic: jest.fn(async () => characteristic),
   };
 
-  const server: any = {
+  const server: TestGattServer = {
     connected: false,
     connect: jest.fn(async () => {
       server.connected = true;
@@ -113,12 +160,12 @@ function makeExtensionNavigatorWithDevice(opts?: { withConnectAndDiscover?: bool
 
   // Capture the gattserverdisconnected listeners the supervisor attaches so the
   // test can fire the event the way the extension's injected device would.
-  const disconnectListeners: Array<(ev?: any) => void> = [];
-  const device: any = {
+  const disconnectListeners: Array<(ev?: Event) => void> = [];
+  const device: TestDevice = {
     id: 'sb-volcano-1',
     name: 'S&B VOLCANO 12345',
     gatt: server,
-    addEventListener: jest.fn((type: string, listener: (ev?: any) => void) => {
+    addEventListener: jest.fn((type: string, listener: (ev?: Event) => void) => {
       if (type === 'gattserverdisconnected') disconnectListeners.push(listener);
     }),
     removeEventListener: jest.fn(),
@@ -126,12 +173,12 @@ function makeExtensionNavigatorWithDevice(opts?: { withConnectAndDiscover?: bool
   };
 
   const requestDevice = jest.fn(async () => device);
-  const originalQuery = jest.fn(async (descriptor: any) => {
+  const originalQuery = jest.fn(async (descriptor: { name?: string }) => {
     if (descriptor?.name === 'bluetooth') throw new TypeError("'bluetooth' is not a valid PermissionName");
-    return { state: 'granted', name: descriptor?.name } as any;
+    return { state: 'granted', name: descriptor?.name } as { state: string; name?: string };
   });
 
-  const nav: any = {
+  const nav = {
     beacio: {
       __beacio: true,
       requestDevice,
@@ -143,7 +190,7 @@ function makeExtensionNavigatorWithDevice(opts?: { withConnectAndDiscover?: bool
 
   const fireDisconnect = () => {
     server.connected = false;
-    for (const listener of [...disconnectListeners]) listener({ type: 'gattserverdisconnected' });
+    for (const listener of [...disconnectListeners]) listener({ type: 'gattserverdisconnected' } as Event);
   };
 
   return { nav, device, server, service, characteristic, requestDevice, fireDisconnect };
@@ -160,7 +207,7 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
     await importAuto();
 
     // The drop-in app consumes the BARE polyfilled global — no Beacio wrapper.
-    const device: any = await (globalThis.navigator as any).bluetooth.requestDevice({
+    const device = await (globalThis.navigator as unknown as { bluetooth: TestBluetooth }).bluetooth.requestDevice({
       filters: [{ namePrefix: 'S&B VOLCANO' }],
     });
     expect(requestDevice).toHaveBeenCalledTimes(1);
@@ -178,8 +225,8 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
     // Transient drop (device powered off / out of range). The extension's
     // injected device fires gattserverdisconnected; NO disconnect() was called.
     server.connected = false;
-    for (const [type, listener] of device.addEventListener.mock.calls as Array<[string, (ev?: any) => void]>) {
-      if (type === 'gattserverdisconnected') listener({ type: 'gattserverdisconnected' });
+    for (const [type, listener] of device.addEventListener.mock.calls as Array<[string, (ev?: Event) => void]>) {
+      if (type === 'gattserverdisconnected') listener({ type: 'gattserverdisconnected' } as Event);
     }
 
     // Drive the documented default backoff (1s initial) and let the chain settle.
@@ -198,7 +245,7 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
     mockNavigator(nav);
     await importAuto();
 
-    const device: any = await (globalThis.navigator as any).bluetooth.requestDevice({ acceptAllDevices: true });
+    const device = await (globalThis.navigator as unknown as { bluetooth: TestBluetooth }).bluetooth.requestDevice({ acceptAllDevices: true });
     await device.gatt.connect();
 
     // App calls disconnect() itself → the next gattserverdisconnected is the
@@ -206,8 +253,8 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
     device.gatt.disconnect();
     const connectCallsAfterIntentional = server.connect.mock.calls.length;
 
-    for (const [type, listener] of device.addEventListener.mock.calls as Array<[string, (ev?: any) => void]>) {
-      if (type === 'gattserverdisconnected') listener({ type: 'gattserverdisconnected' });
+    for (const [type, listener] of device.addEventListener.mock.calls as Array<[string, (ev?: Event) => void]>) {
+      if (type === 'gattserverdisconnected') listener({ type: 'gattserverdisconnected' } as Event);
     }
     await jest.advanceTimersByTimeAsync(5000);
     await flushMicrotasks();
@@ -222,7 +269,7 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
     mockNavigator(withFastPath.nav);
     await importAuto();
 
-    const fastDevice: any = await (globalThis.navigator as any).bluetooth.requestDevice({ acceptAllDevices: true });
+    const fastDevice = await (globalThis.navigator as unknown as { bluetooth: TestBluetooth }).bluetooth.requestDevice({ acceptAllDevices: true });
     const fastServer = await fastDevice.gatt.connect();
     const fastSvc = await fastServer.getPrimaryService(withFastPath.characteristic.uuid);
     const fastCh = await fastSvc.getCharacteristic(withFastPath.characteristic.uuid);
@@ -241,7 +288,7 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
     mockNavigator(noFastPath.nav);
     await import('../src/auto');
 
-    const plainDevice: any = await (globalThis.navigator as any).bluetooth.requestDevice({ acceptAllDevices: true });
+    const plainDevice = await (globalThis.navigator as unknown as { bluetooth: TestBluetooth }).bluetooth.requestDevice({ acceptAllDevices: true });
     const plainServer = await plainDevice.gatt.connect();
     const plainSvc = await plainServer.getPrimaryService(noFastPath.characteristic.uuid);
     const plainCh = await plainSvc.getCharacteristic(noFastPath.characteristic.uuid);
@@ -252,7 +299,7 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
     await jest.advanceTimersByTimeAsync(1000);
     await flushMicrotasks();
 
-    expect((noFastPath.server as any).connectAndDiscover).toBeUndefined();
+    expect(noFastPath.server.connectAndDiscover).toBeUndefined();
     expect(noFastPath.server.connect.mock.calls.length).toBeGreaterThan(connectsBefore);
   });
 });
@@ -263,25 +310,27 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
 describe('SB-SDK-13 — no-op off the beacio runtime (AC#5)', () => {
   it('leaves a native (Chrome) navigator.bluetooth.requestDevice strictly untouched', async () => {
     const requestDevice = jest.fn(async () => ({ id: 'x', gatt: { connect: jest.fn(), connected: false } }));
-    const bluetooth: any = {
+    const bluetooth = {
       requestDevice,
       getAvailability: jest.fn(async () => true),
       getDevices: jest.fn(async () => []),
     };
-    const nav: any = { bluetooth, permissions: { query: jest.fn() } };
+    const nav = { bluetooth, permissions: { query: jest.fn() } } as { bluetooth: object; permissions: { query: jest.Mock } };
     mockNavigator(nav);
     await importAuto();
 
     // Native path is a no-op: same object, same requestDevice identity, no wrap.
-    expect((globalThis.navigator as any).bluetooth).toBe(bluetooth);
-    expect((globalThis.navigator as any).bluetooth.requestDevice).toBe(requestDevice);
+    expect((globalThis.navigator as unknown as { bluetooth: { requestDevice: unknown } }).bluetooth).toBe(bluetooth);
+    expect((globalThis.navigator as unknown as { bluetooth: { requestDevice: unknown } }).bluetooth.requestDevice).toBe(requestDevice);
   });
 
   it('does not attach a reconnect supervisor on the unsupported stub path', async () => {
     mockNavigator({});
     await importAuto();
 
-    const bluetooth: any = (globalThis.navigator as any).bluetooth;
+    const bluetooth = (globalThis.navigator as unknown as {
+      bluetooth: { requestDevice: (options?: unknown) => Promise<unknown> };
+    }).bluetooth;
     // The unsupported stub rejects requestDevice with NotFoundError; it must not
     // resolve a supervised device. (No beacio runtime → nothing to supervise.)
     const error = await bluetooth.requestDevice({ acceptAllDevices: true }).catch((e: unknown) => e);

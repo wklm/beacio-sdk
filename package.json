@@ -3,39 +3,38 @@
   "name": "beacio-sdk",
   "private": true,
   "workspaces": [
-    "packages/cli",
     "packages/core",
-    "packages/detect",
     "packages/mcp",
-    "packages/profiles",
     "packages/react-sdk",
     "packages/skill",
-    "packages/testing"
+    "cloudflare"
   ],
   "scripts": {
-    "build:packages": "npm run build -w packages/detect && npm run build -w packages/core && npm run build -w packages/profiles && npm run build -w packages/react-sdk && npm run build -w packages/testing && npm run build -w packages/cli && npm run build -w packages/mcp",
-    "test:packages": "npm test -w packages/core -w packages/profiles -w packages/react-sdk -w packages/testing -w packages/detect -w packages/cli -w packages/mcp -w packages/skill --if-present",
+    "build:packages": "npm run build -w packages/core && npm run build -w packages/react-sdk && npm run build -w packages/mcp",
+    "test:packages": "npm test -w packages/core -w packages/react-sdk -w packages/mcp -w packages/skill --if-present",
     "typecheck:packages": "npm run typecheck --workspaces --if-present",
-    "publish:packages": "npm run build:packages && npm publish --provenance -w packages/detect && npm publish --provenance --tag beta -w packages/core && npm publish --provenance --tag beta -w packages/profiles && npm publish --provenance --tag beta -w packages/react-sdk && npm publish --provenance -w packages/mcp && npm publish --provenance -w packages/cli && npm publish --provenance -w packages/skill && npm publish --provenance --tag beta -w packages/testing",
-    "publish:dry": "npm run build:packages && npm publish --provenance --dry-run -w packages/detect && npm publish --provenance --dry-run --tag beta -w packages/core && npm publish --provenance --dry-run --tag beta -w packages/profiles && npm publish --provenance --dry-run --tag beta -w packages/react-sdk && npm publish --provenance --dry-run -w packages/mcp && npm publish --provenance --dry-run -w packages/cli && npm publish --provenance --dry-run -w packages/skill && npm publish --provenance --dry-run --tag beta -w packages/testing"
+    "publish:packages": "npm run build:packages && npm publish --provenance --tag beta -w packages/core && npm publish --provenance --tag beta -w packages/react-sdk && npm publish --provenance -w packages/mcp && npm publish --provenance -w packages/skill",
+    "publish:dry": "npm run build:packages && npm publish --provenance --dry-run --tag beta -w packages/core && npm publish --provenance --dry-run --tag beta -w packages/react-sdk && npm publish --provenance --dry-run -w packages/mcp && npm publish --provenance --dry-run -w packages/skill"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.11.3",
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^10.0.1",
-    "@playwright/test": "^1.61.0",
-    "@types/chrome": "^0.1.43",
+    "@playwright/test": "^1.61.1",
+    "@types/chrome": "^0.2.2",
     "@types/jest": "^30",
     "@types/web-bluetooth": "^0.0.21",
-    "@typescript-eslint/eslint-plugin": "^8.62.0",
-    "@typescript-eslint/parser": "^8.61.1",
-    "eslint": "^10.5.0",
+    "@typescript-eslint/eslint-plugin": "^8.63.0",
+    "@typescript-eslint/parser": "^8.63.0",
+    "eslint": "^10.6.0",
     "globals": "^17.7.0",
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
+    "terser-webpack-plugin": "^5.6.1",
     "ts-jest": "^29",
     "ts-loader": "^9.6.2",
-    "typescript": "^6.0.3",
-    "webpack": "^5.107.2",
-    "webpack-cli": "^7.0.3"
+    "typescript": "npm:@typescript/typescript6@^6.0.2",
+    "typescript-native": "npm:typescript@^7.0.2",
+    "webpack": "^5.108.4",
+    "webpack-cli": "^7.2.1"
   }
 }

@@ -24,7 +24,6 @@ import { ALL_TOOLS } from '../src/tool-registry.js';
 // ---------------------------------------------------------------------------
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 const CAPTURED_DIR = join(REPO_ROOT, 'outreach', 'storz-bickel', 'captured');
-const DEMO_APP_DIR = join(REPO_ROOT, 'outreach', 'storz-bickel', 'integration-demo', 'app');
 const CANONICAL_QUICKSTART = join(
   REPO_ROOT,
   '.claude',
@@ -191,7 +190,6 @@ function applyEdits(root: string, out: PatchExistingAppOutput): void {
 }
 
 function writeFileEnsuring(target: string, content: string): void {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
   const fs = require('node:fs') as typeof import('node:fs');
   fs.mkdirSync(dirname(target), { recursive: true });
   fs.writeFileSync(target, content);

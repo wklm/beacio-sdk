@@ -2,7 +2,7 @@
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "battery level" 1`] = `
 [
-  "packages/profiles/src/battery.ts",
+  "packages/core/src/profiles/battery.ts",
 ]
 `;
 
@@ -11,8 +11,8 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
   "packages/core/src/beacio.ts",
   "packages/core/src/device.ts",
   "packages/core/src/errors.ts",
-  "packages/profiles/src/heart-rate.ts",
-  "packages/profiles/src/battery.ts",
+  "packages/react-sdk/src/core/BeacioProvider.tsx",
+  "packages/core/src/profiles/heart-rate.ts",
 ]
 `;
 
@@ -21,39 +21,37 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
   "packages/core/src/beacio.ts",
   "packages/core/src/device.ts",
   "packages/core/src/errors.ts",
-  "packages/core/src/uuids.ts",
+  "packages/core/src/uuid.ts",
+  "packages/core/src/profiles/heart-rate.ts",
 ]
 `;
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "defineProfile custom" 1`] = `
 [
-  "packages/profiles/src/define.ts",
+  "packages/core/src/profiles/base.ts",
 ]
 `;
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "detect ios" 1`] = `
 [
-  "packages/detect/src/index.ts",
+  "packages/core/src/detect/index.ts",
 ]
 `;
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "device connect" 1`] = `
 [
   "packages/core/src/device.ts",
-  "packages/profiles/src/device-info.ts",
+  "packages/core/src/profiles/device-info.ts",
   "packages/core/src/beacio.ts",
-  "packages/react-sdk/src/provider.tsx",
-  "packages/react-sdk/src/hooks.ts",
+  "packages/react-sdk/src/core/BeacioProvider.tsx",
 ]
 `;
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "device info manufacturer" 1`] = `
 [
-  "packages/profiles/src/device-info.ts",
+  "packages/core/src/profiles/device-info.ts",
   "packages/core/src/device.ts",
   "packages/core/src/beacio.ts",
-  "packages/react-sdk/src/hooks.ts",
-  "packages/testing/src/mock.ts",
 ]
 `;
 
@@ -66,10 +64,10 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "example code profile" 1`] = `
 [
   "packages/mcp/src/tools/example.ts",
-  "packages/profiles/src/heart-rate.ts",
-  "packages/profiles/src/battery.ts",
-  "packages/profiles/src/device-info.ts",
-  "packages/profiles/src/define.ts",
+  "packages/core/src/profiles/heart-rate.ts",
+  "packages/core/src/profiles/battery.ts",
+  "packages/core/src/profiles/device-info.ts",
+  "packages/core/src/profiles/base.ts",
 ]
 `;
 
@@ -81,14 +79,14 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "heart rate" 1`] = `
 [
-  "packages/profiles/src/heart-rate.ts",
+  "packages/core/src/profiles/heart-rate.ts",
 ]
 `;
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "install plan framework" 1`] = `
 [
   "packages/mcp/src/tools/install-plan.ts",
-  "packages/detect/src/index.ts",
+  "packages/core/src/detect/index.ts",
 ]
 `;
 
@@ -102,34 +100,25 @@ exports[`dev catalog ranking stability — find_examples > top-5 order is stable
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "react hooks" 1`] = `
 [
-  "packages/react-sdk/src/hooks.ts",
-  "packages/react-sdk/src/provider.tsx",
+  "packages/react-sdk/src/core/BeacioProvider.tsx",
 ]
 `;
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "react provider" 1`] = `
 [
-  "packages/react-sdk/src/provider.tsx",
-  "packages/react-sdk/src/hooks.ts",
+  "packages/react-sdk/src/core/BeacioProvider.tsx",
 ]
 `;
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "requestDevice" 1`] = `
 [
   "packages/core/src/beacio.ts",
-  "packages/testing/src/mock.ts",
-]
-`;
-
-exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "testing mock" 1`] = `
-[
-  "packages/testing/src/mock.ts",
 ]
 `;
 
 exports[`dev catalog ranking stability — find_examples > top-5 order is stable for: "uuid resolve" 1`] = `
 [
-  "packages/core/src/uuids.ts",
+  "packages/core/src/uuid.ts",
 ]
 `;
 
@@ -239,12 +228,6 @@ exports[`dev catalog ranking stability — search_docs > top-5 order is stable f
 [
   "API Reference — Beacio class",
   "User Gesture Requirement",
-]
-`;
-
-exports[`dev catalog ranking stability — search_docs > top-5 order is stable for: "testing mock vitest" 1`] = `
-[
-  "Testing with Mocks",
 ]
 `;
 

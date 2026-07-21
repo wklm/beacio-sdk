@@ -162,14 +162,11 @@ describe('BeacioProvider', () => {
     notFoundError.name = 'NotFoundError';
     mockBluetooth.requestDevice = jest.fn().mockRejectedValue(notFoundError);
 
-    let capturedError: unknown = 'not-set';
     const TestComponent = () => {
       const { requestDevice, error } = useBeacio();
 
       React.useEffect(() => {
-        void requestDevice({ acceptAllDevices: true }).then(() => {
-          capturedError = error;
-        });
+        void requestDevice({ acceptAllDevices: true });
       }, [requestDevice]);
 
       return <div>{error ? `Error: ${error.message}` : 'No error'}</div>;
@@ -325,7 +322,6 @@ describe('BeacioProvider', () => {
     rawDevice.name = 'First';
     mockBluetooth.requestDevice = jest.fn().mockResolvedValue(rawDevice);
 
-    let errorMessage = '';
     const TestComponent = () => {
       const { requestDevice, getDevices, devices, error } = useBeacio();
 
@@ -334,9 +330,8 @@ describe('BeacioProvider', () => {
           await requestDevice({ acceptAllDevices: true });
           // Now make getDevices fail
           mockBluetooth.getDevices = jest.fn().mockRejectedValue(new Error('Network error'));
-          const fallback = await getDevices();
+          await getDevices();
           // Should return existing devices as fallback
-          errorMessage = error?.message ?? '';
         })();
       }, [requestDevice, getDevices]);
 

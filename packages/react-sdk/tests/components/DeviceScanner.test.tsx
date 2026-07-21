@@ -19,13 +19,13 @@ describe('DeviceScanner', () => {
   const mockConnect = jest.fn();
   const mockOnDeviceSelected = jest.fn();
 
-  const mockDevice1: any = {
+  const mockDevice1 = {
     id: 'device-1',
     name: 'Test Device 1',
     gatt: {}
   };
 
-  const mockDevice2: any = {
+  const mockDevice2 = {
     id: 'device-2',
     name: 'Test Device 2',
     gatt: {}
@@ -41,14 +41,14 @@ describe('DeviceScanner', () => {
       stop: mockStop,
       clear: mockClear,
       error: null
-    } as any);
+    } as unknown as ReturnType<typeof useScan>);
 
     mockUseDevice.mockReturnValue({
       connectionState: 'disconnected',
       connect: mockConnect,
       disconnect: jest.fn(),
       error: null
-    } as any);
+    } as unknown as ReturnType<typeof useDevice>);
   });
 
   describe('Rendering', () => {
@@ -73,7 +73,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner />);
       
@@ -91,7 +91,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner />);
       
@@ -109,7 +109,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner />);
       
@@ -128,7 +128,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner />);
       
@@ -152,7 +152,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner maxDevices={5} />);
       
@@ -184,7 +184,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner />);
       
@@ -202,7 +202,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner />);
       
@@ -244,7 +244,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner onDeviceSelected={mockOnDeviceSelected} />);
       
@@ -264,7 +264,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner autoConnect={true} />);
       
@@ -284,7 +284,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       // First render as connecting
       mockUseDevice.mockReturnValue({
@@ -292,7 +292,7 @@ describe('DeviceScanner', () => {
         connect: mockConnect,
         disconnect: jest.fn(),
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useDevice>);
 
       const { rerender } = render(<DeviceScanner />);
       
@@ -308,7 +308,7 @@ describe('DeviceScanner', () => {
         connect: mockConnect,
         disconnect: jest.fn(),
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useDevice>);
       
       rerender(<DeviceScanner />);
       
@@ -325,7 +325,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner showRssi={true} />);
       
@@ -342,7 +342,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner showRssi={false} />);
       
@@ -365,7 +365,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: null
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner />);
       
@@ -381,7 +381,7 @@ describe('DeviceScanner', () => {
         stop: mockStop,
         clear: mockClear,
         error: new Error('Test error')
-      } as any);
+      } as unknown as ReturnType<typeof useScan>);
 
       render(<DeviceScanner />);
       

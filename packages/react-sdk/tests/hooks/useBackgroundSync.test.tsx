@@ -19,20 +19,20 @@ function makeRegistration(overrides: Partial<BackgroundRegistration> = {}): Back
 function makeMockBackgroundSync() {
   return {
     requestPermission: jest.fn<Promise<NotificationPermissionState>, []>().mockResolvedValue('granted'),
-    requestBackgroundConnection: jest.fn<Promise<BackgroundRegistration>, [any]>().mockResolvedValue(makeRegistration()),
-    registerCharacteristicNotifications: jest.fn<Promise<BackgroundRegistration>, [any]>().mockResolvedValue(
+    requestBackgroundConnection: jest.fn<Promise<BackgroundRegistration>, [object]>().mockResolvedValue(makeRegistration()),
+    registerCharacteristicNotifications: jest.fn<Promise<BackgroundRegistration>, [object]>().mockResolvedValue(
       makeRegistration({ id: 'reg-notif', type: 'characteristic-notification' }),
     ),
-    registerBeaconScanning: jest.fn<Promise<BackgroundRegistration>, [any]>().mockResolvedValue(
+    registerBeaconScanning: jest.fn<Promise<BackgroundRegistration>, [object]>().mockResolvedValue(
       makeRegistration({ id: 'reg-beacon', type: 'beacon-scan' }),
     ),
     getRegistrations: jest.fn<Promise<BackgroundRegistration[]>, []>().mockResolvedValue([]),
     unregister: jest.fn<Promise<void>, [string]>().mockResolvedValue(undefined),
-    update: jest.fn<Promise<void>, [string, any]>().mockResolvedValue(undefined),
+    update: jest.fn<Promise<void>, [string, object]>().mockResolvedValue(undefined),
     destroy: jest.fn(),
-    connect: jest.fn<Promise<BackgroundRegistration>, [any]>().mockResolvedValue(makeRegistration()),
-    subscribe: jest.fn<Promise<BackgroundRegistration>, [any]>().mockResolvedValue(makeRegistration()),
-    scan: jest.fn<Promise<BackgroundRegistration>, [any]>().mockResolvedValue(makeRegistration()),
+    connect: jest.fn<Promise<BackgroundRegistration>, [object]>().mockResolvedValue(makeRegistration()),
+    subscribe: jest.fn<Promise<BackgroundRegistration>, [object]>().mockResolvedValue(makeRegistration()),
+    scan: jest.fn<Promise<BackgroundRegistration>, [object]>().mockResolvedValue(makeRegistration()),
     list: jest.fn<Promise<BackgroundRegistration[]>, []>().mockResolvedValue([]),
   };
 }
@@ -40,7 +40,7 @@ function makeMockBackgroundSync() {
 function installSafariExtensionRuntime(backgroundSync: ReturnType<typeof makeMockBackgroundSync>) {
   Object.defineProperty(navigator, 'beacio', {
     value: {
-      ...((navigator as any).bluetooth as Record<string, unknown>),
+      ...((navigator as { bluetooth?: Record<string, object> }).bluetooth ?? {}),
       __beacio: true,
       backgroundSync,
     },
@@ -59,7 +59,7 @@ describe('useBackgroundSync Hook', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    originalBeacio = (navigator as any).beacio;
+    originalBeacio = (navigator as { beacio?: object }).beacio;
     mockBackgroundSync = makeMockBackgroundSync();
     installSafariExtensionRuntime(mockBackgroundSync);
   });

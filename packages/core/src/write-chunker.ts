@@ -164,7 +164,7 @@ export class WriteChunker {
             if (bytesWritten > 0 && bytesWritten < totalBytes) {
               throw new BeacioError(
                 'WRITE_INCOMPLETE',
-                `Write fragmented incomplete (${bytesWritten}/${totalBytes} bytes written): ${this.errorMessage(error)}`,
+                `Write fragmented incomplete (${bytesWritten}/${totalBytes} bytes written): ${this.errorMessage(error instanceof Error ? error : String(error))}`,
                 { retryAfterMs: 1000 },
               );
             }
@@ -212,7 +212,7 @@ export class WriteChunker {
         if (bytesWritten > 0 && bytesWritten < totalBytes) {
           throw new BeacioError(
             'WRITE_INCOMPLETE',
-            `Write incomplete (${bytesWritten}/${totalBytes} bytes written): ${this.errorMessage(error)}`,
+            `Write incomplete (${bytesWritten}/${totalBytes} bytes written): ${this.errorMessage(error instanceof Error ? error : String(error))}`,
           );
         }
         throw BeacioError.from(error);
@@ -330,7 +330,7 @@ export class WriteChunker {
     return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
   }
 
-  private errorMessage(error: unknown): string {
+  private errorMessage(error: Error | string): string {
     if (error instanceof Error) return error.message;
     return String(error);
   }

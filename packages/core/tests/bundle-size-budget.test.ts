@@ -45,10 +45,8 @@
  * binds on the real gzip size, not a tautology.
  *
  * jsdom; @jest/globals import style (project_jest_globals_import_gotcha).
- * @beacio/core's tsconfig does NOT pull in '@types/node' (see tests/setup.ts),
- * so Node builtins are reached via a locally-declared `require` (ts-jest emits
- * CommonJS) instead of `import … from 'node:*'` — no '@types/node' dependency,
- * no tsconfig change. Mirrors tests/browser-auto.test.ts.
+ * Node builtins via require() (ts-jest emits CommonJS), typed by @types/node
+ * through tests/tsconfig.json. Mirrors tests/browser-auto.test.ts.
  *
  * Run via
  *   npm --prefix packages/core test -- bundle-size-budget
@@ -57,9 +55,6 @@
  * (same posture as tests/browser-auto.test.ts).
  */
 import { beforeAll, describe, expect, it } from '@jest/globals';
-
-declare const require: (id: string) => any;
-declare const __dirname: string;
 
 const { existsSync, readFileSync } = require('fs');
 const { gzipSync } = require('zlib');

@@ -28,15 +28,6 @@ type RequestDeviceOptions = CoreRequestDeviceOptions;
 // Re-export error from core -- replaces compat-error.ts
 export { BeacioError } from '@beacio/core';
 
-/**
- * SDK wrapper around a GATT service. Avoids leaking raw
- * BluetoothRemoteGATTService in public types.
- */
-export interface BeacioGATTService {
-  uuid: string;
-  isPrimary: boolean;
-}
-
 // Configuration types — single source of truth for SDK configuration
 export interface BeacioConfig {
   /** API key from beacio.com (wbl_xxxxx) -- enables install prompt on iOS Safari */
@@ -228,7 +219,3 @@ export interface UseConnectionReturn {
   startRssiMonitoring: () => Promise<void>;
   stopRssiMonitoring: () => void;
 }
-
-// Utility types
-export type ValueParser<T = unknown> = (value: DataView) => T;
-export type ValueFormatter<T = unknown> = (value: T) => BufferSource;

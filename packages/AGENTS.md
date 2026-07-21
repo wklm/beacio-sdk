@@ -22,7 +22,7 @@ For explicit control:
 ```typescript
 import { beacio } from '@beacio/core';
 
-const ble = new beacio();
+const ble = new Beacio();
 const device = await ble.requestDevice({ filters: [{ services: ['heart_rate'] }] });
 await device.connect();
 const value = await device.read('heart_rate', 'heart_rate_measurement');
@@ -42,11 +42,10 @@ const value = await device.read('heart_rate', 'heart_rate_measurement');
 |---|---|
 | BLE in a web app (scan, connect, read/write) | `@beacio/core` |
 | React hooks for BLE | `@beacio/core` + `@beacio/react` |
-| iOS Safari detection / install banner | `@beacio/detect` |
-| Typed device profiles (heart rate, battery, etc.) | `@beacio/core` + `@beacio/profiles` |
+| iOS Safari detection / install banner | `@beacio/core` (import from `@beacio/core/detect`) |
+| Typed device profiles (heart rate, battery, etc.) | `@beacio/core` + `@beacio/core/profiles` |
 | AI agent MCP integration | `npx -y @beacio/mcp` |
 | CLI scaffolding | `npx beacio init` |
-| Mock BLE for testing | `@beacio/testing` |
 
 ## Package routing table
 
@@ -55,23 +54,19 @@ All packages are published under the `@beacio` scope on npm.
 | Package | Purpose |
 |---|---|
 | `@beacio/core` | Core SDK: scan, connect, read/write/subscribe. Transparent polyfill via `./auto` entry. |
-| `@beacio/profiles` | Pre-built device profiles (heart rate, battery, device info) |
+| `@beacio/core/profiles` | Pre-built device profiles (heart rate, battery, device info) |
 | `@beacio/react` | React hooks and components for BLE |
-| `@beacio/detect` | Detect iOS Safari extension, show install banner |
-| `@beacio/mcp` | MCP server for AI coding agents |
-| `@beacio/cli` | CLI scaffolding tool |
+| `@beacio/core/detect` | Detect iOS Safari extension, show install banner (subpath of `@beacio/core`) |
+| `@beacio/mcp` | MCP server for AI coding agents + the `beacio` scaffolding CLI (`npx beacio init`) |
 | `@beacio/skill` | Agent skill metadata |
-| `@beacio/testing` | Mock BLE API for unit/integration tests |
 
 ## Per-package instructions
 - [`packages/core/AGENTS.md`](packages/core/AGENTS.md) — BLE core SDK
-- [`packages/profiles/AGENTS.md`](packages/profiles/AGENTS.md) — typed device profiles
+- [`packages/core/src/profiles/AGENTS.md`](packages/core/src/profiles/AGENTS.md) — typed device profiles
 - [`packages/react-sdk/AGENTS.md`](packages/react-sdk/AGENTS.md) — React SDK
-- [`packages/detect/AGENTS.md`](packages/detect/AGENTS.md) — iOS extension detection
+- [`packages/core/detect/AGENTS.md`](packages/core/detect/AGENTS.md) — iOS extension detection
 - [`packages/mcp/AGENTS.md`](packages/mcp/AGENTS.md) — MCP server
-- [`packages/cli/AGENTS.md`](packages/cli/AGENTS.md) — CLI tool
 - [`packages/skill/AGENTS.md`](packages/skill/AGENTS.md) — Agent skill metadata
-- [`packages/testing/AGENTS.md`](packages/testing/AGENTS.md) — Testing mocks
 
 ## Security: Agent-Generated Code
 
