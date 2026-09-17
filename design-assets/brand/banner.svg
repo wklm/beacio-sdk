@@ -5,7 +5,8 @@
      aria-label="beacio — Web Bluetooth for iPhone Safari">
   <defs>
     <!--
-      Icon gradients: exact copy from website-src/partials/marketing-nav.html
+      Icon gradients verbatim from website-src/partials/marketing-nav.html.
+      Rendered at 96×96 = 3× the nav's 32×32, preserving exact ring geometry.
     -->
     <linearGradient id="navMarkBg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0A84FF"/>
@@ -19,21 +20,36 @@
   </defs>
 
   <!--
-    Horizontal lockup, centred in 820×160.
+    Colour tokens from beacio.com critical CSS (design system):
+      dark  ds-text-primary:  #F5F5F7
+      light ds-text:          #1D1D1F
+      dark  text-secondary:   #8E8E93
+      light text-secondary:   #5A5A5F  (WCAG-AA on white)
+  -->
+  <style>
+    .wordmark { fill: #1D1D1F; }
+    .tagline  { fill: #5A5A5F; }
+    @media (prefers-color-scheme: dark) {
+      .wordmark { fill: #F5F5F7; }
+      .tagline  { fill: #8E8E93; }
+    }
+  </style>
 
-    Icon native viewBox: 0 0 100 100  →  rendered at 64×64 (scale 0.64).
-    This matches the website nav's 32px icon at 2× density.
+  <!--
+    Layout — centred in 820×160, measured from headless-Chrome render of
+    marketing-nav.html at 3×:
+      Icon 96×96  gap 30  wordmark ~171px  →  total ~297px
+      Left edge of icon:  (820−297)/2 = 261.5 → 262
+      Left edge of text:  262+96+30 = 388
 
-    Lockup width breakdown (measured at font-size 40, Helvetica bold):
-      icon 64  +  gap 10  +  "beacio" ≈ 148px  =  222px total
-    Left edge of icon: (820 − 222) / 2 = 299
-    Left edge of text: 299 + 64 + 10  = 373
-
-    Icon vertical centre: 32 + 64/2 = 64  →  text y=64, dominant-baseline=middle
+    Vertical (lockup row only, ignoring tagline):
+      Icon row:   y=24 → y=120, centre y=72
+      Wordmark:   54px font, dominant-baseline=middle → y=72
+      Tagline:    below icon/text row, y=144 (24px below icon bottom at y=120)
   -->
 
-  <!-- Icon — exact geometry from marketing-nav.html, scaled to 64×64 -->
-  <g transform="translate(299, 32) scale(0.64)">
+  <!-- Icon: 96×96, exact nav geometry (viewBox 100 × scale 0.96) -->
+  <g transform="translate(262, 24) scale(0.96)">
     <rect width="100" height="100" rx="22" fill="url(#navMarkBg)"/>
     <circle cx="50" cy="50" r="24" fill="url(#navMarkGlow)"/>
     <circle cx="50" cy="50" r="33" fill="none" stroke="#FFFFFF" stroke-width="3.0" opacity=".45"/>
@@ -41,15 +57,30 @@
     <circle cx="50" cy="50" r="8.5" fill="#FFFFFF"/>
   </g>
 
-  <!-- Wordmark: font-weight 700, letter-spacing −0.02em (≈ −0.8px at 40px) -->
-  <text x="373" y="64"
-        font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif"
-        font-size="40" font-weight="700" letter-spacing="-0.8"
-        fill="#FFFFFF" dominant-baseline="middle">beacio</text>
+  <!--
+    Wordmark: exact font spec from beacio.com critical CSS:
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif
+      font-size: 18px → 54px (3×)
+      font-weight: 700
+      letter-spacing: -0.02em → -1.08px at 54px
+  -->
+  <text
+    class="wordmark"
+    x="388" y="72"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    font-size="54"
+    font-weight="700"
+    letter-spacing="-1.08"
+    dominant-baseline="middle">beacio</text>
 
-  <!-- Tagline — centred below the lockup -->
-  <text x="410" y="126"
-        font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif"
-        font-size="15" font-weight="400" letter-spacing="-0.15"
-        fill="#8B8B99" text-anchor="middle">Web Bluetooth for iPhone Safari</text>
+  <!-- Tagline centred below the lockup row -->
+  <text
+    class="tagline"
+    x="410" y="140"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif"
+    font-size="16"
+    font-weight="400"
+    letter-spacing="-0.32"
+    text-anchor="middle"
+    dominant-baseline="middle">Web Bluetooth for iPhone Safari</text>
 </svg>
