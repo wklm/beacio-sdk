@@ -1,47 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg"
-     width="820" height="200"
-     viewBox="0 0 820 200"
+     width="820" height="160"
+     viewBox="0 0 820 160"
      role="img"
      aria-label="beacio — Web Bluetooth for iPhone Safari">
   <defs>
-    <!-- App icon background gradient -->
-    <linearGradient id="iconBg" x1="0" y1="0" x2="0" y2="1">
+    <!--
+      Icon gradients: exact copy from website-src/partials/marketing-nav.html
+    -->
+    <linearGradient id="navMarkBg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#0A84FF"/>
       <stop offset="1" stop-color="#007AFF"/>
     </linearGradient>
-    <!-- Icon inner glow -->
-    <radialGradient id="iconGlow" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0"    stop-color="#FFFFFF" stop-opacity="0.55"/>
-      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.18"/>
+    <radialGradient id="navMarkGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0"    stop-color="#FFFFFF" stop-opacity="0.5"/>
+      <stop offset="0.55" stop-color="#FFFFFF" stop-opacity="0.16"/>
       <stop offset="1"    stop-color="#FFFFFF" stop-opacity="0"/>
     </radialGradient>
-    <!-- Subtle blue glow behind icon -->
-    <filter id="iconShadow" x="-40%" y="-40%" width="180%" height="180%">
-      <feDropShadow dx="0" dy="2" stdDeviation="8"
-                    flood-color="#007AFF" flood-opacity="0.40"/>
-    </filter>
   </defs>
 
-  <!-- Icon — centered at x=370..450, y=12..92 -->
-  <g transform="translate(370, 12)" filter="url(#iconShadow)">
-    <rect width="80" height="80" rx="18" ry="18" fill="url(#iconBg)"/>
-    <circle cx="40" cy="40" r="20" fill="url(#iconGlow)"/>
-    <circle cx="40" cy="40" r="27" fill="none" stroke="#FFFFFF"
-            stroke-width="2.4" opacity="0.45"/>
-    <circle cx="40" cy="40" r="18" fill="none" stroke="#FFFFFF"
-            stroke-width="2.7" opacity="0.66"/>
-    <circle cx="40" cy="40" r="6.5" fill="#FFFFFF"/>
+  <!--
+    Horizontal lockup, centred in 820×160.
+
+    Icon native viewBox: 0 0 100 100  →  rendered at 64×64 (scale 0.64).
+    This matches the website nav's 32px icon at 2× density.
+
+    Lockup width breakdown (measured at font-size 40, Helvetica bold):
+      icon 64  +  gap 10  +  "beacio" ≈ 148px  =  222px total
+    Left edge of icon: (820 − 222) / 2 = 299
+    Left edge of text: 299 + 64 + 10  = 373
+
+    Icon vertical centre: 32 + 64/2 = 64  →  text y=64, dominant-baseline=middle
+  -->
+
+  <!-- Icon — exact geometry from marketing-nav.html, scaled to 64×64 -->
+  <g transform="translate(299, 32) scale(0.64)">
+    <rect width="100" height="100" rx="22" fill="url(#navMarkBg)"/>
+    <circle cx="50" cy="50" r="24" fill="url(#navMarkGlow)"/>
+    <circle cx="50" cy="50" r="33" fill="none" stroke="#FFFFFF" stroke-width="3.0" opacity=".45"/>
+    <circle cx="50" cy="50" r="22" fill="none" stroke="#FFFFFF" stroke-width="3.4" opacity=".66"/>
+    <circle cx="50" cy="50" r="8.5" fill="#FFFFFF"/>
   </g>
 
-  <!-- Wordmark -->
-  <text x="410" y="131"
-        font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',Helvetica,Arial,sans-serif"
-        font-size="46" font-weight="700" letter-spacing="-1.5"
-        fill="#FFFFFF" text-anchor="middle">beacio</text>
+  <!-- Wordmark: font-weight 700, letter-spacing −0.02em (≈ −0.8px at 40px) -->
+  <text x="373" y="64"
+        font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif"
+        font-size="40" font-weight="700" letter-spacing="-0.8"
+        fill="#FFFFFF" dominant-baseline="middle">beacio</text>
 
-  <!-- Tagline -->
-  <text x="410" y="163"
-        font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display',Helvetica,Arial,sans-serif"
-        font-size="18" font-weight="400" letter-spacing="-0.2"
+  <!-- Tagline — centred below the lockup -->
+  <text x="410" y="126"
+        font-family="-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Helvetica,Arial,sans-serif"
+        font-size="15" font-weight="400" letter-spacing="-0.15"
         fill="#8B8B99" text-anchor="middle">Web Bluetooth for iPhone Safari</text>
 </svg>
