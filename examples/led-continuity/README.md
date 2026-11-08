@@ -1,6 +1,7 @@
 # Blink an LED
 
-[Open the demo](https://wklm.github.io/beacio-sdk/) on an iPhone with beacio.
+[Open the demo](https://wklm.github.io/beacio-sdk/) on an iPhone with [beacio](https://beacio.com),
+the Safari extension that brings Web Bluetooth to iOS.
 
 One page, two ways to blink a Bluetooth LED:
 
@@ -18,7 +19,8 @@ await device.subscribeAsync(SERVICE, LED, showLed); // the LED reports what it s
 await device.write(SERVICE, LED, Uint8Array.of(1)); // on (0 is off)
 
 // Or let beacio blink it every 2 seconds, with the page in the background:
-const led = await (await device.raw.gatt.getPrimaryService(SERVICE)).getCharacteristic(LED);
+const service = await device.raw.gatt.getPrimaryService(SERVICE);
+const led = await service.getCharacteristic(LED);
 const registration = await navigator.beacio.backgroundSync.requestBackgroundConnection({
   deviceId: device.id,
   program: { deviceId: device.id, characteristicId: led.id, activeWhen: 'always',
@@ -62,9 +64,9 @@ npm start
 
 It advertises service `0000FFF0-0000-1000-8000-00805F9B34FB` with one characteristic,
 `0000FFF1-0000-1000-8000-00805F9B34FB` (read, write with response, notify). It starts at `BE AC`,
-shown as Unknown. Write `01` for on and `00` for off; every write is notified back. Built on
-[`@stoprocent/bleno`](https://github.com/stoprocent/bleno) (MIT). Its install scripts are denied
-in `package.json`: the packages ship prebuilt binaries.
+so the page shows Connected until the LED reports on or off. Write `01` for on and `00` for off;
+every write is notified back. Built on [`@stoprocent/bleno`](https://github.com/stoprocent/bleno)
+(MIT). Its install scripts are denied in `package.json`: the packages ship prebuilt binaries.
 
 ## Good to know
 

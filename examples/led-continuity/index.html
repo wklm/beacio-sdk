@@ -10,19 +10,19 @@
     --panel: #E8EDF1; --ink: #1C2630; --muted: #5A6774; --rule: #C9D2DA;
     --bezel: #CDD5DC; --bezel-hi: #F7F9FB; --glass: #39434C; --glass-hi: #56626C;
     --amber: #FFB21C; --amber-hot: #FFE08A; --halo: rgba(255, 178, 28, .45);
-    --signal: #1746B5; --on-signal: #fff; --group: #F6F8FA;
+    --signal: #1746B5; --on-signal: #fff; --group: #F6F8FA; --stop: #C4001A;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --panel: #17212A; --ink: #E4EAF0; --muted: #95A3B0; --rule: #2C3944;
       --bezel: #26323C; --bezel-hi: #3A4752; --glass: #0E151B; --glass-hi: #222D36;
-      --signal: #79A2FF; --on-signal: #0D1830; --group: #1E2933;
+      --signal: #79A2FF; --on-signal: #0D1830; --group: #1E2933; --stop: #FF7A85;
     }
   }
   :root[data-theme="dark"] {
     --panel: #17212A; --ink: #E4EAF0; --muted: #95A3B0; --rule: #2C3944;
     --bezel: #26323C; --bezel-hi: #3A4752; --glass: #0E151B; --glass-hi: #222D36;
-    --signal: #79A2FF; --on-signal: #0D1830; --group: #1E2933;
+    --signal: #79A2FF; --on-signal: #0D1830; --group: #1E2933; --stop: #FF7A85;
   }
   * { box-sizing: border-box; }
   body {
@@ -31,17 +31,18 @@
   }
   main {
     max-width: 26rem; margin: 0 auto; overflow-x: clip; /* the halo may spill, the page may not scroll sideways */
-    padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   }
   h1, .word { font-family: ui-rounded, -apple-system, system-ui, sans-serif; }
-  h1 { font-size: 22px; font-weight: 650; margin: 0 0 4px; }
-  .lede { color: var(--muted); margin: 0; }
+  h1 { font-size: 22px; font-weight: 650; margin: 0 0 2px; }
+  .lede { color: var(--muted); font-size: 15px; margin: 0; }
   a { color: var(--signal); }
   :focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; }
 
   /* The lamp: a panel pilot light. It lights only when the LED reports 01. */
   .lamp {
-    position: relative; width: min(48vw, 200px); aspect-ratio: 1; margin: 28px auto 0; padding: 7%;
+    position: relative; width: min(42vw, clamp(120px, 22svh, 180px)); aspect-ratio: 1; margin: 18px auto 0; padding: 7%;
     border-radius: 50%; background: radial-gradient(circle at 50% 30%, var(--bezel-hi), var(--bezel) 70%);
     box-shadow: inset 0 2px 2px rgba(255, 255, 255, .35), inset 0 -3px 6px rgba(0, 0, 0, .22), 0 14px 28px -16px rgba(0, 0, 0, .5);
   }
@@ -63,42 +64,39 @@
   }
   .lamp[data-led="on"] .lens::after, .lamp[data-led="on"]::before { opacity: 1; }
   .lamp[data-led="none"] { opacity: .55; }
-  .readout { text-align: center; margin: 14px 0 24px; }
-  .word { display: block; font-size: 52px; font-weight: 600; line-height: 1.05; }
-  .lamp[data-led="none"] + .readout .word { font-size: 22px; line-height: 2.5; color: var(--muted); }
-  .readout small { font-size: 15px; color: var(--muted); }
+  .readout { text-align: center; margin: 8px 0 14px; }
+  .word { display: block; font-size: 44px; font-weight: 600; line-height: 46px; }
+  .readout small { display: block; font-size: 15px; color: var(--muted); min-height: 1.45em; }
+  /* Until the LED reports on or off, the word stays quiet: same height, no shouting. */
+  .lamp:is([data-led="none"], [data-led="unknown"]) + .readout .word { font-size: 22px; color: var(--muted); }
 
-  /* Mode choice: an iOS inset grouped list. */
+  /* Mode choice: an iOS inset grouped list. While it runs, the chosen mode stays bright. */
   fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
-  fieldset:disabled { opacity: .5; }
-  legend { font-size: 15px; color: var(--muted); padding: 0 16px 6px; }
+  legend { font-size: 13px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); padding: 0 16px 6px; }
   .group { background: var(--group); border-radius: 12px; overflow: hidden; }
-  .row { display: grid; grid-template-columns: 24px 1fr; gap: 2px 12px; padding: 14px 16px; min-height: 56px; cursor: pointer; }
+  .row { display: grid; grid-template-columns: 24px 1fr; gap: 0 12px; padding: 11px 16px; cursor: pointer; transition: opacity .2s; }
   .row + .row { border-top: 1px solid var(--rule); }
   .row input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--signal); }
   .row b { font-weight: 600; }
-  .row span { grid-column: 2; font-size: 15px; color: var(--muted); }
-  .row:has(input:disabled) { cursor: default; }
-  .row:has(input:disabled) b { color: var(--muted); }
+  .row span { grid-column: 2; font-size: 15px; line-height: 1.35; color: var(--muted); }
+  .row:has(:disabled) { opacity: .5; cursor: default; }
+  [data-running] .row:has(:checked) { opacity: 1; }
+  [data-running] .row:has(:checked) b { color: var(--signal); }
 
-  footer { margin: 28px 0 0; padding: 0 16px; font-size: 15px; }
-  footer a { display: block; padding: 6px 0; }
-
-  /* The one button, in the thumb zone. */
-  .dock {
-    position: sticky; bottom: 0; margin: 24px -16px 0;
-    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
-    background: linear-gradient(transparent, var(--panel) 24px);
-  }
+  /* The one button: Connect, then Start blinking, then Stop. */
   #go {
-    display: block; width: 100%; height: 56px; border: 0; border-radius: 14px;
+    display: block; width: 100%; height: 56px; margin: 16px 0 0; border: 0; border-radius: 14px;
     background: var(--signal); color: var(--on-signal); font: 600 17px/1 -apple-system, system-ui, sans-serif;
     cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
+  [data-running] #go { background: var(--group); color: var(--stop); box-shadow: inset 0 0 0 1.5px var(--rule); }
   #go:active { filter: brightness(.92); }
   #go:disabled { opacity: .6; cursor: default; }
-  #status { font-size: 15px; color: var(--muted); margin: 8px 4px 0; min-height: 2.9em; }
-  @media (prefers-reduced-motion: reduce) { .lens::after, .lamp::before { transition: none; } }
+  #status { font-size: 15px; color: var(--muted); margin: 10px 4px 0; min-height: 2.9em; }
+
+  footer { display: flex; justify-content: center; gap: 24px; margin-top: 8px; font-size: 15px; }
+  footer a { padding: 12px 0; } /* 44 pt tall targets */
+  @media (prefers-reduced-motion: reduce) { .lens::after, .lamp::before, .row { transition: none; } }
 </style>
 <script defer src="https://cdn.jsdelivr.net/npm/@beacio/core@2.2.0/dist/browser.global.js"
   integrity="sha384-uK/7FDka3ATzClhOhVBY+WCXAR4CkSlXVNL/wXopCI3TyyqweWpNYiYZaji31sDd"
@@ -106,38 +104,37 @@
 <script type="module" src="app.js"></script>
 </head>
 <body>
-<main>
+<main id="app">
   <h1>Blink an LED</h1>
-  <p class="lede">Start a Bluetooth LED blinking, lock your phone, and see which mode keeps it going.</p>
+  <p class="lede">Start it blinking, lock your phone, and see which mode keeps it going.</p>
 
+  <!-- Not a live region on purpose: announcing a blink every half second would drown VoiceOver. -->
   <div class="lamp" id="lamp" role="img" aria-label="LED not connected" data-led="none"><span class="lens"></span></div>
-  <p class="readout"><span class="word" id="word">Not connected</span> <small id="caption"></small></p>
+  <p class="readout" aria-hidden="true"><span class="word" id="word">Not connected</span><small id="caption"></small></p>
 
   <fieldset id="modes" disabled>
     <legend>Who keeps it blinking?</legend>
     <div class="group">
       <label class="row">
-        <input type="radio" name="mode" value="foreground" checked aria-labelledby="fg" aria-describedby="fg-d">
+        <input type="radio" name="mode" value="foreground" id="fg-input" checked aria-labelledby="fg" aria-describedby="fg-d">
         <b id="fg">Foreground only</b>
-        <span id="fg-d">The page sends each blink. Safari may slow or stop it when the page is hidden.</span>
+        <span id="fg-d">The page sends each blink. Safari may slow or stop it when hidden.</span>
       </label>
       <label class="row">
         <input type="radio" name="mode" value="background" id="bg-input" aria-labelledby="bg" aria-describedby="bg-d">
         <b id="bg">Background continuity</b>
-        <span id="bg-d">beacio keeps blinking while the page is hidden or the phone is locked.</span>
+        <span id="bg-d">beacio keeps blinking, even with the phone locked.</span>
       </label>
     </div>
   </fieldset>
 
-  <footer>
-    <a href="https://github.com/wklm/beacio-sdk/tree/main/examples/led-continuity#no-led-run-the-emulator">No LED? Run the emulator</a>
-    <a href="https://github.com/wklm/beacio-sdk/tree/main/examples/led-continuity">Source on GitHub</a>
-  </footer>
+  <button id="go" type="button">Connect</button>
+  <p id="status" role="status"><span id="msg">Turn on your LED, then tap Connect.</span> <a id="setup" href="https://beacio.com/setup" hidden>Set up beacio</a></p>
 
-  <div class="dock">
-    <button id="go" type="button">Connect</button>
-    <p id="status" role="status"><span id="msg">Turn on your LED, then tap Connect.</span> <a id="setup" href="https://beacio.com/setup" hidden>Set up beacio</a></p>
-  </div>
+  <footer>
+    <a href="https://github.com/wklm/beacio-sdk/tree/main/examples/led-continuity#no-led-run-the-emulator">No LED? Emulate one</a>
+    <a href="https://github.com/wklm/beacio-sdk/tree/main/examples/led-continuity">Source</a>
+  </footer>
 </main>
 </body>
 </html>

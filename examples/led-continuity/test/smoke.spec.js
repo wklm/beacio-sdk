@@ -42,7 +42,9 @@ function installDouble() {
     getPrimaryService: async () => service, getPrimaryServices: async () => [service],
   };
 
-  const registration = { id: 'r1', type: 'connection', async unregister() { ble.order.push('unregister'); ble.registered = false; } };
+  // unregister completes on a later macrotask, so Stop must await it before writing off.
+  const registration = { id: 'r1', type: 'connection',
+    unregister: () => later().then(() => { ble.order.push('unregister'); ble.registered = false; }) };
   const backgroundSync = {
     async requestBackgroundConnection(options) {
       ble.programs.push(structuredClone(options));
@@ -85,6 +87,7 @@ test('blinks in both modes and stops cleanly', async ({ page }) => {
   const connect = async () => {
     await page.getByRole('button', { name: 'Connect' }).click();
     await expect(lamp).toHaveAccessibleName(/LED (on|off|value unknown)/);
+    await expect(button).toHaveText(/Start blinking|Stop/); // connect() has finished and rendered
   };
 
   await test.step('connects from the tap', async () => {
@@ -140,6 +143,7 @@ test('blinks in both modes and stops cleanly', async ({ page }) => {
     await connect();
     await expect(button).toHaveText('Stop');
     await expect(page.getByRole('status')).toContainText('earlier visit');
+    await expect(page.getByRole('radio', { name: 'Background continuity' })).toBeChecked(); // the leftover is a program
     await button.click();
     await expect(button).toHaveText('Start blinking');
     expect(await ble('registered')).toBe(false);
@@ -149,6 +153,7 @@ test('blinks in both modes and stops cleanly', async ({ page }) => {
     await page.evaluate(() => sessionStorage.setItem('noPrograms', '1'));
     await page.reload();
     await connect();
+    await expect(page.getByRole('group')).toBeEnabled(); // so the radio below is disabled on its own
     await expect(page.getByRole('radio', { name: 'Background continuity' })).toBeDisabled();
     await expect(page.getByRole('radio', { name: 'Foreground only' })).toBeChecked();
     await button.click();

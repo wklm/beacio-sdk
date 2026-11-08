@@ -25,7 +25,8 @@ async function connect() {
     await device.subscribeAsync(SERVICE, LED, show, { autoRecover: false });
     show(await read());
     // The background program needs beacio's instance id of the characteristic, not its UUID.
-    ledId = (await (await device.raw.gatt.getPrimaryService(SERVICE)).getCharacteristic(LED)).id;
+    const service = await device.raw.gatt.getPrimaryService(SERVICE);
+    ledId = (await service.getCharacteristic(LED)).id;
     render((await leftoverProgram()) ? 'recovered' : 'connected');
   } catch (err) {
     device.disconnect();
@@ -46,7 +47,7 @@ function startForeground() {
   timer = setInterval(() => {
     if (inflight) return; // skip a tick rather than queue GATT writes
     inflight = write(next)
-      .then(() => { next ^= 1; }, (err) => {
+      .then(() => { next = next ? 0 : 1; }, (err) => {
         if (state !== 'foreground') return;
         clearInterval(timer);
         render(device.connected ? 'connected' : 'disconnected');
@@ -55,10 +56,6 @@ function startForeground() {
       .finally(() => { inflight = undefined; });
   }, 500);
   render('foreground');
-}
-
-function start() {
-  return $('bg-input').checked ? startBackground() : startForeground();
 }
 
 async function startBackground() {
@@ -93,21 +90,24 @@ function onDrop() {
 
 // The lamp shows only what the LED itself reported, by notification or read.
 function show(view) {
-  led = view.byteLength === 1 ? ({ 0: 'off', 1: 'on' })[view.getUint8(0)] ?? 'unknown' : 'unknown';
+  const byte = view.byteLength === 1 ? view.getUint8(0) : null;
+  led = { 1: 'on', 0: 'off' }[byte] ?? 'unknown'; // BE AC, or anything else, is unknown
   drawLamp();
 }
 
-const LAMP = { // the word under the lamp, and what a screen reader says
-  on: ['On', 'LED on'], off: ['Off', 'LED off'], unknown: ['Unknown', 'LED value unknown'],
-  none: ['Not connected', 'LED not connected'],
+const LAMP = {
+  none: { word: 'Not connected', label: 'LED not connected', caption: '' },
+  unknown: { word: 'Connected', label: 'LED value unknown', caption: 'waiting for the LED to report on or off' },
+  on: { word: 'On', label: 'LED on', caption: 'as reported by the LED' },
+  off: { word: 'Off', label: 'LED off', caption: 'as reported by the LED' },
 };
 
 function drawLamp() {
   const value = device?.connected ? led : 'none';
   $('lamp').dataset.led = value;
-  $('lamp').setAttribute('aria-label', LAMP[value][1]);
-  $('word').textContent = LAMP[value][0];
-  $('caption').textContent = value === 'none' ? '' : 'as reported by the LED';
+  $('lamp').setAttribute('aria-label', LAMP[value].label);
+  $('word').textContent = LAMP[value].word;
+  $('caption').textContent = LAMP[value].caption;
 }
 
 const BUTTON = { disconnected: 'Connect', unsupported: 'Connect', connected: 'Start blinking' };
@@ -122,13 +122,16 @@ const STATUS = {
 
 function render(next = state) {
   state = next;
+  const running = !BUTTON[state]; // foreground, background or recovered: the button is Stop
   const bg = $('bg-input');
   bg.disabled = Boolean(device) && !hasPrograms(); // only offer it when beacio supports programs
-  if (bg.disabled) document.querySelector('input[value="foreground"]').checked = true;
+  if (state === 'recovered') bg.checked = true; // a leftover is a background program
+  else if (bg.disabled) $('fg-input').checked = true;
   $('bg-d').textContent = bg.disabled
     ? 'Needs a beacio version with background programs.'
-    : 'beacio keeps blinking while the page is hidden or the phone is locked.';
+    : 'beacio keeps blinking, even with the phone locked.';
   $('modes').disabled = state !== 'connected';
+  $('app').toggleAttribute('data-running', running);
   $('go').textContent = BUTTON[state] ?? 'Stop';
   $('msg').textContent = STATUS[state];
   $('setup').hidden = state !== 'unsupported';
@@ -136,15 +139,21 @@ function render(next = state) {
 }
 
 function report(err) {
-  $('msg').textContent = [err.message ?? String(err), err.suggestion].filter(Boolean).join(' ');
+  $('msg').textContent = [err?.message ?? String(err), err?.suggestion].filter(Boolean).join(' ');
 }
 
-$('go').addEventListener('click', async () => { // one button: Connect, then Start blinking, then Stop
+$('go').addEventListener('click', async () => {
   const go = $('go');
   go.disabled = true;
-  try { await ({ disconnected: connect, unsupported: connect, connected: start }[state] ?? stop)(); }
-  catch (err) { report(err); }
-  finally { go.disabled = false; }
+  try {
+    if (state === 'disconnected' || state === 'unsupported') await connect(); // opens the chooser first
+    else if (state === 'connected') await ($('bg-input').checked ? startBackground() : startForeground());
+    else await stop();
+  } catch (err) {
+    report(err);
+  } finally {
+    go.disabled = false;
+  }
 });
 
 // Never stop on hide. On return, read the LED: the page could not see it while hidden.
