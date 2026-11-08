@@ -10,7 +10,7 @@ const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb';
 function installDouble() {
   const saved = (key) => sessionStorage.getItem(key) === '1';
   const ble = (window.__ble = { writes: [], order: [], programs: [], overlaps: 0, busy: false, failNext: false,
-    inTap: null, requestOptions: null,
+    failService: false, disconnects: 0, inTap: null, requestOptions: null,
     get registered() { return saved('registered'); },
     set registered(on) { on ? sessionStorage.setItem('registered', '1') : sessionStorage.removeItem('registered'); } });
   if (saved('noBluetooth')) return Object.defineProperty(navigator, 'bluetooth', { configurable: true, value: undefined });
@@ -57,7 +57,17 @@ function installDouble() {
   device.gatt = {
     device, get connected() { return connected; },
     async connect() { connected = true; return device.gatt; },
-    getPrimaryService: async () => service,
+    // As in Web Bluetooth: no-op when not connected; the event comes on a later task.
+    disconnect() {
+      if (!connected) return;
+      connected = false;
+      later().then(() => { ble.disconnects += 1; device.dispatchEvent(new Event('gattserverdisconnected')); });
+    },
+    async getPrimaryService() {
+      if (!ble.failService) return service;
+      ble.failService = false; // for example a 'Make it yours' service this LED does not have
+      throw new DOMException('No Services matching UUID found in Device.', 'NotFoundError');
+    },
   };
 
   // unregister completes on a later macrotask, so Stop must await it before writing off.
@@ -103,6 +113,8 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
   const card = page.locator('#now');
   const banner = page.getByRole('alert');
   const message = page.locator('#msg');
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
   const hideAndReturn = () => page.evaluate(() => {
     for (const hidden of [true, false]) {
       Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
@@ -145,6 +157,18 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     const workflow = await readFile(here('../../../.github/workflows/led-continuity-pages.yml'), 'utf8');
     const publish = workflow.split('\n').find((line) => line.includes('mkdir _site'));
     for (const file of served) expect(publish).toContain(` examples/led-continuity/${file} `);
+  });
+
+  await test.step('a connect that fails after gatt.connect() drops the link and keeps the error', async () => {
+    await page.evaluate(() => { window.__ble.failService = true; });
+    await page.getByRole('button', { name: 'Connect' }).click();
+    await expect.poll(() => ble('disconnects')).toBe(1); // the page dropped the half-made link
+    await expect(message).toHaveText('No Services matching UUID found in Device.'); // still, after the event
+    await hideAndReturn();
+    await expect(lamp).toHaveAccessibleName('LED not connected');
+    await expect(button).toHaveText('Connect');
+    await expect(steps).toHaveText([/^1Open the beacio app/, /^2Tap Connect/]);
+    expect(pageErrors).toEqual([]);
   });
 
   await test.step('connects from the tap', async () => {
@@ -257,5 +281,6 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     await expect(page.getByRole('link', { name: 'Set up beacio' })).toBeVisible();
     await expect(steps).toHaveText([/^1Open the beacio app/]);
     await expect(message).toBeEmpty();
+    expect(pageErrors).toEqual([]);
   });
 });

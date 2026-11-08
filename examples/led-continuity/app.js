@@ -9,10 +9,16 @@ let leftPage = false; // the page was hidden while it blinked (step 5 is done)
 
 async function connectLed() {
   if (!navigator.bluetooth) return render('unsupported'); // this browser has no Web Bluetooth
-  await connect(handleNotifications, onDisconnected); // opens the chooser at once, inside this tap
-  showValue(await characteristic.readValue());
-  if ((await leftoverPrograms()).length > 0) render('recovered');
-  else render('connected');
+  try {
+    await connect(handleNotifications, onDisconnected); // opens the chooser at once, inside this tap
+    showValue(await characteristic.readValue());
+    if ((await leftoverPrograms()).length > 0) render('recovered');
+    else render('connected');
+  } catch (error) {
+    // Any step failed, the leftover lookup too: drop the half-made link, show the error, Connect again.
+    device?.gatt.disconnect();
+    throw error;
+  }
 }
 
 // The blink programs beacio runs for this site, from this visit or an earlier one.
@@ -63,6 +69,7 @@ async function stop() {
 }
 
 function onDisconnected() {
+  if (state === 'disconnected') return drawLamp(); // a connect that failed: keep its error on screen
   if (state === 'foreground') stopBlinking();
   // A background program may still be registered: keep Stop on offer.
   if (state === 'background' || state === 'recovered') render();
