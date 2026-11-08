@@ -16,43 +16,50 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     defaults:
       run:
-        working-directory: examples/led-continuity
+        working-directory: examples/led-continuity/test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '24'
           cache: npm
-          cache-dependency-path: examples/led-continuity/package-lock.json
-      - run: npm ci --workspaces=false
-      - run: npm run build
+          cache-dependency-path: examples/led-continuity/test/package-lock.json
+      - run: npm ci
+      - run: node --check ../app.js
       - run: npx playwright install --with-deps chromium
-      - run: npm test
-      - uses: actions/upload-pages-artifact@v3
-        if: github.event_name != 'pull_request'
-        with:
-          path: examples/led-continuity/dist
+      - run: npx playwright test
 
   deploy:
     if: github.event_name != 'pull_request'
-    needs: build
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 10
     concurrency:
       group: github-pages
       cancel-in-progress: false
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/configure-pages@v5
-      - uses: actions/deploy-pages@v4
-        id: deployment
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Publish only the page: no README, test, emulator or lockfiles.
+      - run: mkdir _site && cp examples/led-continuity/index.html examples/led-continuity/app.js _site/
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
