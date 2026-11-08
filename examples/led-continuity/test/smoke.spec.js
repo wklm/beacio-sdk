@@ -1,47 +1,63 @@
-// One smoke test: the real page and the real published SDK file, against a Bluetooth double.
-// It does not prove radio behaviour or iOS background timing.
+// One smoke test: the real page against a stub of navigator.bluetooth, the standard Web Bluetooth API
+// plus beacio's backgroundSync. It does not prove radio behaviour or iOS background timing.
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
 const here = (path) => new URL(path, import.meta.url);
-const SDK = 'https://cdn.jsdelivr.net/npm/@beacio/core@2.2.0/dist/browser.global.js';
 const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb';
 
 // Runs in the page before app.js and blink.js. sessionStorage survives a reload, like a real registration.
 function installDouble() {
   const saved = (key) => sessionStorage.getItem(key) === '1';
-  const ble = (window.__ble = { writes: [], programs: [], order: [], inTap: null, requestOptions: null,
+  const ble = (window.__ble = { writes: [], order: [], programs: [], overlaps: 0, busy: false, failNext: false,
+    inTap: null, requestOptions: null,
     get registered() { return saved('registered'); },
     set registered(on) { on ? sessionStorage.setItem('registered', '1') : sessionStorage.removeItem('registered'); } });
-  let connected = false;
-  const later = (value) => new Promise((done) => setTimeout(done, 0, value)); // a real IPC round trip
+  if (saved('noBluetooth')) return Object.defineProperty(navigator, 'bluetooth', { configurable: true, value: undefined });
+  const later = (value, ms = 0) => new Promise((done) => setTimeout(done, ms, value)); // a real IPC round trip
 
-  const led = new EventTarget();
-  Object.assign(led, {
+  // One GATT operation at a time, as in Web Bluetooth: a second one while one is pending is rejected.
+  // A write takes longer than the page's 500 ms tick, so the page must skip a tick while one is pending.
+  async function gatt(operation) {
+    if (ble.busy) {
+      ble.overlaps += 1;
+      throw new DOMException('GATT operation already in progress.', 'NetworkError');
+    }
+    ble.busy = true;
+    try { return await operation(); } finally { ble.busy = false; }
+  }
+
+  let connected = false;
+  // The LED keeps its last value across visits; a new one starts at BE AC, like the emulator.
+  const last = JSON.parse(sessionStorage.getItem('led') ?? '[190, 172]');
+  const characteristic = Object.assign(new EventTarget(), {
     id: 'led-instance-id', uuid: '0000fff1-0000-1000-8000-00805f9b34fb', notifying: false,
-    properties: { read: true, write: true, writeWithoutResponse: false, notify: true },
-    value: new DataView(Uint8Array.of(0xbe, 0xac).buffer),
-    async readValue() { return led.value; },
-    async writeValueWithResponse(data) {
-      const bytes = Array.from(new Uint8Array(data.buffer ?? data, data.byteOffset ?? 0, data.byteLength));
+    value: new DataView(Uint8Array.from(last).buffer),
+    readValue: () => gatt(() => later(characteristic.value)),
+    writeValue: (data) => gatt(async () => {
+      const bytes = Array.from(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+      ble.order.push(`write:${bytes}`);
+      await later(undefined, 600);
+      if (ble.failNext) {
+        ble.failNext = false;
+        throw new DOMException('GATT Server is disconnected. Cannot perform GATT operations.', 'NetworkError');
+      }
       ble.writes.push(bytes);
-      ble.order.push(`write:${bytes[0]}`);
-      led.value = new DataView(Uint8Array.from(bytes).buffer);
+      sessionStorage.setItem('led', JSON.stringify(bytes));
+      characteristic.value = new DataView(Uint8Array.from(bytes).buffer);
       // Echo, like the emulator. While beacio runs a value can arrive twice, so send it twice.
-      if (led.notifying) led.dispatchEvent(new Event('characteristicvaluechanged'));
-      if (led.notifying) led.dispatchEvent(new Event('characteristicvaluechanged'));
-    },
-    async writeValue(data) { return led.writeValueWithResponse(data); },
-    async startNotifications() { led.notifying = true; return led; },
-    async stopNotifications() { led.notifying = false; return led; },
+      for (let i = 0; i < 2; i += 1) {
+        if (characteristic.notifying) characteristic.dispatchEvent(new Event('characteristicvaluechanged'));
+      }
+    }),
+    async startNotifications() { characteristic.notifying = true; return characteristic; },
   });
-  const service = { uuid: '0000fff0-0000-1000-8000-00805f9b34fb', getCharacteristic: async () => led, getCharacteristics: async () => [led] };
+  const service = { uuid: '0000fff0-0000-1000-8000-00805f9b34fb', getCharacteristic: async () => characteristic };
   const device = Object.assign(new EventTarget(), { id: 'led-device', name: 'EmulatedPeripheral' });
   device.gatt = {
     device, get connected() { return connected; },
     async connect() { connected = true; return device.gatt; },
-    disconnect() { connected = false; device.dispatchEvent(new Event('gattserverdisconnected')); },
-    getPrimaryService: async () => service, getPrimaryServices: async () => [service],
+    getPrimaryService: async () => service,
   };
 
   // unregister completes on a later macrotask, so Stop must await it before writing off.
@@ -54,21 +70,17 @@ function installDouble() {
       ble.registered = true;
       return registration;
     },
-    getRegistrations: () => later(ble.registered ? [registration] : []),
+    getRegistrations: () => later(ble.registered ? [registration, { id: 'p1', type: 'periodic' }] : []),
   };
-  if (!saved('noPrograms')) backgroundSync.declareProgram = async () => ({});
   const bluetooth = {
-    __beacio: true, backgroundSync,
-    getAvailability: () => later(true),
-    getDevices: () => later([device]),
     async requestDevice(options) {
       ble.requestOptions = options;
       ble.inTap = window.event?.type === 'click'; // called during the tap itself, before any await
       return device;
     },
   };
+  if (!saved('noPrograms')) bluetooth.backgroundSync = backgroundSync;
   Object.defineProperty(navigator, 'bluetooth', { configurable: true, value: bluetooth });
-  Object.defineProperty(navigator, 'beacio', { configurable: true, value: bluetooth });
 }
 
 test('guides each step, blinks in both modes and stops cleanly', async ({ page }) => {
@@ -82,22 +94,25 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     served.push(file);
     await route.fulfill({ body, contentType: file.endsWith('.js') ? 'text/javascript' : 'text/html' });
   });
-  // The published npm file, served at the CDN URL: Chromium enforces the page's SRI hash on it.
-  await page.route(SDK, async (route) => route.fulfill({
-    body: await readFile(here('node_modules/@beacio/core/dist/browser.global.js')),
-    contentType: 'application/javascript', headers: { 'access-control-allow-origin': '*' },
-  }));
   await page.addInitScript(installDouble);
   const ble = (key) => page.evaluate((k) => window.__ble[k], key);
+  const flag = (key) => page.evaluate((k) => sessionStorage.setItem(k, '1'), key);
   const button = page.locator('#go');
   const lamp = page.getByRole('img', { name: /^LED/ });
   const steps = page.locator('#steps li.now');
   const card = page.locator('#now');
   const banner = page.getByRole('alert');
+  const message = page.locator('#msg');
+  const hideAndReturn = () => page.evaluate(() => {
+    for (const hidden of [true, false]) {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }
+  });
   const connect = async () => {
     await page.getByRole('button', { name: 'Connect' }).click();
     await expect(lamp).toHaveAccessibleName(/LED (on|off|value unknown)/);
-    await expect(button).toHaveText(/Start blinking|Stop/); // connect() has finished and rendered
+    await expect(button).toHaveText(/Start blinking|Stop/); // connectLed() has finished and rendered
   };
 
   await test.step('the README pictures are the ones on the page', async () => {
@@ -141,7 +156,7 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     await expect(steps).toHaveText([/^3Pick/, /^4Tap Start/]);
   });
 
-  await test.step('foreground only: the page blinks every 500 ms', async () => {
+  await test.step('foreground only: the page blinks, one write at a time, and Stop waits for the one in flight', async () => {
     await button.click();
     await expect(lamp).toHaveAccessibleName('LED on'); // from the echoed notification, delivered twice
     await expect(steps).toHaveText([/^5Leave Safari/]);
@@ -149,6 +164,11 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     await expect(card).toContainText('Foreground only: it slows, then stops.');
     await expect.poll(async () => (await ble('writes')).length).toBeGreaterThanOrEqual(3);
     expect((await ble('writes')).slice(0, 3)).toEqual([[1], [0], [1]]);
+    await expect(lamp).toHaveAccessibleName(/LED (on|off)/); // the lamp follows each notified value
+    await page.waitForFunction(() => window.__ble.busy); // a write is in flight
+    await hideAndReturn(); // the page must not read now: that read would overlap the write
+    await expect(steps).toHaveText([/^6Come back/, /^7Tap Stop/]);
+    await page.waitForFunction(() => window.__ble.busy);
     await page.getByRole('button', { name: 'Stop' }).click();
     await expect(button).toHaveText('Start blinking');
     const count = (await ble('writes')).length;
@@ -156,7 +176,9 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     const writes = await ble('writes');
     expect(writes.length).toBe(count);
     expect(writes.at(-1)).toEqual([0]);
+    expect(await ble('overlaps')).toBe(0); // no write ever started while another was pending
     await expect(lamp).toHaveAccessibleName('LED off');
+    await expect(message).toBeEmpty();
   });
 
   await test.step('background continuity: beacio runs the program; Stop unregisters before off', async () => {
@@ -167,12 +189,7 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
       deviceId: 'led-device', characteristicId: 'led-instance-id', activeWhen: 'always',
       cycle: { frames: [[1], [0]], timer: { cadence: 'uniform', everyMs: 2000 } } } }]);
     const writes = (await ble('writes')).length;
-    await page.evaluate(() => {
-      for (const hidden of [true, false]) {
-        Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
-        document.dispatchEvent(new Event('visibilitychange'));
-      }
-    });
+    await hideAndReturn();
     await page.waitForTimeout(650);
     expect((await ble('writes')).length).toBe(writes); // the page itself writes nothing
     expect(await ble('registered')).toBe(true); // hiding the page never stops it
@@ -194,13 +211,14 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     expect(await ble('registered')).toBe(false);
     await expect(button).toHaveText('Connect');
     // Not connected, so no off was sent: the page says so instead of looking like a fresh load.
-    expect((await ble('order')).at(-1)).toBe('unregister');
-    await expect(page.locator('#msg')).toHaveText('Stopped. The LED keeps its last state.');
+    expect(await ble('order')).toEqual(['unregister']);
+    await expect(message).toHaveText('Stopped. The LED keeps its last state.');
   });
 
   await test.step('a program found on connect must be stopped first, then off', async () => {
     await page.evaluate(() => { window.__ble.registered = true; });
     await connect();
+    await expect(lamp).toHaveAccessibleName('LED off'); // read on connect: the LED kept its last value
     await expect(banner).toContainText('still running');
     await expect(page.getByRole('radio', { name: 'Background continuity' })).toBeChecked(); // the leftover is a program
     await page.getByRole('button', { name: 'Stop' }).click();
@@ -209,8 +227,8 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     expect((await ble('order')).slice(-2)).toEqual(['unregister', 'write:0']);
   });
 
-  await test.step('without program support, only foreground is offered', async () => {
-    await page.evaluate(() => sessionStorage.setItem('noPrograms', '1'));
+  await test.step('without backgroundSync, only foreground is offered', async () => {
+    await flag('noPrograms');
     await page.reload();
     await connect();
     await expect(page.getByRole('group')).toBeEnabled(); // so the radio below is disabled on its own
@@ -220,5 +238,24 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     await expect(lamp).toHaveAccessibleName('LED on');
     await page.getByRole('button', { name: 'Stop' }).click();
     await expect(button).toHaveText('Start blinking');
+  });
+
+  await test.step('a failed write stops the page blinking and shows the error', async () => {
+    await button.click();
+    await page.evaluate(() => { window.__ble.failNext = true; });
+    await expect(message).toHaveText('GATT Server is disconnected. Cannot perform GATT operations.');
+    await expect(button).toHaveText('Start blinking');
+    const count = (await ble('writes')).length;
+    await page.waitForTimeout(1300);
+    expect((await ble('writes')).length).toBe(count); // the timer stopped
+  });
+
+  await test.step('without navigator.bluetooth, Connect points to the setup', async () => {
+    await flag('noBluetooth');
+    await page.reload();
+    await button.click();
+    await expect(page.getByRole('link', { name: 'Set up beacio' })).toBeVisible();
+    await expect(steps).toHaveText([/^1Open the beacio app/]);
+    await expect(message).toBeEmpty();
   });
 });
