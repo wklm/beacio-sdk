@@ -112,6 +112,8 @@ async function stop() {
     render('connected');
   } else {
     render('disconnected');
+    // Not connected, so no off was sent. Say so, or this looks like a fresh load.
+    $('msg').textContent = 'Stopped. The LED keeps its last state.';
   }
 }
 

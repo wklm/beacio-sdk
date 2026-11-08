@@ -109,7 +109,9 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     await page.goto('https://led.test/');
     await expect(lamp).toHaveAccessibleName('LED not connected');
     await expect(page.locator('#steps li')).toHaveCount(7);
-    await expect(page.locator('#steps .see')).toHaveText(Array(7).fill(/^You see /));
+    // Each step says what you see; step 5, with the page hidden, says to watch the LED itself.
+    await expect(page.locator('#steps .see')).toHaveText([
+      /^You see /, /^You see /, /^You see /, /^You see /, /^Watch the LED\. /, /^You see /, /^You see /]);
     await expect(steps).toHaveText([/^1Open the beacio app/, /^2Tap Connect/]);
     await expect(card).toContainText('Tap Connect');
     await expect(page.getByRole('img', { name: /^Who does what: this page/ })).toBeVisible();
@@ -132,6 +134,7 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     await expect(lamp).toHaveAccessibleName('LED on'); // from the echoed notification, delivered twice
     await expect(steps).toHaveText([/^5Leave Safari/]);
     await expect(card).toContainText('Leave Safari');
+    await expect(card).toContainText('Foreground only: it slows, then stops.');
     await expect.poll(async () => (await ble('writes')).length).toBeGreaterThanOrEqual(3);
     expect((await ble('writes')).slice(0, 3)).toEqual([[1], [0], [1]]);
     await page.getByRole('button', { name: 'Stop' }).click();
@@ -162,6 +165,7 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     expect((await ble('writes')).length).toBe(writes); // the page itself writes nothing
     expect(await ble('registered')).toBe(true); // hiding the page never stops it
     await expect(steps).toHaveText([/^6Come back/, /^7Tap Stop/]);
+    await expect(card).toContainText('Leaving the page never stops a background program.');
     await button.click();
     await expect(button).toHaveText('Start blinking');
     expect((await ble('order')).slice(-3)).toEqual(['register', 'unregister', 'write:0']);
@@ -177,6 +181,9 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     await expect(banner).toBeHidden();
     expect(await ble('registered')).toBe(false);
     await expect(button).toHaveText('Connect');
+    // Not connected, so no off was sent: the page says so instead of looking like a fresh load.
+    expect((await ble('order')).at(-1)).toBe('unregister');
+    await expect(page.locator('#msg')).toHaveText('Stopped. The LED keeps its last state.');
   });
 
   await test.step('a program found on connect must be stopped first, then off', async () => {

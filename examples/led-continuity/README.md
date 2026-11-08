@@ -14,11 +14,14 @@ One page, two ways to blink a Bluetooth LED:
 2. **Tap Connect and choose your LED** (or **EmulatedPeripheral**). You see the lamp on the page say Connected, On or Off.
 3. **Pick who keeps it blinking:** Foreground only or Background continuity. You see your choice ticked.
 4. **Tap Start blinking.** You see the LED and the lamp blink.
-5. **Leave Safari or lock the phone.** You see Foreground slow down and stop. Background keeps its 2 s rhythm.
+5. **Leave Safari or lock the phone.** Watch the LED. Foreground only: it slows, then stops. Background continuity:
+   it keeps blinking every 2 s.
 6. **Come back to the page.** You see the lamp catch up. Coming back does not stop a background program.
-7. **Tap Stop.** You see the LED turn off. **Leaving the page does not stop a background program**: it keeps
-   running, even for hours, until you tap Stop. If you leave one running, the page shows
+7. **Tap Stop.** You see the LED turn off if the page is connected. **Leaving the page does not stop a background
+   program**: it keeps running, even for hours, until you tap Stop. If you leave one running, the page shows
    "A blink program from your last visit is still running" with a Stop button the next time you open it.
+   That Stop ends the program, but the page is not connected yet, so it cannot send off. The page says
+   "Stopped. The LED keeps its last state." Connect, then Start blinking and Stop, to turn the LED off.
 
 The page highlights the step you are on.
 
@@ -39,7 +42,7 @@ A sketch, not a measurement: how soon Safari slows and pauses a hidden page vari
 
 - **2 s on, 2 s off.** 2000 ms is the time between commands and beacio's current minimum, not an iOS limit.
   A faster program is rejected, not slowed down.
-- **Coming back doesn't stop it.** Only Stop does: it unregisters the program, then the page sends off.
+- **Coming back doesn't stop it.** Only Stop does: it unregisters the program, then the page sends off if it is connected.
 - **Best effort.** If iOS ends the beacio app or the Bluetooth link drops, blinks can be late or missed.
 - **Twice is fine.** While beacio runs, a notified value can arrive twice. The lamp shows the value,
   not a count, so it stays right.

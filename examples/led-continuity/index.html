@@ -186,9 +186,9 @@
     <li data-step="2"><span class="n">2</span><p class="do">Tap Connect and choose your LED.</p><p class="see">You see the lamp say Connected, On or Off.</p></li>
     <li data-step="3"><span class="n">3</span><p class="do">Pick who keeps it blinking.</p><p class="see">You see your choice ticked.</p></li>
     <li data-step="4"><span class="n">4</span><p class="do">Tap Start blinking.</p><p class="see">You see the LED and the lamp blink.</p></li>
-    <li data-step="5"><span class="n">5</span><p class="do">Leave Safari or lock the phone.</p><p class="see">You see Foreground slow down and stop. Background keeps its 2 s rhythm.</p></li>
+    <li data-step="5"><span class="n">5</span><p class="do">Leave Safari or lock the phone.</p><p class="see">Watch the LED. Foreground only: it slows, then stops. Background continuity: it keeps blinking every 2 s.</p></li>
     <li data-step="6"><span class="n">6</span><p class="do">Come back to this page.</p><p class="see">You see the lamp catch up, still blinking.</p></li>
-    <li data-step="7"><span class="n">7</span><p class="do">Tap Stop.</p><p class="see">You see the LED turn off. Leaving the page never stops it.</p></li>
+    <li data-step="7"><span class="n">7</span><p class="do">Tap Stop.</p><p class="see">You see the LED turn off if connected. Leaving the page never stops a background program.</p></li>
   </ol>
 
   <h2>Who does what</h2>
@@ -255,7 +255,7 @@
   <ul class="facts">
     <li><b>2 s on, 2 s off.</b> 2000 ms is the time between commands and beacio’s current minimum, not an iOS limit.
       A faster program is rejected, not slowed down.</li>
-    <li><b>Coming back doesn’t stop it.</b> Only Stop does: it unregisters the program, then the page sends off.</li>
+    <li><b>Coming back doesn’t stop it.</b> Only Stop does: it unregisters the program, then the page sends off if it is connected.</li>
     <li><b>Best effort.</b> If iOS ends the beacio app or the Bluetooth link drops, blinks can be late or missed.</li>
     <li><b>Twice is fine.</b> While beacio runs, a notified value can arrive twice. The lamp shows the value, so it stays right.</li>
   </ul>
