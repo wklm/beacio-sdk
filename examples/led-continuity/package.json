@@ -19,8 +19,8 @@
   },
   "devDependencies": {
     "@playwright/test": "1.65.0",
+    "@stoprocent/bleno": "0.13.1",
     "@types/web-bluetooth": "0.0.21",
-    "simplejsble": "^1.4.0",
     "typescript": "7.0.2",
     "vite": "8.3.6"
   }

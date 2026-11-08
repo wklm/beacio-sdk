@@ -17,13 +17,18 @@ Its characteristic `0000FFF1-0000-1000-8000-00805F9B34FB` must support reading, 
 - Write `01`: store the value and notify subscribers; displayed as On.
 - Write `00`: store the value and notify subscribers; displayed as Off.
 
-Start the emulator on a separate nearby computer (macOS, Linux, or Windows), or use hardware implementing this contract:
+Start the emulator on a separate nearby Mac or Linux computer, or use hardware implementing this contract:
 
 ```sh
+cd examples/led-continuity
+npm ci --workspaces=false
 npm run emulator
 ```
 
-The emulator script (`emulate-peripheral.mjs`) uses `simplejsble` to advertise as **EmulatedPeripheral** and manage the required GATT service, characteristic reads/writes, and notifications.
+`emulate-peripheral.mjs` uses [`@stoprocent/bleno`](https://github.com/stoprocent/bleno) (MIT) to advertise as **EmulatedPeripheral** and serve this contract: reads return the stored value, and every write is stored, then notified to subscribers.
+
+- **macOS:** allow Bluetooth for your terminal app in System Settings > Privacy & Security > Bluetooth.
+- **Linux:** bleno drives the adapter over raw HCI. Stop `bluetoothd` (`sudo systemctl stop bluetooth`), then either run with `sudo` or grant Node raw-socket access once: `sudo setcap cap_net_raw+eip "$(readlink -f "$(command -v node)")"`.
 
 The page itself does not create a Bluetooth peripheral. Its indicator shows the last value received from the peripheral and refreshes with a read when the page becomes visible. These payloads are specific to this emulation; real devices may require another service, characteristic and command format.
 

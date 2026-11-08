@@ -1,90 +1,101 @@
 #!/usr/bin/env node
-import { Adapter } from 'simplejsble';
+// Emulates the BLE peripheral the LED continuity demo expects (contract in README.md):
+// service FFF0, characteristic FFF1 with read, write (with response) and notify.
+// Runs on macOS or Linux through @stoprocent/bleno (MIT).
+import bleno from '@stoprocent/bleno';
+
+const { Characteristic, PrimaryService } = bleno;
 
 const SERVICE_UUID = '0000FFF0-0000-1000-8000-00805F9B34FB';
-const CHAR_UUID = '0000FFF1-0000-1000-8000-00805F9B34FB';
+const CHARACTERISTIC_UUID = '0000FFF1-0000-1000-8000-00805F9B34FB';
 const DEVICE_NAME = 'EmulatedPeripheral';
+const POWER_ON_TIMEOUT_MS = 10_000;
+
+const ON = Buffer.from([0x01]);
+const OFF = Buffer.from([0x00]);
+
+// Initial value BE AC, which the page displays as Unknown.
+let value = Buffer.from([0xbe, 0xac]);
+// Subscribed centrals: connection handle -> bleno's notify callback.
+const subscribers = new Map();
+
+const describe = (bytes) =>
+  bytes.equals(ON) ? 'On (01)' : bytes.equals(OFF) ? 'Off (00)' : `unknown (${bytes.toString('hex').toUpperCase()})`;
+
+const led = new Characteristic({
+  uuid: CHARACTERISTIC_UUID,
+  properties: ['read', 'write', 'notify'],
+  onReadRequest(_handle, offset, callback) {
+    if (offset > value.length) {
+      callback(Characteristic.RESULT_INVALID_OFFSET);
+      return;
+    }
+    callback(Characteristic.RESULT_SUCCESS, value.subarray(offset));
+  },
+  onWriteRequest(_handle, data, offset, _withoutResponse, callback) {
+    if (offset !== 0) {
+      callback(Characteristic.RESULT_ATTR_NOT_LONG);
+      return;
+    }
+    // Store the value, notify every subscriber, then acknowledge the write.
+    value = Buffer.from(data);
+    console.log(`[write] ${describe(value)}`);
+    for (const notify of subscribers.values()) notify(value);
+    callback(Characteristic.RESULT_SUCCESS);
+  },
+  onSubscribe(handle, _maxValueSize, notify) {
+    subscribers.set(handle, notify);
+    console.log('[*] Central subscribed to notifications');
+  },
+  onUnsubscribe(handle) {
+    subscribers.delete(handle);
+    console.log('[*] Central unsubscribed from notifications');
+  },
+});
+
+bleno.on('accept', (address) => console.log(`[+] Central connected: ${address}`));
+bleno.on('disconnect', (address, handle) => {
+  subscribers.delete(handle);
+  console.log(`[-] Central disconnected: ${address}`);
+});
+
+let stopping = false;
+async function shutdown(code = 0) {
+  if (stopping) return;
+  stopping = true;
+  console.log('\nStopping peripheral...');
+  try {
+    await bleno.stopAdvertisingAsync();
+  } catch {
+    // Advertising may not have started; nothing else to undo.
+  }
+  bleno.stop();
+  process.exit(code);
+}
 
 async function main() {
-  const adapters = await Adapter.getAdapters();
-  if (!adapters.length) {
-    console.error('No Bluetooth adapters available.');
+  try {
+    await bleno.waitForPoweredOnAsync(POWER_ON_TIMEOUT_MS);
+  } catch {
+    console.error(`Bluetooth is not powered on (state: ${bleno.state}).`);
+    console.error('macOS: turn Bluetooth on and allow it for this terminal app in System Settings > Privacy & Security > Bluetooth.');
+    console.error('Linux: stop bluetoothd and give Node raw-socket access; see README.md.');
     process.exit(1);
   }
 
-  const adapter = adapters[0];
-  console.log(`Using Bluetooth adapter: ${adapter.identifier()}`);
+  await bleno.startAdvertisingAsync(DEVICE_NAME, [SERVICE_UUID]);
+  await bleno.setServicesAsync([new PrimaryService({ uuid: SERVICE_UUID, characteristics: [led] })]);
 
-  const peripheral = adapter.createLocalPeripheral();
-  peripheral.setAdvertisementLocalName(DEVICE_NAME);
-  peripheral.addAdvertisedService(SERVICE_UUID);
+  console.log(`Peripheral "${DEVICE_NAME}" is advertising.`);
+  console.log(`  Service:        ${SERVICE_UUID}`);
+  console.log(`  Characteristic: ${CHARACTERISTIC_UUID} (value ${value.toString('hex').toUpperCase()})`);
+  console.log('Keep this running while you test from Safari on iPhone. Press Ctrl+C to stop.');
 
-  const service = peripheral.addService(SERVICE_UUID);
-  const characteristic = service.addCharacteristic(CHAR_UUID, [
-    'read',
-    'writeRequest',
-    'writeCommand',
-    'notify',
-  ]);
-
-  // Initial fixture value: 0xBE, 0xAC ("Unknown" in the web UI)
-  await characteristic.setValue(Buffer.from([0xbe, 0xac]));
-
-  peripheral.on('clientConnected', (client) => {
-    console.log(`[+] Central connected: ${client}`);
-  });
-
-  peripheral.on('clientDisconnected', (client) => {
-    console.log(`[-] Central disconnected: ${client}`);
-  });
-
-  characteristic.on('write', async (value) => {
-    const hex = value.toString('hex').toUpperCase();
-    const state = value.equals(Buffer.from([0x01]))
-      ? 'ON (01)'
-      : value.equals(Buffer.from([0x00]))
-      ? 'OFF (00)'
-      : `CUSTOM (${hex})`;
-
-    console.log(`[WRITE] State updated to ${state}`);
-    // Update local value and publish notification to subscribed centrals
-    await characteristic.setValue(value);
-  });
-
-  characteristic.on('subscribed', () => {
-    console.log('[*] Central subscribed to characteristic notifications');
-  });
-
-  characteristic.on('unsubscribed', () => {
-    console.log('[*] Central unsubscribed from notifications');
-  });
-
-  await peripheral.start();
-
-  console.log('\n======================================================');
-  console.log(` Peripheral "${DEVICE_NAME}" is active and advertising `);
-  console.log(` Service:        ${SERVICE_UUID}`);
-  console.log(` Characteristic: ${CHAR_UUID}`);
-  console.log('======================================================');
-  console.log('Keep this process running while testing from Safari on iOS.');
-  console.log('Press Ctrl+C to stop.\n');
-
-  const shutdown = async () => {
-    console.log('\nStopping peripheral...');
-    try {
-      await peripheral.stop();
-      await adapter.close();
-    } catch {
-      // Ignore teardown errors during exit
-    }
-    process.exit(0);
-  };
-
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', () => void shutdown());
+  process.on('SIGTERM', () => void shutdown());
 }
 
-main().catch((err) => {
-  console.error('Fatal error starting peripheral:', err);
-  process.exit(1);
+main().catch((error) => {
+  console.error('Could not start the peripheral:', error);
+  void shutdown(1);
 });
