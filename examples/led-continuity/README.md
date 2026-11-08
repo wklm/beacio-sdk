@@ -1,94 +1,89 @@
-# LED continuity
+# Blink an LED
 
-[Open the demo](https://wklm.github.io/beacio-sdk/)
+[Open the demo](https://wklm.github.io/beacio-sdk/) on an iPhone with beacio.
 
-A small TypeScript app comparing two ways to alternate a Bluetooth LED command:
+One page, two ways to blink a Bluetooth LED:
 
-- **Foreground only:** the webpage alternates on/off every 500 ms. Safari may slow or suspend its timer when the page is hidden.
-- **Background continuity:** beacio executes a declared repeating sequence, targeting 2 seconds on and 2 seconds off while the webpage is visible or hidden. This requires the beacio extension with background program support and a prepared companion-app session.
+- **Foreground only.** The page sends each on and off itself. Safari may slow or stop it when the page is hidden.
+- **Background continuity.** The page hands beacio a tiny program, and beacio keeps blinking while the page is hidden or the phone is locked.
 
-## Connect an emulated peripheral
+Start one, lock your phone, and watch the LED.
 
-The page needs a nearby BLE peripheral advertising service `0000FFF0-0000-1000-8000-00805F9B34FB`. The demo uses the advertised name **EmulatedPeripheral**; discovery filters by service, so another name also works.
+## The code that matters
 
-Its characteristic `0000FFF1-0000-1000-8000-00805F9B34FB` must support reading, writing with response and notifications:
+```js
+const device = await new Beacio().requestDevice({ filters: [{ services: [SERVICE] }] });
+await device.connect();
+await device.subscribeAsync(SERVICE, LED, showLed); // the LED reports what it shows
+await device.write(SERVICE, LED, Uint8Array.of(1)); // on (0 is off)
 
-- Initial value: `BE AC`, displayed as Unknown.
-- Write `01`: store the value and notify subscribers; displayed as On.
-- Write `00`: store the value and notify subscribers; displayed as Off.
-
-Start the emulator on a separate nearby Mac or Linux computer, or use hardware implementing this contract:
-
-```sh
-cd examples/led-continuity
-npm ci --workspaces=false
-npm run emulator
-```
-
-`emulate-peripheral.mjs` uses [`@stoprocent/bleno`](https://github.com/stoprocent/bleno) (MIT) to advertise as **EmulatedPeripheral** and serve this contract: reads return the stored value, and every write is stored, then notified to subscribers.
-
-- **macOS:** allow Bluetooth for your terminal app in System Settings > Privacy & Security > Bluetooth.
-- **Linux:** bleno drives the adapter over raw HCI. Stop `bluetoothd` (`sudo systemctl stop bluetooth`), then either run with `sudo` or grant Node raw-socket access once: `sudo setcap cap_net_raw+eip "$(readlink -f "$(command -v node)")"`.
-
-The page itself does not create a Bluetooth peripheral. Its indicator shows the last value received from the peripheral and refreshes with a read when the page becomes visible. These payloads are specific to this emulation; real devices may require another service, characteristic and command format.
-
-On iPhone, enable beacio for the demo's HTTPS website, tap **Connect emulated peripheral**, then choose **EmulatedPeripheral**. Bluetooth requires local radio range regardless of where the website is hosted. Selection is initiated directly from the tap to preserve Safari's user-gesture requirement.
-
-## Try background continuity
-
-Open beacio to prepare its background session, leave it running, and return to Safari within the preparation window. Connect the emulated peripheral, choose **Background continuity**, then tap **Start blinking**.
-
-The program uses the discovered characteristic instance ID, rather than its UUID:
-
-```ts
+// Or let beacio blink it every 2 seconds, with the page in the background:
+const led = await (await device.raw.gatt.getPrimaryService(SERVICE)).getCharacteristic(LED);
 const registration = await navigator.beacio.backgroundSync.requestBackgroundConnection({
   deviceId: device.id,
-  program: {
-    deviceId: device.id,
-    characteristicId: characteristic.id,
-    activeWhen: 'always',
-    cycle: {
-      frames: [[0x01], [0x00]],
-      timer: { cadence: 'uniform', everyMs: 2000 }
-    }
-  }
+  program: { deviceId: device.id, characteristicId: led.id, activeWhen: 'always',
+    cycle: { frames: [[0x01], [0x00]], timer: { cadence: 'uniform', everyMs: 2000 } } },
 });
+await registration.unregister(); // Stop
 ```
 
-`activeWhen: 'always'` allows execution in both page visibility states. The page starts no competing interval in this mode. The two-second minimum is beacio's current conservative resource policy, rather than an iOS-imposed minimum; sustained 500 ms companion execution has not been enabled or validated. Native execution is best effort and requires a live connection and native session. Closing/reloading the tab, ending the session, and losing the link are separate lifecycle cases; indefinite execution is not guaranteed.
+The rest of [`app.js`](app.js) is the button and the lamp. There is no build step:
+[`index.html`](index.html) loads [`@beacio/core`](https://www.npmjs.com/package/@beacio/core) 2.2.0
+from jsDelivr, pinned with a subresource integrity hash.
 
-**Stop** unregisters the program before writing off. Unregistering alone does not send an off command. If unregistering fails or an existing registration's ownership cannot be read, new writers remain blocked until Stop succeeds. On reconnect, a recovered registration has unknown execution status and must be stopped before starting another writer. Registrations are scoped to the website's origin, so use a dedicated origin for this demo during testing.
+The SDK turns each GATT step into one line with string UUIDs, and its errors carry a
+`suggestion` you can show as is. Background programs are newer than @beacio/core 2.2.0, so the
+page calls them on `navigator.beacio.backgroundSync` (or `navigator.bluetooth.backgroundSync`).
 
-## Develop locally
+## Try it
 
-Requires Node 22.12+; CI uses Node 24.
+1. On your iPhone, allow beacio for the demo site. For background continuity, open the beacio app and leave it running.
+2. Have an LED nearby: real hardware, or the emulator below.
+3. Tap **Connect** and choose **EmulatedPeripheral**. Pick a mode, then tap **Start blinking**.
+4. Lock the phone, watch the LED, come back and tap **Stop**.
+
+To host the page yourself, serve this folder over HTTPS with a certificate the iPhone trusts.
+On a computer, `python3 -m http.server` and `http://localhost:8000` in desktop Chrome
+runs foreground mode, since Chrome has Web Bluetooth built in.
+
+## No LED? Run the emulator
+
+On a Mac or Linux computer near the phone:
 
 ```sh
-cd examples/led-continuity
-npm ci --workspaces=false
-npm run dev
+cd examples/led-continuity/emulator
+npm ci
+npm start
 ```
 
-Open `http://localhost:5173`. Physical phones need HTTPS with a trusted certificate; the localhost secure-context exception does not apply to another computer's LAN address. Either use a trusted HTTPS proxy or supply both certificate files:
+- **macOS:** allow Bluetooth for your terminal app in System Settings > Privacy & Security > Bluetooth.
+- **Linux:** stop `bluetoothd` (`sudo systemctl stop bluetooth`), then run with `sudo` or grant Node
+  raw-socket access once: `sudo setcap cap_net_raw+eip "$(readlink -f "$(command -v node)")"`.
+
+It advertises service `0000FFF0-0000-1000-8000-00805F9B34FB` with one characteristic,
+`0000FFF1-0000-1000-8000-00805F9B34FB` (read, write with response, notify). It starts at `BE AC`,
+shown as Unknown. Write `01` for on and `00` for off; every write is notified back. Built on
+[`@stoprocent/bleno`](https://github.com/stoprocent/bleno) (MIT). Its install scripts are denied
+in `package.json`: the packages ship prebuilt binaries.
+
+## Good to know
+
+The background program runs in the beacio app and sends at most one command every 2 seconds:
+that is beacio's battery policy, not an iOS limit. It needs a live Bluetooth link and the beacio
+app running, so timing is best effort. Returning to Safari doesn't stop it; **Stop** does, and
+it unregisters the program before it writes off. After a reload, a program from an earlier visit
+has unknown status, so the page asks you to stop it before starting again. The page offers
+background continuity only when beacio supports programs, and it opens the device chooser
+straight from your tap, as Safari requires.
+
+## Test
 
 ```sh
-HTTPS_CERT=/absolute/path/to/cert.pem \
-HTTPS_KEY=/absolute/path/to/key.pem \
-npm run dev
-```
-
-For a development proxy that preserves its hostname, set `APP_ALLOWED_HOST` to that exact hostname. Production assets use relative paths so the build works both at `/beacio-sdk/` on GitHub Pages and behind a local HTTPS proxy.
-
-```sh
-npm run build
+cd examples/led-continuity/test
+npm ci
 npx playwright install chromium
-npm test
+npx playwright test
 ```
 
-The app pins published `@beacio/core` 2.2.0 for ordinary Bluetooth operations. The newer background program boundary is typed locally and uses `navigator.beacio.backgroundSync`, with a `navigator.bluetooth.backgroundSync` fallback. It checks for program support before offering background continuity.
-
-The browser interaction tests use a deterministic Bluetooth boundary double. They cover connection from a gesture, observed values, alternating writes, native declaration contents, stop failures, ownership recovery, disconnection/reconnect and readback on return. They do not establish physical radio correctness or iOS background timing.
-
-## GitHub Pages
-
-The repository's **LED continuity Pages** workflow builds and tests this directory on changes to `main`, then publishes `dist/` using GitHub Pages. Pull requests run the same build and browser tests without deploying. The workflow can also be started manually. No native binaries, personal research notes or local runtime state are published.
+One smoke test runs the page and the published SDK file against a Bluetooth double. It does
+not prove radio behaviour or iOS background timing.
