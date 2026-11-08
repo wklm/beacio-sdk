@@ -1,0 +1,20 @@
+{
+  "name": "led-continuity-emulator",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "node peripheral.mjs"
+  },
+  "dependencies": {
+    "@stoprocent/bleno": "0.13.1"
+  },
+  "allowScripts": {
+    "@stoprocent/bleno": false,
+    "@stoprocent/bluetooth-hci-socket": false,
+    "usb": false,
+    "@serialport/bindings-cpp": false
+  }
+}

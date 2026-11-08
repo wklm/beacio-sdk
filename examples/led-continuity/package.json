@@ -12,7 +12,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
-    "emulator": "node emulate-peripheral.mjs"
+    "emulator": "npm --prefix emulator start"
   },
   "dependencies": {
     "@beacio/core": "2.2.0"
