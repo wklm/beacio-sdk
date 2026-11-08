@@ -1,7 +1,7 @@
 /**
  * Onboarding-copy + return-affordance guard for @beacio/detect's install banner.
  *
- * SB-PRD-03: the irreducibly-manual iOS-26 step (enable the Safari extension +
+ * The irreducibly-manual iOS-26 step (enable the Safari extension +
  * grant per-origin "Allow on Every Website" access + the first-scan Bluetooth
  * prompt) is the weakest funnel point. The decisive, non-obvious GESTURE —
  * tap the `AA` button in the address bar -> Manage Extensions -> beacio ->
@@ -17,7 +17,7 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { type BannerOptions, removeInstallBanner, showInstallBanner } from '../../src/detect/banner';
 import * as banner from '../../src/detect/banner';
 
-// SB-PRD-07 AC4: the install CTA must thread the operator identity + the originating
+// The install CTA must thread the operator identity + the originating
 // return URL THROUGH the redirect into /setup, so the guided page stays branded and
 // the "Return to <operator>" continuity survives. jsdom 26 makes window.location.href
 // set/readback + window.location.assign un-observable (same constraint the AC3 test
@@ -34,7 +34,7 @@ const RETURN_KEY = 'beacio_return';
 const READY_SHOWN_KEY = 'beacio_ready_shown';
 
 /**
- * Render the banner for a given extension state. SB-PRD-03 requires
+ * Render the banner for a given extension state. The onboarding copy requires
  * showInstallBanner to be state-aware (installed-inactive / per-site denied /
  * active); the `state` option does not exist on BannerOptions yet, so this
  * helper expresses the intended seam without breaking the test-suite compile.
@@ -59,7 +59,7 @@ function bannerText(): string {
   return (el.textContent || '').replace(/\s+/g, ' ');
 }
 
-describe('SB-PRD-03 install banner authors the iOS-26 enable + grant copy', () => {
+describe('Install banner authors the iOS-26 enable + grant copy', () => {
   beforeEach(() => {
     clearBeacioStorage();
     document.body.innerHTML = '';
@@ -72,7 +72,7 @@ describe('SB-PRD-03 install banner authors the iOS-26 enable + grant copy', () =
   });
 
   it('AC1: names the per-origin grant GESTURE verbatim (aA -> Manage Extensions -> Allow on Every Website)', () => {
-    showInstallBanner({ mode: 'sheet', operatorName: 'Storz & Bickel' });
+    showInstallBanner({ mode: 'sheet', operatorName: 'Example & Co' });
     const text = bannerText();
 
     // The address-bar gesture, not just a menu-item name.
@@ -84,7 +84,7 @@ describe('SB-PRD-03 install banner authors the iOS-26 enable + grant copy', () =
   });
 
   it('AC3: the step summary reflects the real tapped sequence incl. website-access grant and the Bluetooth prompt', () => {
-    showInstallBanner({ mode: 'sheet', operatorName: 'Storz & Bickel' });
+    showInstallBanner({ mode: 'sheet', operatorName: 'Example & Co' });
     const text = bannerText();
 
     // Website-access grant step is present (the current 4-pill strip omits it).
@@ -94,34 +94,34 @@ describe('SB-PRD-03 install banner authors the iOS-26 enable + grant copy', () =
   });
 
   it('AC4: renders a VISIBLE return affordance whose href derives from beacio_return (not a silent clipboard write)', () => {
-    const origin = 'https://app.storz-bickel.com/connect?session=abc';
+    const origin = 'https://app.example.com/connect?session=abc';
     localStorage.setItem(
       RETURN_KEY,
       JSON.stringify({ url: origin, returnLink: origin, timestamp: Date.now() })
     );
 
-    showInstallBanner({ mode: 'sheet', operatorName: 'Storz & Bickel' });
+    showInstallBanner({ mode: 'sheet', operatorName: 'Example & Co' });
 
     const el = document.getElementById('beacio-banner')!;
     const returnLink = el.querySelector<HTMLAnchorElement>('a[href]');
     expect(returnLink).not.toBeNull();
     // The affordance targets the actual originating URL, not a bare generic label.
-    expect(returnLink!.getAttribute('href')).toContain('app.storz-bickel.com');
+    expect(returnLink!.getAttribute('href')).toContain('app.example.com');
     expect((returnLink!.textContent || '').trim().length).toBeGreaterThan(0);
     expect(bannerText()).not.toMatch(/Return to beacio App/);
   });
 
-  // SB-PRD-07 AC4: the redirect into /setup must CARRY the operator identity and the
+  // The redirect into /setup must CARRY the operator identity and the
   // originating return URL as query params, so the guided setup page renders branded
-  // ("Return to STORZ & BICKEL") instead of generic copy. Today redirectToOnboarding()
+  // ("Return to EXAMPLE & CO") instead of generic copy. Today redirectToOnboarding()
   // appends ONLY App Store ct/mt to apps.apple.com and NOTHING to the canonical
   // beacio.com/setup target, so the operator identity is dropped at the boundary.
   // This pins the param-threading at the pure URL-builder seam the click handler uses.
-  it('AC4(SB-PRD-07): the onboarding redirect URL carries operatorName + the return origin into /setup', () => {
+  it('the onboarding redirect URL carries operatorName + the return origin into /setup', () => {
     expect(typeof buildOnboardingUrl).toBe('function');
 
-    const operatorName = 'Storz & Bickel';
-    const returnUrl = 'https://app.storz-bickel.com/connect?session=abc';
+    const operatorName = 'Example & Co';
+    const returnUrl = 'https://app.example.com/connect?session=abc';
     const setupUrl = 'https://beacio.com/setup';
 
     const out = buildOnboardingUrl!(setupUrl, { operatorName, returnUrl });
@@ -134,21 +134,21 @@ describe('SB-PRD-03 install banner authors the iOS-26 enable + grant copy', () =
       parsed.searchParams.get('return') ||
       parsed.searchParams.get('url') ||
       parsed.searchParams.get('from');
-    expect(carriedReturn).toContain('app.storz-bickel.com');
+    expect(carriedReturn).toContain('app.example.com');
     // It still targets the canonical setup page (no host hijack).
     expect(parsed.hostname).toBe('beacio.com');
     expect(parsed.pathname).toBe('/setup');
   });
 
-  // SB-PRD-07 AC4 (regression guard): the App Store branch is UNCHANGED — campaign
+  // Regression guard: the App Store branch is UNCHANGED — campaign
   // ct/mt only, never an operatorName/return leak onto the apps.apple.com URL.
-  it('AC4(SB-PRD-07): the App Store redirect keeps ct/mt only — no operatorName/return on apps.apple.com', () => {
+  it('the App Store redirect keeps ct/mt only — no operatorName/return on apps.apple.com', () => {
     expect(typeof buildOnboardingUrl).toBe('function');
 
     const out = buildOnboardingUrl!('https://apps.apple.com/app/id6761301368', {
       apiKey: 'beacio_live_demo',
-      operatorName: 'Storz & Bickel',
-      returnUrl: 'https://app.storz-bickel.com/connect',
+      operatorName: 'Example & Co',
+      returnUrl: 'https://app.example.com/connect',
     });
     const parsed = new URL(out);
 
@@ -160,16 +160,16 @@ describe('SB-PRD-03 install banner authors the iOS-26 enable + grant copy', () =
     expect(parsed.searchParams.has('return')).toBe(false);
   });
 
-  // SB-SDK-12 AC4: the banner's App Store CTA must resolve to the id form
+  // The banner's App Store CTA must resolve to the id form
   // (apps.apple.com/app/id6761301368) so it survives the public App Store rename.
   // The threat is a caller (or a legacy default) supplying the NAME-slug form
   // `/app/<slug>/id6761301368`: if Apple's published slug differs from "beacio",
   // that path 404s / misleads. buildOnboardingUrl is the single CTA-construction
   // seam every click handler (#bc-install, #beacio-banner-install) delegates to,
-  // so collapsing the slug HERE pins it for the whole banner. The sibling SB-PRD-07
+  // so collapsing the slug HERE pins it for the whole banner. The sibling return-URL
   // case above only feeds an already-id-form URL, so the slug-stripping branch was
   // untested; this is the durable guard that no banner code path keeps a name slug.
-  it('AC4(SB-SDK-12): buildOnboardingUrl collapses a NAME-slug App Store URL to the id form (id6761301368, no slug)', () => {
+  it('buildOnboardingUrl collapses a NAME-slug App Store URL to the id form (id6761301368, no slug)', () => {
     expect(typeof buildOnboardingUrl).toBe('function');
 
     // A caller-supplied name-slug deep link — the exact 404/mislead vector.
@@ -268,7 +268,7 @@ describe('SB-PRD-03 install banner authors the iOS-26 enable + grant copy', () =
 });
 
 /**
- * SB-SDK-03: the DYNAMIC half — the install sheet is a LIVE affordance, not a
+ * The DYNAMIC half — the install sheet is a LIVE affordance, not a
  * one-shot static render. The irreducibly-manual iOS-26 enable step
  * (project_ios26_safari_extension_settings_readonly) happens OUTSIDE the page in
  * Settings, so the visible sheet must (a) offer a "Reload page" control to
@@ -291,7 +291,7 @@ function fireVisible(): void {
   document.dispatchEvent(new Event('visibilitychange'));
 }
 
-describe('SB-SDK-03 install sheet is a live, self-clearing affordance', () => {
+describe('Install sheet is a live, self-clearing affordance', () => {
   beforeEach(() => {
     clearBeacioStorage();
     document.body.innerHTML = '';
@@ -372,7 +372,7 @@ describe('SB-SDK-03 install sheet is a live, self-clearing affordance', () => {
     expect(jest.getTimerCount()).toBe(0);
   });
 
-  // SB-NAT-01 regression (2026-07-21 device evidence): on the session-first load
+  // Regression (2026-07-21 device evidence): on the session-first load
   // the appex is COLD, so the injected polyfill announces itself AFTER detect's
   // 2s poll window — initBeacio renders the installed-inactive sheet, and then
   // the ONLY same-load activation signal is the extension's own in-page handshake
@@ -382,7 +382,7 @@ describe('SB-SDK-03 install sheet is a live, self-clearing affordance', () => {
   // run), and visibilitychange never fires in a foregrounded Safari session — so
   // a sheet deaf to EXTENSION_READY sits over the operator's app forever and
   // swallows the Connect tap (the observed 60s chooser-row timeout).
-  it('SB-NAT-01: sheet tears down on the extension in-page handshake (beacio:extension:ready)', () => {
+  it('Sheet tears down on the extension in-page handshake (beacio:extension:ready)', () => {
     showForState('installed-inactive');
     expect(document.getElementById('beacio-banner')).not.toBeNull();
 
@@ -394,7 +394,7 @@ describe('SB-SDK-03 install sheet is a live, self-clearing affordance', () => {
     expect(document.getElementById('beacio-banner')).toBeNull();
   });
 
-  it('SB-NAT-01: absorbs the handshake-before-marker ordering race via the bounded re-check', () => {
+  it('Absorbs the handshake-before-marker ordering race via the bounded re-check', () => {
     jest.useFakeTimers();
     showForState('installed-inactive');
     expect(document.getElementById('beacio-banner')).not.toBeNull();
@@ -412,16 +412,16 @@ describe('SB-SDK-03 install sheet is a live, self-clearing affordance', () => {
 });
 
 /**
- * SB-PRD-08 AC3 (2026-07-21 device evidence): `forceShow: true` marks a
+ * Device evidence (2026-07-21): `forceShow: true` marks a
  * USER-INITIATED recovery gesture ("Can't connect?" / a Connect-tap fallback /
  * the E2E selector-liveness control page). Such a sheet must not only bypass the
  * dismissal cooldown — it must also be EXEMPT from the live self-clearing
  * lifecycle, because on a device where the extension markers already read
  * 'active' the automatic clearIfActive() removed the explicitly requested sheet
  * in the same tick, rendering the affordance blank (hardware-observed on
- * sb-control-noinject.html: showInstallBanner rendered nothing at all).
+ * a no-inject control page: showInstallBanner rendered nothing at all).
  */
-describe('SB-PRD-08 AC3: a forceShow sheet is user-initiated and persists', () => {
+describe('A forceShow sheet is user-initiated and persists', () => {
   beforeEach(() => {
     clearBeacioStorage();
     document.body.innerHTML = '';
@@ -442,7 +442,7 @@ describe('SB-PRD-08 AC3: a forceShow sheet is user-initiated and persists', () =
 
     const el = showInstallBanner({
       mode: 'sheet',
-      operatorName: 'STORZ & BICKEL Web App',
+      operatorName: 'EXAMPLE & CO Web App',
       forceShow: true,
     });
 
@@ -458,7 +458,7 @@ describe('SB-PRD-08 AC3: a forceShow sheet is user-initiated and persists', () =
   it('keeps the explicit dismiss controls on the persistent sheet (manual close stays possible)', () => {
     document.documentElement.dataset.beacioExtension = 'true';
     showInstallBanner({ mode: 'sheet', operatorName: 'X', forceShow: true });
-    // Click wiring is attached on rAF (pinned by the SB-PRD-08 dismissal tests);
+    // Click wiring is attached on rAF (pinned by the dismissal tests);
     // the durable assertion here is that both dismiss controls EXIST on a sheet
     // that no longer auto-clears.
     expect(document.querySelector('#bc-dismiss')).not.toBeNull();
@@ -468,8 +468,8 @@ describe('SB-PRD-08 AC3: a forceShow sheet is user-initiated and persists', () =
 
 
 /**
- * SB-SDK-11: the install sheet is themeable (tier-2 co-brand). For a premium
- * partner (Storz & Bickel) the default Apple-blue, beacio-logo, "Set Up Bluetooth"
+ * The install sheet is themeable (tier-2 co-brand). For a premium
+ * partner the default Apple-blue, beacio-logo, "Set Up Bluetooth"
  * modal injected into THEIR site is the most visible objection to the free
  * integration. The prompt is already isolated in @beacio/detect, so the fix is
  * purely ADDITIVE (zero-consumer SDK): optional accentColor / brandLogoUrl
@@ -492,7 +492,7 @@ function sheetEl(): HTMLElement {
   return document.getElementById('beacio-banner') as HTMLElement;
 }
 
-describe('SB-SDK-11 themeable install prompt (tier-2 co-brand)', () => {
+describe('Themeable install prompt (tier-2 co-brand)', () => {
   beforeEach(() => {
     clearBeacioStorage();
     document.body.innerHTML = '';
@@ -507,11 +507,11 @@ describe('SB-SDK-11 themeable install prompt (tier-2 co-brand)', () => {
   it('AC1/AC2: applies the partner accent + logo <img> + device-specific copy (no default beacio theme)', () => {
     showInstallBanner({
       mode: 'sheet',
-      operatorName: 'STORZ & BICKEL',
-      accentColor: '#c8102e',
-      brandLogoUrl: 'https://app.storz-bickel.com/logo-sb.svg',
-      deviceName: 'VOLCANO HYBRID',
-      body: 'Connect your VOLCANO HYBRID in Safari to control it from app.storz-bickel.com.',
+      operatorName: 'EXAMPLE & CO',
+      accentColor: '#2e7d32',
+      brandLogoUrl: 'https://app.example.com/logo.svg',
+      deviceName: 'ACME THERMO',
+      body: 'Connect your ACME THERMO in Safari to control it from app.example.com.',
     });
     const el = sheetEl();
     expect(el).not.toBeNull();
@@ -520,19 +520,19 @@ describe('SB-SDK-11 themeable install prompt (tier-2 co-brand)', () => {
     // (1) THEME-APPLIED — the partner accent is routed through a CSS variable so
     // every accent rule switches to var(--bc-accent); the default Apple-blue is
     // gone from the sheet markup entirely.
-    expect(html).toMatch(/--bc-accent:\s*#c8102e/i);
+    expect(html).toMatch(/--bc-accent:\s*#2e7d32/i);
     expect(html.toLowerCase()).not.toContain(DEFAULT_ACCENT);
 
     // (2) the operator logo renders as an <img> whose src is the brandLogoUrl, and
     // the hard-coded beacio inline <svg> chrome icon is gone.
     const img = el.querySelector<HTMLImageElement>('img');
     expect(img).not.toBeNull();
-    expect(img!.getAttribute('src')).toBe('https://app.storz-bickel.com/logo-sb.svg');
+    expect(img!.getAttribute('src')).toBe('https://app.example.com/logo.svg');
     expect(el.querySelector('.bc-ic svg')).toBeNull();
 
     // (3) the device-specific / overridden copy is shown verbatim (esc preserved).
-    expect(el.textContent || '').toContain('VOLCANO HYBRID');
-    expect(el.textContent || '').toContain('Connect your VOLCANO HYBRID in Safari');
+    expect(el.textContent || '').toContain('ACME THERMO');
+    expect(el.textContent || '').toContain('Connect your ACME THERMO in Safari');
     // …and the default beacio body is NOT present (it was overridden).
     expect(el.textContent || '').not.toContain('install beacio, open the app once');
   });
@@ -540,9 +540,9 @@ describe('SB-SDK-11 themeable install prompt (tier-2 co-brand)', () => {
   it('AC3: surfaces a VISIBLE privacy line (outside <details>) + a "not affiliated" microcopy line', () => {
     showInstallBanner({
       mode: 'sheet',
-      operatorName: 'STORZ & BICKEL',
-      accentColor: '#c8102e',
-      deviceName: 'VOLCANO HYBRID',
+      operatorName: 'EXAMPLE & CO',
+      accentColor: '#2e7d32',
+      deviceName: 'ACME THERMO',
     });
     const el = sheetEl();
 
@@ -566,8 +566,8 @@ describe('SB-SDK-11 themeable install prompt (tier-2 co-brand)', () => {
     for (const bad of ['javascript:alert(1)', 'data:text/html,<script>1</script>', 'ftp://x/y.svg']) {
       showInstallBanner({
         mode: 'sheet',
-        operatorName: 'STORZ & BICKEL',
-        accentColor: '#c8102e',
+        operatorName: 'EXAMPLE & CO',
+        accentColor: '#2e7d32',
         brandLogoUrl: bad,
       });
       const el = sheetEl();

@@ -1,5 +1,5 @@
 /**
- * SB-SDK-05 — the control on the boundary between the SDK's `BeacioError.from`
+ * The control on the boundary between the SDK's `BeacioError.from`
  * and the branded card's `presentError`.
  *
  * ─── 2026-08-12: the twins were COLLAPSED; what this file still guards ───────
@@ -77,7 +77,7 @@ function clear(): void {
   document.body.innerHTML = '';
 }
 
-describe('SB-SDK-05 seam: presentError tracks @beacio/core BeacioErrorCode contract', () => {
+describe('Seam: presentError tracks @beacio/core BeacioErrorCode contract', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
   });

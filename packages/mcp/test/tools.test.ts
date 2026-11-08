@@ -193,7 +193,7 @@ describe('beacio_premium_guide', () => {
   });
 
   it('every premium API source_url anchor resolves to a real heading in premium.md', () => {
-    // AIDEV-NOTE: SB-PRD-04 regression guard. whiteLabel was enumerated in
+    // AIDEV-NOTE: Regression guard. whiteLabel was enumerated in
     // PREMIUM_APIS but HASHES.whiteLabel=undefined, so runPremiumGuide returned a
     // bare .../premium.md with no #anchor while every other API resolves to a real
     // heading. This guard fails on any enumerated-but-undocumented premium API so

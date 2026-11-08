@@ -18,7 +18,6 @@ export default defineConfig({
     'profiles/device-info': 'src/profiles/device-info.ts',
     'profiles/nordic-uart': 'src/profiles/nordic-uart.ts',
     'profiles/serial-ffe0': 'src/profiles/serial-ffe0.ts',
-    'experimental/profiles/storz-bickel': 'src/experimental/profiles/storz-bickel.ts',
     // @beacio/core/testing subpath — folded in from the former @beacio/testing
     // package (B10-t): the hardware-free mock/virtual Web Bluetooth surface
     // (installMockBluetooth / createMockBluetooth / MockBluetooth + mock GATT).

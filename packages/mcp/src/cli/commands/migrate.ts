@@ -1,15 +1,15 @@
 /**
- * `npx beacio migrate` command (SB-SDK-04)
+ * `npx beacio migrate` command
  *
  * BROWNFIELD counterpart of `beacio init`. Where `init` scaffolds a greenfield app,
  * `migrate` performs the three concrete edits that make an ALREADY-WORKING Web Bluetooth
- * app (the Storz & Bickel shape: a vendored-jQuery static-HTML site) work on iOS Safari:
+ * app (e.g. a vendored-jQuery static-HTML site) work on iOS Safari:
  *
  *   1. insert the canonical beacio bootstrap into <head> BEFORE the first navigator.bluetooth
  *      read (a static app reads it synchronously, so a body-end/deferred insert loses the
  *      parse-time gate race — this is exactly what `init`'s `</body>` insert gets wrong);
- *   2. add `optionalServices` onto the existing `if (userAgent_iOS())` requestDevice branch;
- *   3. swap the active-path "use Bluefy / Web BLE browser" message for the beacio
+ *   2. add `optionalServices` onto the existing iOS `if (…)` requestDevice branch (e.g. `if (isIOS())`);
+ *   3. swap the active-path message that sends users to Bluefy or a Web BLE browser for the beacio
  *      install/enable affordance.
  *
  * It is IDEMPOTENT by construction (AC#3): each edit is gated on the SPECIFIC artifact it
@@ -81,19 +81,18 @@ export function iosBranchHasOptionalServices(js: string): boolean {
 
 /**
  * True when a live active-path third-party-browser CONNECT-GATE alert remains — the message that
- * dead-ends the Web Bluetooth connect path on iOS ("Web Bluetooth is not supported … use Bluefy /
- * Web BLE browser"), optionally guarded by `iOS_BLEnotWorking()`. This is the message
+ * dead-ends the Web Bluetooth connect path on iOS (an alert that names Web Bluetooth and sends the
+ * user to Bluefy / a Web BLE browser), with or without a guard in front of it. This is the message
  * `swapThirdPartyBrowserMessage` replaces.
  *
  * It is deliberately SCOPED to the connect gate (matching the MCP `no_third_party_browser_string`
  * perl check, which reads only the requestDevice module): a `namePrefix`-only `alert(… Bluefy …)`
- * inside an unrelated DEVICE-CAPABILITY handler — e.g. the VOLCANO firmware-update notice guarded by
- * `browserSupportsWriteWithoutResponse == false`, which is dead on beacio (writeWithoutResponse works
- * there) and never on the active connect path — is NOT the gate and must not trip this. A broad
+ * inside an unrelated DEVICE-CAPABILITY handler — e.g. a firmware-update notice, which is never on
+ * the active connect path — is NOT the gate and must not trip this. A broad
  * `alert\(…Bluefy…\)` match would false-positive on those legitimate capability messages.
  */
 export function hasThirdPartyBrowserMessage(js: string): boolean {
-  return /(?:iOS_BLEnotWorking\(\)\s*\)\s*)?alert\(\s*["'][^"']*(?:Web BLE browser|Web Bluetooth[^"']*Bluefy|Bluefy[^"']*Web Bluetooth)[^"']*["']/.test(
+  return /alert\(\s*["'][^"']*(?:Web BLE browser|Web Bluetooth[^"']*Bluefy|Bluefy[^"']*Web Bluetooth)[^"']*["']/.test(
     js,
   );
 }
@@ -137,8 +136,9 @@ function referencedLocalScripts(html: string): string[] {
 
 /**
  * Resolve the JS file(s) that run the requestDevice flow: any locally-referenced script whose
- * contents read navigator.bluetooth / userAgent_iOS() / a third-party-browser alert. Falls back
- * to a conventional js/main.js when the HTML references nothing patchable.
+ * contents read navigator.bluetooth / hold an iOS requestDevice options branch / a
+ * third-party-browser alert. Falls back to a conventional js/main.js when the HTML references
+ * nothing patchable.
  */
 export function resolveRequestDeviceScripts(projectPath: string, htmlDir: string, html: string): string[] {
   const hits: string[] = [];
@@ -147,7 +147,7 @@ export function resolveRequestDeviceScripts(projectPath: string, htmlDir: string
     if (!abs.startsWith(projectPath)) continue; // stay inside the project
     if (!fs.existsSync(abs)) continue;
     const text = fs.readFileSync(abs, 'utf-8');
-    if (/navigator\.bluetooth|userAgent_iOS\(\)|Bluefy|Web BLE browser/.test(text)) {
+    if (/navigator\.bluetooth|Bluefy|Web BLE browser/.test(text) || findIosOptionsBranch(text) !== null) {
       hits.push(abs);
     }
   }
@@ -189,7 +189,7 @@ export async function migrate(_args: string[]): Promise<void> {
   // 2)+3) optionalServices + message swap in the requestDevice JS (idempotent).
   const scripts = resolveRequestDeviceScripts(projectPath, htmlDir, htmlAfter);
   if (scripts.length === 0) {
-    console.log('No requestDevice() script found to patch (looked for navigator.bluetooth / userAgent_iOS()).');
+    console.log('No requestDevice() script found to patch (looked for navigator.bluetooth / an iOS requestDevice branch).');
   }
   for (const abs of scripts) {
     const before = fs.readFileSync(abs, 'utf-8');

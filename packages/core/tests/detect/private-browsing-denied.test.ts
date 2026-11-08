@@ -1,5 +1,5 @@
 /**
- * SB-SDK-17 — Private Browsing + per-origin "Deny" dead-end detection guard.
+ * Private Browsing + per-origin "Deny" dead-end detection guard.
  *
  * Two iOS-Safari dead ends both look like 'not-installed' to detect.ts today, so
  * initBeacio() falls through to the generic "install the app" sheet — misleading
@@ -13,7 +13,7 @@
  *  2. PER-ORIGIN 'DENY' with markers SUPPRESSED — a prior "Deny" can leave the
  *     extension so inert that NO markers are set (state resolves 'not-installed'),
  *     yet navigator.bluetooth is defined and getAvailability() === false. The
- *     existing SB-SDK-03 isOriginDenied() derivation runs ONLY inside the
+ *     existing isOriginDenied() derivation runs ONLY inside the
  *     installState==='active' branch, so this marker-suppressed case escapes it and
  *     again gets the generic install sheet instead of the aA -> Manage Extensions
  *     -> Allow-on-this-website guidance (the existing 'denied' copy block).
@@ -96,7 +96,7 @@ function makeStorageWriteThrow() {
   });
 }
 
-describe('SB-SDK-17 initBeacio routes the Private Browsing + marker-suppressed denied dead ends', () => {
+describe('initBeacio routes the Private Browsing + marker-suppressed denied dead ends', () => {
   beforeEach(() => {
     clearBeacioStorage();
     document.body.innerHTML = '';
@@ -122,7 +122,7 @@ describe('SB-SDK-17 initBeacio routes the Private Browsing + marker-suppressed d
   it('AC1: a Private-Browsing heuristic hit shows the "open a normal tab" hint, not the install sheet', async () => {
     makeStorageWriteThrow();
 
-    await initBeacio({ operatorName: 'Storz & Bickel' });
+    await initBeacio({ operatorName: 'Example & Co' });
 
     expect(bannerEl()).not.toBeNull();
     // Routed to the dedicated private-browsing funnel position …
@@ -145,12 +145,12 @@ describe('SB-SDK-17 initBeacio routes the Private Browsing + marker-suppressed d
     // unavailable HERE → the per-origin "Deny" left it inert.
     setBluetooth({ getAvailability: async () => false });
 
-    await initBeacio({ operatorName: 'Storz & Bickel' });
+    await initBeacio({ operatorName: 'Example & Co' });
 
     expect(bannerEl()).not.toBeNull();
     expect(bannerState()).toBe('denied');
     expect(bannerState()).not.toBe('not-installed');
-    // Reuses the SB-SDK-03 per-site-denied copy block verbatim (no new copy).
+    // Reuses the per-site-denied copy block verbatim (no new copy).
     expect(bannerText()).toContain('Allow on Every Website');
     expect(bannerText()).toMatch(/\bAA\b|address bar/);
     // Half-onboarded state → no install CTA back to the store.
@@ -163,7 +163,7 @@ describe('SB-SDK-17 initBeacio routes the Private Browsing + marker-suppressed d
     const setItemSpy = makeStorageWriteThrow();
     setBluetooth({ getAvailability: async () => false });
 
-    await initBeacio({ operatorName: 'Storz & Bickel' });
+    await initBeacio({ operatorName: 'Example & Co' });
 
     // isIOSSafari() short-circuits initBeacio before any detection/heuristic runs.
     expect(bannerEl()).toBeNull();
@@ -175,7 +175,7 @@ describe('SB-SDK-17 initBeacio routes the Private Browsing + marker-suppressed d
   it('AC3: iOS-Safari with NO PB signal and NO denied surface falls back to the generic install sheet', async () => {
     // localStorage works (no throw) and navigator.bluetooth is undefined → neither
     // dead end is detected, so the established 'not-installed' path is preserved.
-    await initBeacio({ operatorName: 'Storz & Bickel' });
+    await initBeacio({ operatorName: 'Example & Co' });
 
     expect(bannerEl()).not.toBeNull();
     expect(bannerState()).toBe('not-installed');
@@ -188,7 +188,7 @@ describe('SB-SDK-17 initBeacio routes the Private Browsing + marker-suppressed d
 // The 'private-browsing' BannerState renders the hint with NO install CTA and an
 // EMPTY step strip (the action is "open a normal tab", not a Settings walkthrough).
 
-describe('SB-SDK-17 banner renders the private-browsing state (no install CTA, empty step strip)', () => {
+describe('Banner renders the private-browsing state (no install CTA, empty step strip)', () => {
   beforeEach(() => {
     clearBeacioStorage();
     document.body.innerHTML = '';

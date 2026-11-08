@@ -48,7 +48,7 @@ type FrameworkEntry = {
 };
 const DATA = installPlanData as Record<Framework, FrameworkEntry>;
 
-// AIDEV-NOTE: SB-INF-06 — the single canonical bare CDN bootstrap URL. The MCP
+// AIDEV-NOTE: The single canonical bare CDN bootstrap URL. The MCP
 // install-plan + examples + cdn/README + the canonical quickstart / @beacio/skill
 // reference all emit THIS exact pinned (`@1.0.0`, full semver — the cdn Worker
 // 400s partials) URL. It is kept bare
@@ -110,7 +110,7 @@ const CDN_SCRIPT_EDIT: FileEdit = {
 };
 
 /**
- * SB-SDK-01 / AC#5: the install-banner wiring as a CONCRETE files_to_edit (not free-text prose).
+ * The install-banner wiring as a CONCRETE files_to_edit (not free-text prose).
  * `initBeacio({ operatorName })` is the single recommended @beacio/core/detect call (see
  * packages/core/detect/README.md + AGENTS.md + onboarding-manifest.json `banner.recommendedCall`); it is
  * GATED on `navigator.bluetooth === undefined` so it is a no-op where the W3C surface already exists
@@ -132,7 +132,7 @@ const BANNER_EDIT: FileEdit = {
 /**
  * Assemble the zero-judgment action spec: exact shell commands + concrete file edits.
  *
- * Every plan ends with the BANNER_EDIT (SB-SDK-01 / AC#5) — the one recommended
+ * Every plan ends with the BANNER_EDIT — the one recommended
  * `initBeacio({ operatorName })` install-guidance call, gated on navigator.bluetooth===undefined —
  * as a concrete files_to_edit (not free-text prose). It imports from `@beacio/core/detect`, which
  * ships with `@beacio/core` (already installed for the polyfill on every non-CDN path), so no extra
@@ -147,7 +147,7 @@ function buildActions(
   if (pm === 'cdn') {
     // No package install; the polyfill loads from the CDN script tag. The banner is still wired as a
     // concrete edit so the install-guidance path is identical across package managers.
-    // SB-INF-06: overlay the cdn-channel attribution token onto the bootstrap
+    // Overlay the cdn-channel attribution token onto the bootstrap
     // edit's CDN URL so the emitted snippet carries `?beacio_attr=` (not a blank
     // channel). BANNER_EDIT has no CDN URL, so the overlay is a no-op on it.
     const bootstrap = framework === 'html' ? entry.bootstrap : CDN_SCRIPT_EDIT;
@@ -195,7 +195,7 @@ export function runInstallPlan(
   const entry = DATA[input.framework];
   const isCdn = input.package_manager === 'cdn';
 
-  // AIDEV-NOTE: SB-INF-06 — one `cdn`-channel token per call, reused for BOTH
+  // AIDEV-NOTE: One `cdn`-channel token per call, reused for BOTH
   // the in-snippet `?beacio_attr=` overlay AND the returned attribution_token, so
   // the detached field is no longer hand-wired: it IS the token the CDN URL
   // carries. Non-CDN paths emit the default `mcp`-channel token (their bootstrap

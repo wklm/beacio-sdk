@@ -1,5 +1,5 @@
 /**
- * SB-SDK-02 (Part A): the consolidated CLASSIC browser-auto build.
+ * The consolidated CLASSIC browser-auto build.
  *
  * `@beacio/core/browser-auto` ships ONE classic IIFE (no import/export, runs
  * under a plain non-module <script src=...>) that, on load:
@@ -164,7 +164,7 @@ function runBrowserAuto(opts: {
   return { window: win, navigator, document: doc };
 }
 
-describe('SB-SDK-02 @beacio/core/browser-auto classic IIFE', () => {
+describe('@beacio/core/browser-auto classic IIFE', () => {
   beforeEach(() => {
     if (!existsSync(ARTIFACT)) {
       throw new Error(
@@ -202,7 +202,7 @@ describe('SB-SDK-02 @beacio/core/browser-auto classic IIFE', () => {
   it('auto-shows the install banner on DOMContentLoaded on stock iOS Safari (Bluetooth absent), honoring data-operator-name', async () => {
     let appended: (Node & { id?: string }) | null = null;
     const { window, document } = runBrowserAuto({
-      operatorName: 'STORZ & BICKEL',
+      operatorName: 'EXAMPLE & CO',
       userAgent: IOS_SAFARI_UA,
       // beacioInstalled (without beacioExtension) => getExtensionInstallState()
       // resolves SYNCHRONOUSLY to 'installed-inactive' (no 2s injection poll),
@@ -258,14 +258,14 @@ describe('SB-SDK-02 @beacio/core/browser-auto classic IIFE', () => {
     });
   });
 
-  // SB-SDK-05: the branded error presenter must be reachable from the SAME
-  // classic global S&B's vanilla site already uses — window.beacioDetect — exactly
+  // The branded error presenter must be reachable from the SAME
+  // classic global a vanilla site already uses — window.beacioDetect — exactly
   // like showInstallBanner (the demo can call beacioDetect.presentError(error) with
   // NO module setup). The IIFE's globalName attaches this module's re-exports to
   // window.beacioDetect, so the durable contract is that browser-auto.ts re-exports
   // presentError alongside initBeacio/showInstallBanner. Asserted against the TS
   // SOURCE (not the pre-built artifact) so it is deterministic without a rebuild.
-  describe('SB-SDK-05: presentError is on the beacioDetect classic global', () => {
+  describe('presentError is on the beacioDetect classic global', () => {
     const SOURCE = path.resolve(__dirname, '..', 'src', 'browser-auto.ts');
 
     it('re-exports presentError from the local detect surface (so window.beacioDetect.presentError exists)', () => {

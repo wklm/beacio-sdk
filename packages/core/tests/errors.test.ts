@@ -125,7 +125,7 @@ describe('BeacioError.from', () => {
   });
 });
 
-// SB-SDK-05 AC6: "even a raw alert(error.toString()) reads as guidance". A native
+// "even a raw alert(error.toString()) reads as guidance". A native
 // DOMException/Error can carry a multi-line stack and engine/competitor jargon in
 // its .message; today BeacioError.from passes that raw text straight through for
 // pass-through codes (TIMEOUT, DEVICE_DISCONNECTED, GATT_OPERATION_FAILED, …), so a
@@ -134,14 +134,14 @@ describe('BeacioError.from', () => {
 // no 'Bluefy', no literal 'undefined', and no raw stack-frame token — while the
 // meaningful FIRST line of a clean native message is still preserved (no regression
 // to the message-passthrough tests above).
-describe('SB-SDK-05 AC6: BeacioError.from sanitises .message so error.toString() leaks no stack/competitor', () => {
+describe('BeacioError.from sanitises .message so error.toString() leaks no stack/competitor', () => {
   // A realistic dirty native message: a human first line, then engine jargon, a
   // competitor name, a native URL, and stack frames — exactly what WebKit/a polyfill
   // bridge can surface on the navigator.bluetooth path.
   const DIRTY =
     "The connection was lost. via Bluefy https://webkit.example/bridge\n" +
     '    at Object.foo (webkit://internal/ble-bridge.js:42:7)\n' +
-    '    at async crafty.js:518:13';
+    '    at async app.js:518:13';
 
   // Each AC6-enumerated simulated failure, expressed as the native rejection the
   // bluetooth path would hand to BeacioError.from.

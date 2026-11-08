@@ -6,6 +6,7 @@ import {
   type Framework,
   type PackageManager,
 } from './install-plan.js';
+import { IOS_CONDITION_SOURCE, IOS_NEGATED_SOURCE } from './patch-existing-app.js';
 
 type VerifyMode = 'greenfield' | 'brownfield';
 
@@ -15,7 +16,7 @@ interface VerifyIntegrationInput {
   /**
    * 'greenfield' (default): a freshly-scaffolded app — verifies deps/bootstrap/build/types/banner.
    * 'brownfield': an ALREADY-WRITTEN Web Bluetooth app patched via beacio_patch_existing_app /
-   * `beacio migrate` — verifies the three brownfield invariants (SB-SDK-04 AC#5).
+   * `beacio migrate` — verifies the three brownfield invariants.
    */
   mode?: VerifyMode;
 }
@@ -59,7 +60,7 @@ const BUILD_CMD: Record<PackageManager, string> = {
 };
 
 /**
- * SB-SDK-04 AC#5 — the BROWNFIELD checklist for an already-written Web Bluetooth app
+ * The BROWNFIELD checklist for an already-written Web Bluetooth app
  * patched via beacio_patch_existing_app / `beacio migrate`. Three REQUIRED checks, each
  * an exact shell command whose exit 0 == satisfied (so an agent asserts success with zero
  * eyeballing). They are written to PASS on the patched app and FAIL on the unpatched one:
@@ -74,8 +75,8 @@ const BUILD_CMD: Record<PackageManager, string> = {
  *   3. no_third_party_browser_string — there is NO active-path alert("… Bluefy / Web BLE
  *                                    browser …") left (it was swapped for the beacio affordance).
  *
- * Paths default to the static-app layout (index.html + js/main.js at the app root), matching the
- * S&B fork the runbook works through. perl -0777 (slurp) is used for cross-newline position checks
+ * Paths default to the conventional static-app layout (index.html + js/main.js at the app
+ * root). perl -0777 (slurp) is used for cross-newline position checks
  * and is present on macOS + Linux.
  */
 const BROWNFIELD_HTML_PATH = 'index.html';
@@ -86,8 +87,8 @@ function brownfieldChecklist(): VerifyIntegrationOutput {
     {
       id: 'ios_optional_services',
       description:
-        'optionalServices is declared inside the iOS requestDevice branch (if (userAgent_iOS()) { … }), so iOS getPrimaryService() is permitted for every filtered service.',
-      command: `perl -0777 -ne 'exit(/userAgent_iOS\\(\\)\\)\\s*\\{[^{}]*optionalServices/ ? 0 : 1)' ${BROWNFIELD_JS_PATH}`,
+        'optionalServices is declared inside the iOS requestDevice branch (an if (…) { … } whose condition tests for iOS, e.g. if (isIOS()) { … }; a negated test such as if (!isIOS()) does not count), so iOS getPrimaryService() is permitted for every filtered service.',
+      command: `perl -0777 -ne 'exit(/\\bif\\s*\\((?=[^{};]*${IOS_CONDITION_SOURCE})(?![^{};]*${IOS_NEGATED_SOURCE})[^{};]*\\)\\s*\\{[^{}]*optionalServices/ ? 0 : 1)' ${BROWNFIELD_JS_PATH}`,
       expect: 'Exit 0 — the iOS branch sets options.optionalServices. (Unpatched: exits 1.)',
       required: true,
     },
@@ -103,9 +104,9 @@ function brownfieldChecklist(): VerifyIntegrationOutput {
     {
       id: 'no_third_party_browser_string',
       description:
-        'No active-path alert directing users to a third-party browser ("Please use Bluefy / Web BLE browser") remains — it was swapped for the beacio install/enable affordance. Scoped to the connect gate (matches `hasThirdPartyBrowserMessage` in the CLI): a dead capability-only notice that merely mentions Bluefy (e.g. a "update firmware … use Bluefy" message guarded by browserSupportsWriteWithoutResponse, off the active path on beacio) is NOT this gate and must not trip it — otherwise this surface would contradict `beacio check --brownfield` on the same patched app.',
+        'No active-path alert directing users to a third-party browser such as Bluefy or a Web BLE browser remains — it was swapped for the beacio install/enable affordance. Scoped to the connect gate (matches `hasThirdPartyBrowserMessage` in the CLI): a dead capability-only notice that merely mentions Bluefy (e.g. a "update firmware … use Bluefy" message guarded by a write-without-response capability check, off the active path on beacio) is NOT this gate and must not trip it — otherwise this surface would contradict `beacio check --brownfield` on the same patched app.',
       command: `perl -0777 -ne 'exit(/alert\\(\\s*["'"'"'][^"'"'"']*(?:Web BLE browser|Web Bluetooth[^"'"'"']*Bluefy|Bluefy[^"'"'"']*Web Bluetooth)/ ? 1 : 0)' ${BROWNFIELD_JS_PATH}`,
-      expect: 'Exit 0 — no active-path third-party-browser alert present. (Unpatched: a live "use Bluefy / Web BLE browser" connect-gate alert exists, exits 1.)',
+      expect: 'Exit 0 — no active-path third-party-browser alert present. (Unpatched: a live connect-gate alert sending users to Bluefy or a Web BLE browser exists, exits 1.)',
       required: true,
     },
   ];

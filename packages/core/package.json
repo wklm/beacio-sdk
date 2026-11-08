@@ -61,11 +61,6 @@
       "import": "./dist/profiles/serial-ffe0.mjs",
       "require": "./dist/profiles/serial-ffe0.js"
     },
-    "./experimental/profiles/storz-bickel": {
-      "types": "./dist/experimental/profiles/storz-bickel.d.ts",
-      "import": "./dist/experimental/profiles/storz-bickel.mjs",
-      "require": "./dist/experimental/profiles/storz-bickel.js"
-    },
     "./testing": {
       "types": "./dist/testing/index.d.ts",
       "import": "./dist/testing/index.mjs",

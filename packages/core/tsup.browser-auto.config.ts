@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsup';
 
-// SB-SDK-02 (Part A): the consolidated CLASSIC auto-installing browser bundle.
+// The consolidated CLASSIC auto-installing browser bundle.
 //
 // Unlike tsup.browser.config.ts (browser.global.js — a non-auto LIBRARY global
 // `BeacioCore` that surfaces the SDK classes but neither installs the polyfill

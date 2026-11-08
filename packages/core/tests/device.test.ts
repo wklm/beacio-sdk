@@ -978,9 +978,9 @@ describe('BeacioDevice god-class split invariants', () => {
   });
 });
 
-// SB-SDK-05 AC3 + AC4: every DOMException @beacio/core throws on the
+// Every DOMException @beacio/core throws on the
 // navigator.bluetooth path must carry a complete plain-English .message. The
-// dominant real failure for a vanilla site (S&B) is forgetting to declare a
+// dominant real failure for a vanilla site is forgetting to declare a
 // service in requestDevice({ optionalServices }): WebKit then rejects
 // getPrimaryService with a SecurityError, and today device.getService rethrows it
 // as a GENERIC PERMISSION_DENIED BeacioError that DROPS the offending UUID — the
@@ -989,11 +989,11 @@ describe('BeacioDevice god-class split invariants', () => {
 // in-scope service UUID and states it must be added to optionalServices (mirroring
 // SUGGESTIONS.SERVICE_NOT_FOUND), with no leaked stack and no competitor name.
 // AC4 control: the existing BeacioError.code/.suggestion mappings must NOT regress.
-describe('SB-SDK-05 @beacio/core surfaces human DOMException messages on the bluetooth path', () => {
+describe('@beacio/core surfaces human DOMException messages on the bluetooth path', () => {
   // A custom 128-bit service UUID an operator would pass to requestDevice — not a
   // SIG-registered name — so getService reaches server.getPrimaryService (no cache
   // hit) and the canonical resolved form is what the message must name.
-  const SB_SERVICE = '00000001-5354-4f52-5a26-4249434b454c';
+  const VENDOR_SERVICE = '97039001-d6aa-4718-8f9a-0c8ab7f3541e';
 
   it('AC3: a missing-optionalServices SecurityError names the offending UUID + optionalServices remedy (no stack, no Bluefy)', async () => {
     const { device, getPrimaryService } = createConnectedDevice();
@@ -1012,7 +1012,7 @@ describe('SB-SDK-05 @beacio/core surfaces human DOMException messages on the blu
 
     let thrown: unknown;
     try {
-      await device.read(SB_SERVICE, 'battery_level');
+      await device.read(VENDOR_SERVICE, 'battery_level');
     } catch (e) {
       thrown = e;
     }
@@ -1028,7 +1028,7 @@ describe('SB-SDK-05 @beacio/core surfaces human DOMException messages on the blu
     // (2) The message NAMES the offending service UUID in its canonical resolved
     // form (whatever case resolveUUID produces), so the operator knows WHICH
     // service to declare.
-    const canonical = resolveUUID(SB_SERVICE);
+    const canonical = resolveUUID(VENDOR_SERVICE);
     const haystack = err.message.toLowerCase();
     expect(haystack).toContain(canonical.toLowerCase());
 
@@ -1050,7 +1050,7 @@ describe('SB-SDK-05 @beacio/core surfaces human DOMException messages on the blu
   // WebKit/the polyfill bridge.
   it('AC6: a dirty mid-operation disconnect surfaced by device.read() has a clean error.toString()', async () => {
     const dirtyDisconnect = new DOMException(
-      "GATT Server is disconnected. via Bluefy https://webkit.example/x\n    at z (crafty.js:518:13)",
+      "GATT Server is disconnected. via Bluefy https://webkit.example/x\n    at z (app.js:518:13)",
       'NetworkError'
     );
     const { device } = createConnectedDevice({ characteristicPromise: Promise.reject(dirtyDisconnect) });
@@ -1072,7 +1072,7 @@ describe('SB-SDK-05 @beacio/core surfaces human DOMException messages on the blu
   });
 
   it('AC4 (no regression): BeacioError.code/.suggestion mappings are unchanged', () => {
-    // Spot-check the mappings SB-SDK-05 must not disturb while refining the
+    // Spot-check the mappings this fix must not disturb while refining the
     // SecurityError message (these mirror errors.test.ts).
     const disconnected = new BeacioError('DEVICE_DISCONNECTED');
     expect(disconnected.code).toBe('DEVICE_DISCONNECTED');
@@ -1091,14 +1091,14 @@ describe('SB-SDK-05 @beacio/core surfaces human DOMException messages on the blu
 });
 
 // ---------------------------------------------------------------------------
-// SB-SDK-14 — BeacioDevice.onCharacteristicOverflow. The native bounded
+// BeacioDevice.onCharacteristicOverflow. The native bounded
 // EventQueue surfaces evictions as a `beacio:overflow` CustomEvent dispatched on
 // the W3C characteristic; this seam resolves that characteristic (via the same
 // cached getCharacteristic lookup) and forwards the raw event to the listener.
 // The returned unsubscribe detaches the listener. Uses a REAL EventTarget for
 // the characteristic so add/remove/dispatch behave as in the browser.
 // ---------------------------------------------------------------------------
-describe('SB-SDK-14 — BeacioDevice.onCharacteristicOverflow', () => {
+describe('BeacioDevice.onCharacteristicOverflow', () => {
   function createOverflowDevice() {
     const characteristic = Object.assign(new EventTarget(), {
       uuid: '0000beef-0000-1000-8000-00805f9b34fb',

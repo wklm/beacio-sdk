@@ -579,8 +579,8 @@ matches the app.
 
 ### @beacio/core
 - Version aligned with App Store / Safari extension 1.2.0.
-- Stability freeze surfaces (internal slots, error matrix, batch GATT wire protocol, experimental
-  Storz path). CDN / install pins move to \`@beacio/core@1.2.0\`.
+- Stability freeze surfaces (internal slots, error matrix, batch GATT wire protocol).
+  CDN / install pins move to \`@beacio/core@1.2.0\`.
 
 ### @beacio/react
 - First stable release aligned with \`@beacio/core@1.2.0\` (\`peerDependencies\` \`^1.2.0\`).

@@ -33,7 +33,7 @@
  *       `browser-auto.global.js`, plus the `version` it was generated against.
  *   (c) Each committed digest EXACTLY matches `sha384(<freshly built bundle>)`.
  *       A mismatch is either drift (regenerate via `npm run build -w packages/core`)
- *       or tamper (restore the bundle from git) — both are S&B-SRI-critical: a
+ *       or tamper (restore the bundle from git) — both are SRI-critical: a
  *       wrong digest ships a pin the browser will reject against the real bytes.
  *
  * RED-arms (adversarial): flipping one byte of `dist/auto.mjs`, OR editing the

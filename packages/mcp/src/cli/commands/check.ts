@@ -51,10 +51,10 @@ function walkDir(dir: string, extensions: string[], maxDepth = 4, depth = 0): st
 }
 
 /**
- * SB-SDK-04 AC#5 — `beacio check --brownfield`: verify an ALREADY-WRITTEN Web Bluetooth app
+ * `beacio check --brownfield`: verify an ALREADY-WRITTEN Web Bluetooth app
  * was patched correctly for iOS Safari. Asserts the three brownfield invariants and exits 1 on
- * any failure (so an agent can gate on it). Passes on the patched demo fork; fails on the
- * unpatched captured app (missing iOS optionalServices + bootstrap-before-gate ordering).
+ * any failure (so an agent can gate on it). Passes on a patched app; fails on an
+ * unpatched one (missing iOS optionalServices + bootstrap-before-gate ordering).
  */
 async function checkBrownfield(projectPath: string): Promise<void> {
   const issues: string[] = [];
@@ -131,7 +131,7 @@ export async function check(args: string[]): Promise<void> {
     // Check for CDN usage in HTML files. `beacio init` (html) writes the
     // canonical M7-pinned `cdn.beacio.com/@beacio/core@2.1.0/dist/auto.mjs`
     // ESM import tag (CDN-01 fix — matches `beacio_install_plan`'s
-    // CANONICAL_CDN_BOOTSTRAP_URL + SB-INF-06). The cdn Worker 400s partial
+    // CANONICAL_CDN_BOOTSTRAP_URL). The cdn Worker 400s partial
     // versions (`@1`, `@1.0`), so this regex requires a FULL three-part
     // semver — partial refs must NOT be accepted here. `beacio.com/beacio.js`
     // (the pre-rebrand apex shortener) and `ioswebble.com/detect` are kept

@@ -1,10 +1,10 @@
 /**
- * @beacio/detect#presentError — SB-SDK-05
+ * @beacio/detect#presentError
  *
  * A drop-in, framework-free branded ERROR presenter. The polished branded surface
  * already exists for the INSTALL prompt (banner.ts); this is its sibling for the
- * FAILURE path. S&B (and any vanilla-JS site) uses raw `navigator.bluetooth`
- * across hundreds of call sites and will not rewrite them — so the worst surface,
+ * FAILURE path. A vanilla-JS site uses raw `navigator.bluetooth`
+ * across many call sites and will not rewrite them — so the worst surface,
  * a blocking, stack-leaking `window.alert()`, is converted into a non-blocking,
  * dismissible, recovery-oriented card with a ~1-line edit:
  *
@@ -28,7 +28,7 @@
  *  - Identical errors fired in a short window are coalesced to ONE card (defends
  *    against the backgrounded alert-storm).
  *  - All user-visible strings are overridable via a copy/locale object
- *    (PresentErrorOptions.strings) — the i18n seam SB-SDK-07 converges on; the
+ *    (PresentErrorOptions.strings) — the i18n seam the shared locale pack converges on; the
  *    `lang` field selects a built-in pack (German shipped), and `strings`
  *    deep-merges over it. English defaults apply when neither is supplied (no
  *    regression). The per-code copy + dismiss/retry come from the SAME shared
@@ -42,7 +42,7 @@
 // BeacioError nor the SUGGESTIONS table nor withRetry, so the zero-config
 // browser-auto drop-in stays inside its gzip budget.
 import { classifyThrown, RETRIABLE_CODES, sanitizeNativeMessage, type BeacioErrorCode } from '../error-taxonomy';
-// SB-SDK-07: the shared localized-string seam (same module the install banner
+// The shared localized-string seam (same module the install banner
 // consumes).
 import { type DeepPartial, EN_STRINGS, type ErrorStrings, type LocaleStrings, resolveStrings } from './i18n';
 
@@ -54,7 +54,7 @@ export type { BeacioErrorCode };
  * codes, no jargon, no competitor names. This is the body shown to the user — the
  * raw error string (which may carry a stack or a competitor name) is NEVER shown.
  *
- * SB-SDK-07: there is no local copy table. The presenter's English
+ * There is no local copy table. The presenter's English
  * source-of-truth and the shared i18n pack are ONE table (EN_STRINGS.error), so
  * they cannot drift; localized rendering reads the RESOLVED pack (which may be
  * German). `isCodedError` therefore anchors code membership on
@@ -68,10 +68,10 @@ export type { BeacioErrorCode };
  * (operatorName, style), plus the retry affordance + the copy/locale seam.
  */
 export interface PresentErrorOptions {
-  /** Operator/app name shown in the card (e.g. "STORZ & BICKEL"). */
+  /** Operator/app name shown in the card (e.g. "EXAMPLE & CO"). */
   operatorName?: string;
   /**
-   * SB-SDK-07: BCP-47 UI language (e.g. 'de'). Selects the built-in pack for the
+   * BCP-47 UI language (e.g. 'de'). Selects the built-in pack for the
    * per-code title/body + dismiss/retry labels; omitted ⇒ derived from
    * navigator.language, else English. A per-call `strings` (and the explicit
    * dismissText/retryText) still override the selected pack. Always wins over
@@ -90,7 +90,7 @@ export interface PresentErrorOptions {
   /** Extra inline styles merged onto the card container. */
   style?: Record<string, string>;
   /**
-   * Copy/locale overrides for every user-visible string (SB-SDK-07 seam),
+   * Copy/locale overrides for every user-visible string (the i18n seam),
    * deep-merged over the selected language pack by the SAME `resolveStrings`
    * the install banner uses — so the seam also covers the per-code `titles` and
    * the `generic` fallback, not just `messages`/`dismiss`/`retry`. Every field is
@@ -139,17 +139,17 @@ interface Resolved {
 /**
  * Normalise any input — a BeacioError-shaped object, a raw DOMException/Error, or
  * a bare string — into branded, stack-free, competitor-free card content. The raw
- * error string is shown ONLY for a bare-string input (the S&B generateErrorMsg
+ * error string is shown ONLY for a bare-string input (a site's own error-message helper
  * path, where the caller passes its own already-friendly message); structured
  * errors always use the per-code copy table so no native jargon/stack leaks.
  */
 function resolve(input: unknown, pack: LocaleStrings['error']): Resolved {
-  // SB-SDK-07: per-code title/body come from the RESOLVED pack — which the caller's
+  // Per-code title/body come from the RESOLVED pack — which the caller's
   // `strings` has already been deep-merged into, so a per-call override still wins.
   const titleFor = (code: BeacioErrorCode): string => pack.titles[code];
   const bodyFor = (code: BeacioErrorCode): string => pack.messages[code];
 
-  // Bare string: the caller's own message IS the body (generateErrorMsg path) —
+  // Bare string: the caller's own message IS the body (the caller's error-message helper path) —
   // but sanitise it first (AC1/AC6) so a string carrying a stack, a native URL, or
   // a competitor name never renders verbatim. When nothing meaningful survives,
   // fall back to the branded generic body so the card is never blank.
@@ -199,7 +199,7 @@ export function presentError(errorOrMessage: unknown, options: PresentErrorOptio
   // SSR / non-DOM guard (mirrors banner.ts dispatch guards).
   if (typeof document === 'undefined') return null;
 
-  // SB-SDK-07: resolve the localized pack ONCE (explicit lang > navigator.language
+  // Resolve the localized pack ONCE (explicit lang > navigator.language
   // > English) with the caller's `strings` deep-merged on top; per-code copy +
   // dismiss/retry derive from it, with the explicit dismissText/retryText last.
   // deepMerge skips undefined override keys, so an absent `strings` is a no-op.
@@ -260,7 +260,7 @@ export function presentError(errorOrMessage: unknown, options: PresentErrorOptio
 .bce-bd{font-size:14px;line-height:1.4;color:#3a3a3c;margin-top:3px}
 .bce-x{background:none;border:none;color:#8e8e93;font-size:20px;cursor:pointer;line-height:1;
   padding:0 2px;align-self:flex-start}
-/* SB-SDK-07: visually-hidden text label on the icon-only dismiss control. The
+/* Visually-hidden text label on the icon-only dismiss control. The
    glyph stays the only visible mark; the label surfaces in the accessibility
    tree + DOM text so the LOCALIZED dismiss copy is present (German when lang
    selects it), not just an aria-label attribute. */

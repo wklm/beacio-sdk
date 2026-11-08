@@ -171,12 +171,12 @@ function buildW3CFacade(api: object): object {
 }
 
 // ---------------------------------------------------------------------------
-// SB-SDK-13 — Foreground auto-reconnect + subscription recovery for the RAW
+// Foreground auto-reconnect + subscription recovery for the RAW
 // polyfilled navigator.bluetooth path.
 //
 // beacio's free foreground reconnect engine lives on the BeacioDevice wrapper
 // (device.ts handleDisconnect/startAutoReconnect + notification-manager
-// recoverSubscriptions). Real drop-in apps — the Storz & Bickel demo — consume
+// recoverSubscriptions). Real drop-in apps — a vanilla-JS partner site, say — consume
 // the BARE global (navigator.bluetooth.requestDevice / device.gatt /
 // characteristic.startNotifications) and so never reach that engine: a transient
 // drop forces a full page reload.
@@ -448,8 +448,8 @@ function superviseDevice(device: BluetoothDevice, backoff: ResolvedBackoff): Blu
 }
 
 /**
- * Wrap a vendor API's requestDevice so every returned device is supervised
- * (SB-SDK-13). Returns the SAME api object when auto-reconnect is disabled or the
+ * Wrap a vendor API's requestDevice so every returned device is supervised.
+ * Returns the SAME api object when auto-reconnect is disabled or the
  * api has no requestDevice, so the W3C facade build is unaffected off the feature.
  */
 function withAutoReconnect(api: object): object {
@@ -483,11 +483,11 @@ function createUnsupportedBluetoothStub(): object {
       // lives INSIDE @beacio/core (src/detect/), so this is an intra-package
       // dynamic import — code-split into its own chunk so the eager polyfill
       // graph never carries the banner UI until the unsupported stub is used.
-      // SB-SDK-07: this zero-config call passes NO lang, so the banner's i18n
+      // This zero-config call passes NO lang, so the banner's i18n
       // seam (src/detect/i18n.ts resolveStrings) derives the language from
       // navigator.language — a German-locale iPhone gets the German banner with
       // no config here. An explicit `lang` is only ever supplied by a caller that
-      // wires showInstallBanner/initBeacio directly (e.g. the S&B demo passes
+      // wires showInstallBanner/initBeacio directly (e.g. a partner page that passes
       // lang:'de'); core's stub stays config-free and localizable.
       try {
         const detect = await import('./detect');
@@ -634,7 +634,7 @@ export function applyPolyfill(): void {
       // [SameObject] (navigator-bluetooth-getter-new-proxy-per-access): build
       // the facade ONCE — every access returns the identical object with
       // stable method identities. The facade is built over the auto-reconnect
-      // interposer (SB-SDK-13) so requestDevice hands back supervised devices on
+      // interposer so requestDevice hands back supervised devices on
       // the beacio runtime; every other W3C member forwards to the vendor api
       // unchanged, and the surface is byte-for-byte identical off the feature.
       const facade = buildW3CFacade(withAutoReconnect(api));

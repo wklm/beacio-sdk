@@ -2,21 +2,21 @@ import { generateAttributionToken } from '../attribution.js';
 import { docsUrl, ToolInputError, type ToolDefinition } from './_common.js';
 
 /**
- * SB-SDK-04 — `beacio_patch_existing_app`: the BROWNFIELD counterpart to
+ * `beacio_patch_existing_app`: the BROWNFIELD counterpart to
  * `beacio_install_plan`. Every other onboarding tool scaffolds a GREENFIELD app;
  * this one takes an app that ALREADY has a working (Chrome/Android) Web Bluetooth
- * flow — the Storz & Bickel shape: a vendored-jQuery static-HTML site — and returns
+ * flow — e.g. a vendored-jQuery static-HTML site — and returns
  * concrete, machine-actionable FileEdits that make it work on iOS Safari via beacio:
  *
  *   (a) the polyfill bootstrap inserted into <head> BEFORE the first script that
  *       reads navigator.bluetooth (a static app reads it synchronously, so a
  *       body-end / deferred-module insert loses the parse-time gate race);
- *   (b) `optionalServices` added onto the existing `if (userAgent_iOS())`
- *       requestDevice branch (iOS uses namePrefix-only filters, so every service
+ *   (b) `optionalServices` added onto the existing iOS `if (…)` requestDevice
+ *       branch, such as `if (isIOS())` (iOS uses namePrefix-only filters, so every service
  *       later reached via getPrimaryService() must be declared optional or
  *       Safari/beacio throws a SecurityError);
- *   (c) the active-path third-party-browser message ("Please use Bluefy / Web BLE
- *       browser") swapped for the beacio install/enable affordance.
+ *   (c) the active-path message sending the user to Bluefy or another Web BLE
+ *       browser, swapped for the beacio install/enable affordance.
  *
  * It emits edits ONLY — it never writes files (the `beacio migrate` CLI applies the
  * same transform to disk, idempotently). The edits are derived from the SUBMITTED
@@ -87,19 +87,78 @@ export function bootstrapEdit(htmlPath: string): FileEdit {
 }
 
 /**
- * Locate the `if (userAgent_iOS()) { … }` branch that configures the requestDevice
- * `options` (filters / acceptAllDevices) — NOT some other userAgent_iOS() block —
- * by brace-matching so it is robust to nested object literals in the filter list and
- * to both minified and pretty-printed source. Returns null when no such branch exists.
+ * An iOS test inside an `if (…)` condition, as a plain regex source: an `ios` / `iOS` /
+ * `IOS` / `Ios` word part (isIOS(), is_ios, IS_IOS, platform === 'ios') or an iPhone /
+ * iPad / iPod token (/iPhone|iPad/.test(navigator.userAgent)). Word-part boundaries keep
+ * `bios`, `radios` and `scenarios` out. Plain syntax only (no quote, `$` or unescaped `/`),
+ * so the same source is reused verbatim by the perl `ios_optional_services` check.
+ */
+export const IOS_CONDITION_SOURCE =
+  '(?:(?<![A-Za-z])ios(?![a-z])|(?<![A-Z])(?:iOS|IOS|Ios)(?![a-z])|i(?:Phone|Pad|Pod))';
+
+/**
+ * A NEGATED iOS test, as a plain regex source in the same syntax: a `!` in front of the
+ * identifier, call or regex literal that holds the iOS token (`!isIOS()`, `!(isIOS())`,
+ * `!/iPhone/.test(ua)`, `!ua.match(/iPad/)`), or a `!=` / `!==` comparison against an
+ * iOS literal (`platform !== 'ios'`, `'ios' != os`). A condition that contains one is
+ * NOT the iOS branch, even when it also holds a plain iOS token (fail-safe: no edit).
+ */
+export const IOS_NEGATED_SOURCE =
+  `(?:![\\s(]*[\\w.\\x24(]*(?:\\/[^\\/{};]*)?${IOS_CONDITION_SOURCE}` +
+  `|!==?\\s*\\W?${IOS_CONDITION_SOURCE}` +
+  `|${IOS_CONDITION_SOURCE}\\W?\\s*!=)`;
+
+const IOS_CONDITION_RE = new RegExp(IOS_CONDITION_SOURCE);
+const IOS_NEGATED_RE = new RegExp(IOS_NEGATED_SOURCE);
+
+/** True when an `if (…)` condition tests for iOS and does not negate that test. */
+function isIosCondition(condition: string): boolean {
+  return IOS_CONDITION_RE.test(condition) && !IOS_NEGATED_RE.test(condition);
+}
+
+/**
+ * Parse an `if (…) {` header starting at `at` (which must point at `if`). The condition
+ * is matched with balanced parentheses; a `{`, `}` or `;` inside it rejects the header
+ * (the same bound the perl check uses). Returns the condition text and the index of the
+ * opening `{`, or null.
+ */
+function ifHeaderAt(src: string, at: number): { condition: string; openBrace: number } | null {
+  const head = /^if\s*\(/.exec(src.slice(at, at + 64));
+  if (!head) return null;
+  const condStart = at + head[0].length;
+  let depth = 1;
+  let i = condStart;
+  for (; i < src.length && depth > 0; i++) {
+    const ch = src[i];
+    if (ch === '{' || ch === '}' || ch === ';') return null;
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+  }
+  if (depth !== 0) return null;
+  const condition = src.slice(condStart, i - 1);
+  const rest = /^\s*\{/.exec(src.slice(i, i + 64));
+  if (!rest) return null;
+  return { condition, openBrace: i + rest[0].length - 1 };
+}
+
+/**
+ * Locate the iOS `if (…) { … }` branch (any `if` whose condition tests for iOS, such as
+ * `if (isIOS())` or an inline user-agent test, and does not negate it: `if (!isIOS())`
+ * is skipped) that configures the requestDevice
+ * `options` (filters / acceptAllDevices) — NOT some other iOS block — by brace-matching
+ * so it is robust to nested object literals in the filter list and to both minified and
+ * pretty-printed source. Returns null when no such branch exists.
  */
 export function findIosOptionsBranch(
   src: string,
 ): { full: string; body: string; start: number; end: number } | null {
-  const re = /if\s*\(\s*userAgent_iOS\(\)\s*\)\s*\{/g;
+  const re = /\bif\s*\(/g;
   let m: RegExpExecArray | null;
   while ((m = re.exec(src)) !== null) {
+    const header = ifHeaderAt(src, m.index);
+    if (!header || !isIosCondition(header.condition)) continue;
     const start = m.index;
-    const openBrace = m.index + m[0].length - 1;
+    const openBrace = header.openBrace;
     let depth = 0;
     let end = -1;
     for (let i = openBrace; i < src.length; i++) {
@@ -128,9 +187,8 @@ export function findIosOptionsBranch(
  * which is exactly the coverage iOS getPrimaryService() requires. It carries no
  * app-specific UUIDs, so it is safe to ship in this package and correct for any
  * brownfield app whose iOS branch reuses its filter `services`. (For an app whose
- * iOS branch uses namePrefix-only filters — like S&B — the agent/operator widens this
- * to the explicit service UUIDs; see BROWNFIELD-RUNBOOK.md. That is the documented
- * superset the AC permits.)
+ * iOS branch uses namePrefix-only filters, the agent/operator widens this
+ * to the explicit service UUIDs. That is the documented superset the AC permits.)
  */
 const OPTIONAL_SERVICES_SPLICE =
   ';/* beacio: declare every service the app filters on as optional so iOS getPrimaryService() is permitted */' +
@@ -138,24 +196,24 @@ const OPTIONAL_SERVICES_SPLICE =
 
 /** Build the replacement text for an iOS options branch that lacks optionalServices. */
 export function iosBranchWithOptionalServices(full: string): string {
-  const openMatch = full.match(/if\s*\(\s*userAgent_iOS\(\)\s*\)\s*\{/);
-  if (!openMatch) return full;
-  const open = openMatch[0];
+  const header = ifHeaderAt(full, 0);
+  if (!header || !isIosCondition(header.condition)) return full;
+  const open = full.slice(0, header.openBrace + 1);
   const body = full.slice(open.length, full.length - 1); // strip leading `if(..){` and trailing `}`
   return `${open}${body}${OPTIONAL_SERVICES_SPLICE}}`;
 }
 
 /**
- * Match the active-path third-party-browser message — optionally guarded by
- * `if (iOS_BLEnotWorking())` — `alert("… Bluefy / Web BLE browser …")`. Used to
- * detect AND to swap it. Single (non-global) so callers test/replace the first hit.
+ * Match the active-path third-party-browser message `alert("… Bluefy / Web BLE
+ * browser …")`. Used to detect AND to swap it; a guard in front of the alert stays in
+ * place. Single (non-global) so callers test/replace the first hit.
  */
 export const THIRD_PARTY_BROWSER_RE =
-  /(?:if\s*\(\s*iOS_BLEnotWorking\(\)\s*\)\s*)?alert\(\s*["'][^"']*(?:Bluefy|Web BLE browser)[^"']*["']\s*\)\s*;?/;
+  /alert\(\s*["'][^"']*(?:Bluefy|Web BLE browser)[^"']*["']\s*\)\s*;?/;
 
 /** The beacio onboarding affordance that replaces the third-party-browser message. */
 export const THIRD_PARTY_BROWSER_REPLACEMENT =
-  'if(typeof iOS_BLEnotWorking==="function"?iOS_BLEnotWorking():/iPhone|iPad|iPod/i.test(navigator.userAgent)){' +
+  'if(/iPhone|iPad|iPod/i.test(navigator.userAgent)){' +
   '/* beacio: route to the beacio install/enable onboarding instead of a third-party browser */' +
   'try{window.beacioDetect&&window.beacioDetect.showInstallBanner&&window.beacioDetect.showInstallBanner({operatorName:document.title||"this app"});}catch(e){}}';
 
@@ -199,7 +257,7 @@ export function runPatchExistingApp(input: PatchExistingAppInput): PatchExisting
       path: input.js_path,
       find: thirdParty[0],
       insert: THIRD_PARTY_BROWSER_REPLACEMENT,
-      note: 'Replaces the "Please use Bluefy / Web BLE browser" message with the beacio install/enable onboarding.',
+      note: 'Replaces the message that sends the user to Bluefy or another Web BLE browser with the beacio install/enable onboarding.',
     });
     steps.push(`Swap the third-party-browser message in ${input.js_path} for the beacio install/enable affordance.`);
   }

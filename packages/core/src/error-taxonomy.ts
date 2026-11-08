@@ -403,7 +403,7 @@ export function classifyThrown(error: unknown, fallback: BeacioErrorCode): Class
 }
 
 /**
- * SB-SDK-05 AC6: reduce a raw native error message to a single, complete-sentence
+ * Reduce a raw native error message to a single, complete-sentence
  * line that is safe to show via a bare `alert(error.toString())` — no stack frames,
  * no native `webkit://`/`http(s)://` URLs, and no competitor names. A clean,
  * single-line native message (e.g. "Invalid UUID: 'bogus'") is preserved verbatim

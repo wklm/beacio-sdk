@@ -1,8 +1,8 @@
 /**
- * SB-SDK-16 — the SDK↔infra AUTH SEAM contract test.
+ * The SDK↔infra AUTH SEAM contract test.
  *
  * `@beacio/detect`'s `API_BASE` (`https://api.beacio.com`) is served by the api
- * Worker at `cloudflare/workers/api` (SB-INF-01: `custom_domain = api.beacio.com`, NOT a phantom
+ * Worker at `cloudflare/workers/api` (`custom_domain = api.beacio.com`, NOT a phantom
  * host and NOT `beacon.beacio.com`), so AC#1 (a deployed Worker) already holds.
  * The remaining defect is AC#2 — "the chosen host matches whichever Worker
  * actually ingests": that Worker authenticates the keyed `/v1/config` +
@@ -57,7 +57,7 @@ function spyFetch(): { calls: CapturedFetch[]; restore: () => void } {
   return { calls, restore: () => { globalThis.fetch = realFetch; } };
 }
 
-describe('SB-SDK-16: detect speaks Authorization: Bearer to the ingesting Worker', () => {
+describe('detect speaks Authorization: Bearer to the ingesting Worker', () => {
   let fetchSpy: ReturnType<typeof spyFetch>;
 
   beforeEach(() => {

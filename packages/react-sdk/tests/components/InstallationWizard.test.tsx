@@ -231,20 +231,20 @@ describe('InstallationWizard', () => {
         expect(screen.getByText('Bluetooth Required')).toBeInTheDocument();
       });
 
-      // operatorName now appears in the body AND the SB-PRD-03 return affordance;
+      // operatorName now appears in the body AND the return affordance;
       // scope to the description body to keep this assertion's original intent.
       const body = container.querySelector('[data-beacio-wizard-body]');
       expect(body?.textContent).toMatch(/MyApp/);
     });
 
-    // SDK-01: an operatorName containing '&' (the flagship STORZ & BICKEL) must
+    // An operatorName containing '&' (e.g. EXAMPLE & CO) must
     // surface in the DEFAULT body copy as a single, unescaped ampersand. The
     // earlier esc() helper HTML-entity-encoded the string and React then escaped
-    // the entities a second time, so the literal "STORZ &amp; BICKEL" was shown.
-    it('should not double-escape "&" in the default body (STORZ & BICKEL)', async () => {
+    // the entities a second time, so the literal "EXAMPLE &amp; CO" was shown.
+    it('should not double-escape "&" in the default body (EXAMPLE & CO)', async () => {
       mockDetector.detectInstallState.mockResolvedValue('not-installed');
 
-      const { container } = render(<InstallationWizard operatorName="STORZ & BICKEL" />);
+      const { container } = render(<InstallationWizard operatorName="EXAMPLE & CO" />);
 
       await waitFor(() => {
         expect(screen.getByText('Bluetooth Required')).toBeInTheDocument();
@@ -252,12 +252,12 @@ describe('InstallationWizard', () => {
 
       const body = container.querySelector('[data-beacio-wizard-body]');
       // The rendered text node carries the literal, once-decoded ampersand.
-      expect(body?.textContent).toContain('STORZ & BICKEL');
+      expect(body?.textContent).toContain('EXAMPLE & CO');
       // ...and never the double-encoded form.
-      expect(body?.textContent).not.toContain('STORZ &amp; BICKEL');
+      expect(body?.textContent).not.toContain('EXAMPLE &amp; CO');
       // The serialized HTML must contain exactly one entity-encoded '&' for this
       // name (React's single escaping), never the double-encoded '&amp;amp;'.
-      expect(body?.innerHTML).toContain('STORZ &amp; BICKEL');
+      expect(body?.innerHTML).toContain('EXAMPLE &amp; CO');
       expect(body?.innerHTML).not.toContain('&amp;amp;');
     });
 
@@ -314,7 +314,7 @@ describe('InstallationWizard', () => {
     });
   });
 
-  describe('SB-PRD-03: iOS-26 enable + grant copy parity (web ↔ react)', () => {
+  describe('iOS-26 enable + grant copy parity (web ↔ react)', () => {
     beforeEach(() => {
       mockDetector.detectInstallState.mockResolvedValue('not-installed');
     });
@@ -350,7 +350,7 @@ describe('InstallationWizard', () => {
     });
 
     it('AC4: renders a VISIBLE return affordance whose href derives from beacio_return', async () => {
-      const origin = 'https://app.storz-bickel.com/connect?session=abc';
+      const origin = 'https://app.example.com/connect?session=abc';
       localStorageMock.setItem(
         'beacio_return',
         JSON.stringify({ url: origin, timestamp: Date.now() })
@@ -364,23 +364,23 @@ describe('InstallationWizard', () => {
 
       const returnLink = container.querySelector('a[href]') as HTMLAnchorElement | null;
       expect(returnLink).not.toBeNull();
-      expect(returnLink!.getAttribute('href')).toContain('app.storz-bickel.com');
+      expect(returnLink!.getAttribute('href')).toContain('app.example.com');
       expect((returnLink!.textContent || '').trim().length).toBeGreaterThan(0);
     });
   });
 
-  // SB-SDK-11: the wizard is themeable (tier-2 co-brand) — the same surface as the
-  // @beacio/detect banner. A premium partner (Storz & Bickel) must be able to swap
+  // The wizard is themeable (tier-2 co-brand) — the same surface as the
+  // @beacio/detect banner. A premium partner must be able to swap
   // the Apple-blue + beacio glyph + "Bluetooth Required" chrome for its own accent,
   // logo, and device-specific copy, plus the medical-market trust surfaces (a
   // VISIBLE "no data collected" line and a "not affiliated with the device maker"
   // microcopy). These FAIL on the current tree: the props do not exist (TS compile
   // error) and the themed DOM / visible-privacy / no-affiliation nodes are absent.
-  describe('SB-SDK-11 themeable wizard (tier-2 co-brand)', () => {
+  describe('Themeable wizard (tier-2 co-brand)', () => {
     // jsdom normalizes inline-style hex colors to rgb(), so assertions are made
-    // against the rgb forms: #007aff -> rgb(0, 122, 255); #c8102e -> rgb(200, 16, 46).
+    // against the rgb forms: #007aff -> rgb(0, 122, 255); #2e7d32 -> rgb(46, 125, 50).
     const DEFAULT_ACCENT_RGB = 'rgb(0, 122, 255)';
-    const PARTNER_ACCENT_RGB = 'rgb(200, 16, 46)';
+    const PARTNER_ACCENT_RGB = 'rgb(46, 125, 50)';
     beforeEach(() => {
       mockDetector.detectInstallState.mockResolvedValue('not-installed');
     });
@@ -388,11 +388,11 @@ describe('InstallationWizard', () => {
     it('AC1/AC2: applies the partner accent + logo <img> + device-specific copy', async () => {
       const { container } = render(
         <InstallationWizard
-          operatorName="STORZ & BICKEL"
-          accentColor="#c8102e"
-          brandLogoUrl="https://app.storz-bickel.com/logo-sb.svg"
-          deviceName="VOLCANO HYBRID"
-          body="Connect your VOLCANO HYBRID in Safari to control it from app.storz-bickel.com."
+          operatorName="EXAMPLE & CO"
+          accentColor="#2e7d32"
+          brandLogoUrl="https://app.example.com/logo.svg"
+          deviceName="ACME THERMO"
+          body="Connect your ACME THERMO in Safari to control it from app.example.com."
         />
       );
 
@@ -412,18 +412,18 @@ describe('InstallationWizard', () => {
       // (2) the operator logo renders as an <img> and the beacio inline <svg> glyph is gone.
       const img = icon.querySelector('img');
       expect(img).not.toBeNull();
-      expect(img!.getAttribute('src')).toBe('https://app.storz-bickel.com/logo-sb.svg');
+      expect(img!.getAttribute('src')).toBe('https://app.example.com/logo.svg');
       expect(icon.querySelector('svg')).toBeNull();
 
       // (3) the device-specific / overridden copy is shown.
       const body = container.querySelector('[data-beacio-wizard-body]');
-      expect(body?.textContent).toContain('VOLCANO HYBRID');
-      expect(body?.textContent).toContain('Connect your VOLCANO HYBRID in Safari');
+      expect(body?.textContent).toContain('ACME THERMO');
+      expect(body?.textContent).toContain('Connect your ACME THERMO in Safari');
     });
 
     it('AC3: surfaces a VISIBLE privacy line (outside <details>) + a "not affiliated" microcopy line', async () => {
       const { container } = render(
-        <InstallationWizard operatorName="STORZ & BICKEL" accentColor="#c8102e" deviceName="VOLCANO HYBRID" />
+        <InstallationWizard operatorName="EXAMPLE & CO" accentColor="#2e7d32" deviceName="ACME THERMO" />
       );
 
       await waitFor(() => {
@@ -447,7 +447,7 @@ describe('InstallationWizard', () => {
     it('AC2 (injection guard): a non-http brandLogoUrl renders NO <img> with that src', async () => {
       for (const bad of ['javascript:alert(1)', 'data:text/html,<script>1</script>', 'ftp://x/y.svg']) {
         const { container, unmount } = render(
-          <InstallationWizard operatorName="STORZ & BICKEL" accentColor="#c8102e" brandLogoUrl={bad} />
+          <InstallationWizard operatorName="EXAMPLE & CO" accentColor="#2e7d32" brandLogoUrl={bad} />
         );
         await waitFor(() => {
           expect(container.querySelector('[data-beacio-wizard-body]')).toBeInTheDocument();

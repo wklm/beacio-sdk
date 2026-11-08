@@ -1,12 +1,12 @@
 /**
- * SB-SDK-03: per-site-DENIED wiring guard for @beacio/detect's initBeacio().
+ * Per-site-DENIED wiring guard for @beacio/detect's initBeacio().
  *
  * The 'denied' state — extension enabled but this ORIGIN not granted "Allow
  * Every Website" — is the one funnel position the in-page flow can distinguish
  * but the install-state markers cannot: getExtensionInstallState() only returns
  * 'not-installed' | 'installed-inactive' | 'active' (detect.ts:17). The W3C
  * signal for it is `navigator.bluetooth` being DEFINED while
- * navigator.bluetooth.getAvailability() resolves false. SB-SDK-03 AC2 requires
+ * navigator.bluetooth.getAvailability() resolves false. The fix requires
  * initBeacio() to derive that 'denied' refinement and forward it to the banner,
  * so the user sees the aA -> Manage Extensions -> Allow Every Website guidance
  * instead of the generic "install the app" sheet.
@@ -54,7 +54,7 @@ function setBluetooth(value: unknown): void {
   });
 }
 
-describe('SB-SDK-03 initBeacio derives the per-site "denied" state from getAvailability()', () => {
+describe('initBeacio derives the per-site "denied" state from getAvailability()', () => {
   beforeEach(() => {
     jest.resetModules();
     showInstallBanner.mockReset();
@@ -78,7 +78,7 @@ describe('SB-SDK-03 initBeacio derives the per-site "denied" state from getAvail
     setBluetooth({ getAvailability: async () => false });
 
     const { initBeacio } = await import('../../src/detect/index');
-    await initBeacio({ operatorName: 'Storz & Bickel' });
+    await initBeacio({ operatorName: 'Example & Co' });
 
     expect(showInstallBanner).toHaveBeenCalled();
     const calls = showInstallBanner.mock.calls;
@@ -91,7 +91,7 @@ describe('SB-SDK-03 initBeacio derives the per-site "denied" state from getAvail
     setBluetooth({ getAvailability: async () => true });
 
     const { initBeacio } = await import('../../src/detect/index');
-    await initBeacio({ operatorName: 'Storz & Bickel' });
+    await initBeacio({ operatorName: 'Example & Co' });
 
     // Control: a truly-available origin keeps the 'active' path; if the banner is
     // shown at all it must NOT claim the origin is denied.

@@ -294,10 +294,10 @@ export class Beacio {
    * @example
    * ```typescript
    * import { Beacio } from '@beacio/core'
-   * import { StorzBickel } from '@beacio/core/experimental/profiles/storz-bickel'
+   * import { deriveOptionalServices, HeartRateProfile, NordicUARTProfile } from '@beacio/core/profiles'
    *
    * const ble = new Beacio()
-   * ble.registerServices(StorzBickel.allServices()) // declare every S&B family once
+   * ble.registerServices(deriveOptionalServices(HeartRateProfile, NordicUARTProfile)) // declare every family once
    * // ...every requestDevice() now carries the bundle as optionalServices.
    * ```
    *

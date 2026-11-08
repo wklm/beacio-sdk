@@ -1,15 +1,15 @@
 /**
- * SB-SDK-07 — the localized-string (i18n) seam for @beacio/detect.
+ * The localized-string (i18n) seam for @beacio/detect.
  *
  * The install banner is the SINGLE end-user-facing onboarding screen that
- * replaces S&B's Bluefy alert, and today it is hardcoded English: BannerOptions
+ * replaces a site's third-party-browser alert, and today it is hardcoded English: BannerOptions
  * exposes only `text`/`buttonText` overrides, and every other visible token
  * (STATE_COPY title/body, the SETUP_STEPS pills, the dismiss label, the two
  * <details> summaries+bodies, the return/clipboard/reload affordances, the ready
- * toast) is a hardcoded English literal. S&B is HQ'd in Bayreuth and its German
- * users would see English at the make-or-break moment. error-presenter.ts
- * (SB-SDK-05) already foreshadows this seam in its own header ("the i18n seam
- * SB-SDK-07 later converges on") but its `strings` override is NOT lang-aware:
+ * toast) is a hardcoded English literal, so German-speaking users would see
+ * English at the make-or-break moment. error-presenter.ts already foreshadows
+ * this seam in its own header ("the i18n seam the shared locale pack converges on")
+ * but its `strings` override is NOT lang-aware:
  * no `lang` field, no built-in German pack, no navigator.language derivation.
  *
  * This is that missing seam's GUARD. It pins:
@@ -39,7 +39,7 @@
 import { afterEach, beforeEach, describe, expect, it } from '@jest/globals';
 import { type BannerOptions, removeInstallBanner, showInstallBanner } from '../../src/detect/banner';
 import { presentError } from '../../src/detect/error-presenter';
-// SB-SDK-07: the shared locale module the banner + error presenter both consume.
+// The shared locale module the banner + error presenter both consume.
 // Does not exist yet — this import is the first reason the suite is RED.
 import {
   DE_STRINGS,
@@ -103,7 +103,7 @@ const HARDCODED_ENGLISH_TOKENS = [
   'Set Up Bluetooth in Safari',
 ];
 
-describe('SB-SDK-07 — @beacio/detect localized-string seam', () => {
+describe('@beacio/detect localized-string seam', () => {
   let originalLanguage: PropertyDescriptor | undefined;
 
   beforeEach(() => {
@@ -209,7 +209,7 @@ describe('SB-SDK-07 — @beacio/detect localized-string seam', () => {
   // ── AC1 + AC5: lang='de' renders German and leaks no English ──────────────
   describe('AC1: showInstallBanner({ lang: "de" }) renders German, no English leak', () => {
     it('renders the German title/body/button/dismiss copy', () => {
-      showForState('not-installed', { lang: 'de', operatorName: 'STORZ & BICKEL' });
+      showForState('not-installed', { lang: 'de', operatorName: 'EXAMPLE & CO' });
       const text = bannerText();
 
       // The German lead title + CTA + dismiss labels are present …
@@ -219,7 +219,7 @@ describe('SB-SDK-07 — @beacio/detect localized-string seam', () => {
     });
 
     it('leaks NO hardcoded English token into the DOM when lang="de"', () => {
-      showForState('not-installed', { lang: 'de', operatorName: 'STORZ & BICKEL' });
+      showForState('not-installed', { lang: 'de', operatorName: 'EXAMPLE & CO' });
       const text = bannerText();
       for (const token of HARDCODED_ENGLISH_TOKENS) {
         expect(text).not.toContain(token);
@@ -228,7 +228,7 @@ describe('SB-SDK-07 — @beacio/detect localized-string seam', () => {
 
     it('navigator.language="de-DE" with no explicit lang ALSO renders German (zero-config)', () => {
       setNavigatorLanguage('de-DE');
-      showForState('not-installed', { operatorName: 'STORZ & BICKEL' });
+      showForState('not-installed', { operatorName: 'EXAMPLE & CO' });
       const text = bannerText();
       expect(text).toContain(DE_STRINGS.states['not-installed'].title);
       expect(text).not.toContain('Start Setup');
@@ -241,7 +241,7 @@ describe('SB-SDK-07 — @beacio/detect localized-string seam', () => {
       // navigator.language defaults to the jsdom 'en-US'; assert the English
       // defaults still render so existing callers are unchanged.
       setNavigatorLanguage('en-US');
-      showForState('not-installed', { operatorName: 'STORZ & BICKEL' });
+      showForState('not-installed', { operatorName: 'EXAMPLE & CO' });
       const text = bannerText();
       expect(text).toContain(EN_STRINGS.states['not-installed'].title);
       expect(text).toContain('Start Setup');

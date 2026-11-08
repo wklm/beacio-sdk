@@ -1,8 +1,8 @@
 /**
- * SB-SDK-15 — code-enforced "telemetry OFF by default for integrators" guarantee.
+ * Code-enforced "telemetry OFF by default for integrators" guarantee.
  *
- * The S&B production drop-in pitch ("closes the GDPR sub-processor gap", §6.3)
- * depends on the embedded polyfill shipping NETWORK-SILENT. Today that holds only
+ * An integration that embeds the polyfill depends on it shipping
+ * NETWORK-SILENT. Today that holds only
  * because no api key / attribution token is configured — a by-ABSENCE property
  * that a pasted attribution snippet could silently break. This file converts the
  * guarantee into a durable, CI-gated guard (the whole point of the issue):
@@ -107,7 +107,7 @@ function isTelemetryRequest(url: string): boolean {
   return TELEMETRY_HOSTS.some((host) => url.includes(host));
 }
 
-describe('SB-SDK-15: telemetry is OFF by default for integrators (network-silent)', () => {
+describe('Telemetry is OFF by default for integrators (network-silent)', () => {
   let egress: ReturnType<typeof spyEgress>;
 
   beforeEach(() => {
@@ -125,11 +125,11 @@ describe('SB-SDK-15: telemetry is OFF by default for integrators (network-silent
   });
 
   // AC2: NO data-key + NO attribution token => a full connect-style detect flow
-  // emits ZERO requests to the telemetry hosts. This is the S&B production config
+  // emits ZERO requests to the telemetry hosts. This is a typical production config
   // (auto.ts getApiKey() returns null => initBeacio gets no key => reportEvent
   // early-returns at api.ts:9). Locks the keyless-silence guarantee.
   it('makes NO request to api.beacio.com / beacon.beacio.com when no key is configured', async () => {
-    // Sanity: the S&B production DOM has neither marker.
+    // Sanity: such a production DOM has neither marker.
     expect(document.querySelector('meta[name="beacio-key"]')).toBeNull();
     expect((window as unknown as { __BEACIO_KEY__?: string }).__BEACIO_KEY__).toBeUndefined();
 
@@ -155,12 +155,12 @@ describe('SB-SDK-15: telemetry is OFF by default for integrators (network-silent
       data?: Record<string, unknown>,
     ) => void;
     forceReport('wbl_live_test_key', 'extension_active', {
-      deviceName: 'VOLCANO HYBRID',
-      serialNumber: 'SB-0xDEADBEEF',
-      serial: 'SB-0xDEADBEEF',
+      deviceName: 'ACME THERMO',
+      serialNumber: 'SN-0xDEADBEEF',
+      serial: 'SN-0xDEADBEEF',
       gattValue: '0102030405',
       value: '0102030405',
-      keyId: 'qvap-keyid-42',
+      keyId: 'acme-keyid-42',
     });
     // reportEvent is fire-and-forget; the fetch() is issued synchronously, so the
     // capture is already populated.
@@ -173,10 +173,10 @@ describe('SB-SDK-15: telemetry is OFF by default for integrators (network-silent
       expect(raw).not.toContain(field.toLowerCase());
     }
     // And none of the actual secret values leak either.
-    expect(raw).not.toContain('volcano');
+    expect(raw).not.toContain('acme');
     expect(raw).not.toContain('deadbeef');
     expect(raw).not.toContain('0102030405');
-    expect(raw).not.toContain('qvap-keyid-42');
+    expect(raw).not.toContain('acme-keyid-42');
 
     // Positive shape: the documented minimal fields ARE present.
     const parsed = JSON.parse(body) as { events: Array<{ event: string; data: Record<string, unknown> }> };

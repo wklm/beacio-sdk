@@ -1,6 +1,6 @@
 /**
- * SB-SDK-12: the framework-agnostic, ZERO-DOM headless onboarding API for
- * vanilla-JS partners (Storz & Bickel's app is vanilla JS + jQuery and cannot
+ * The framework-agnostic, ZERO-DOM headless onboarding API for
+ * vanilla-JS partners (a vanilla JS + jQuery app cannot
  * use the React wizard; the only vanilla option today — showInstallBanner —
  * injects beacio chrome).
  *
@@ -67,7 +67,7 @@ function clearMarkers(): void {
   }
 }
 
-describe('SB-SDK-12 headless onboarding API (zero-DOM, framework-agnostic)', () => {
+describe('Headless onboarding API (zero-DOM, framework-agnostic)', () => {
   beforeEach(() => {
     clearMarkers();
     localStorage.clear();

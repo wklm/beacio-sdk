@@ -12,15 +12,15 @@ export { getExtensionInstallState, isExtensionInstalled, isIOSSafari } from './d
 export type { ExtensionInstallState } from './detect';
 export { showInstallBanner, removeInstallBanner, SETUP_STEPS } from './banner';
 export type { BannerOptions, BannerState, SetupStep } from './banner';
-// SB-SDK-12: the framework-agnostic, ZERO-DOM headless onboarding API for
-// vanilla-JS partners (Storz & Bickel's app is vanilla JS + jQuery and cannot use
+// The framework-agnostic, ZERO-DOM headless onboarding API for
+// vanilla-JS partners (a vanilla JS + jQuery app cannot use
 // the React wizard; showInstallBanner injects beacio chrome). A partner draws its
 // OWN "Enable Bluetooth in Safari" card and drives it with these primitives —
 // install-state detection (SHARED with detect.ts + the react-sdk
 // ExtensionDetector), the EXTENSION_READY-aware observer, the return-link/clipboard
 // context helper, the dismissal frequency-cap, and the id-form App Store URL. None
 // of these inject DOM.
-// SB-PRD-08: the soft/hard dismissal split is part of the headless API too. A
+// The soft/hard dismissal split is part of the headless API too. A
 // vanilla-JS partner drawing its OWN onboarding card needs the soft "Not now"
 // primitive (dismissShort, a short 1-day suppression) — not just the long
 // `dismiss` — plus the documented window lengths, so it can mirror the banner's
@@ -38,13 +38,13 @@ export {
   saveReturnContext,
   SHORT_DISMISS_DAYS,
 } from './install-state';
-// SB-SDK-05: the branded, framework-free error presenter — the FAILURE-path
+// The branded, framework-free error presenter — the FAILURE-path
 // sibling of showInstallBanner. Re-exported from the package root (and from
 // core/browser-auto) so a classic <script> site can call
 // beacioDetect.presentError(error) with no module setup.
 export { presentError } from './error-presenter';
 export type { PresentErrorOptions, BeacioErrorCode } from './error-presenter';
-// SB-SDK-07: the shared localized-string seam (built-in en/de packs + the pure
+// The shared localized-string seam (built-in en/de packs + the pure
 // resolver) that both showInstallBanner and presentError consume. Exported so a
 // consumer can inspect/extend the packs or pre-resolve copy. The BeacioErrorCode
 // type is already exported above (the identical local union), so it is NOT
@@ -66,9 +66,9 @@ import type { ExtensionInstallState } from './detect';
 // intra-package import from core's events module — the single source of truth
 // (events.test.ts remains the seam-crossing control that the wire literals match).
 import { BEACIO_EVENTS } from '../events';
-// SBOPT-P2.4 (tier-3 headless): the id-form App Store URL + the pure return-link
+// Tier-3 headless: the id-form App Store URL + the pure return-link
 // builder come from the shared zero-DOM install-state module (both are also part
-// of the SB-SDK-12 headless surface); SETUP_URL is core's canonical /setup page.
+// of the headless surface); SETUP_URL is core's canonical /setup page.
 // buildOnboardingUrl (banner.ts) is imported LAZILY inside resolveOnboardingState —
 // like initBeacio's own `await import('./banner')` — so a pure-headless consumer
 // that only imports resolveOnboardingState never pulls the banner DOM code.
@@ -80,7 +80,7 @@ export interface BeacioOptions {
   /** Operator/app name shown in the prompt (e.g. "FitTracker") */
   operatorName?: string;
   /**
-   * SB-SDK-07: BCP-47 UI language (e.g. 'de') for the install banner. Threaded
+   * BCP-47 UI language (e.g. 'de') for the install banner. Threaded
    * to showInstallBanner so the zero-config initBeacio path is localizable;
    * omitted ⇒ the banner derives the language from navigator.language, else
    * English. A `banner.lang` (below) overrides this for the banner specifically.
@@ -100,23 +100,23 @@ export interface BeacioOptions {
         /** Days to suppress after the explicit "Don't show again" opt-out (default: 14) */
         dismissDays?: number;
         /**
-         * SB-PRD-08 (AC3): ignore the dismissal cooldown and show anyway. Set this
+         * Ignore the dismissal cooldown and show anyway. Set this
          * on a user-initiated recovery call (e.g. re-invoking initBeacio from a
          * Connect / "Can't connect?" gesture) so a previously-dismissed user can
          * re-open setup without clearing localStorage.
          */
         forceShow?: boolean;
-        /** SB-SDK-07: BCP-47 language override for the banner (wins over the top-level `lang`). */
+        /** BCP-47 language override for the banner (wins over the top-level `lang`). */
         lang?: string;
-        /** SB-SDK-11 (tier-2 co-brand): partner accent colour for the prompt chrome. */
+        /** Tier-2 co-brand: partner accent colour for the prompt chrome. */
         accentColor?: string;
-        /** SB-SDK-11: partner logo URL (http(s) only; validated). Replaces the beacio glyph. */
+        /** Partner logo URL (http(s) only; validated). Replaces the beacio glyph. */
         brandLogoUrl?: string;
-        /** SB-SDK-11: the connected device's display name (e.g. "VOLCANO HYBRID"). */
+        /** The connected device's display name (e.g. "ACME THERMO"). */
         deviceName?: string;
-        /** SB-SDK-11: one-shot lead body copy override (HTML-escaped). */
+        /** One-shot lead body copy override (HTML-escaped). */
         body?: string;
-        /** SB-SDK-11: privacy reassurance body override (HTML-escaped). */
+        /** Privacy reassurance body override (HTML-escaped). */
         privacyBody?: string;
       }
     | false;
@@ -145,7 +145,7 @@ function dispatchInstallState(state: ExtensionInstallState): void {
 async function maybeShowBanner(
   options: BeacioOptions,
   state: ExtensionInstallState,
-  // SB-SDK-03 AC2: lets the caller pass the per-site 'denied' refinement, which the
+  // Lets the caller pass the per-site 'denied' refinement, which the
   // ExtensionInstallState markers cannot express (it has no 'denied' member).
   bannerStateOverride?: import('./banner').BannerState
 ): Promise<void> {
@@ -153,17 +153,17 @@ async function maybeShowBanner(
   const { showInstallBanner } = await import('./banner');
   const bannerConfig = typeof options.banner === 'object' ? options.banner : {};
   const bannerOpts: import('./banner').BannerOptions = {
-    // SB-SDK-11: the co-brand theme (accentColor / brandLogoUrl / deviceName /
+    // The co-brand theme (accentColor / brandLogoUrl / deviceName /
     // body / privacyBody) rides through on this spread of bannerConfig into
     // BannerOptions, so the zero-config initBeacio path is fully themeable.
     ...bannerConfig,
     apiKey: options.key ?? '',
     operatorName: options.operatorName,
-    // SB-SDK-07: thread the UI language so the zero-config initBeacio path is
+    // Thread the UI language so the zero-config initBeacio path is
     // localizable; banner.lang wins over the top-level lang, and an omitted lang
     // lets the banner derive from navigator.language (else English).
     lang: bannerConfig.lang ?? options.lang,
-    // SB-PRD-03: feed the funnel position so the sheet shows the SPECIFIC remaining
+    // Feed the funnel position so the sheet shows the SPECIFIC remaining
     // step (or, on 'active', the once-only success toast) instead of restarting setup.
     state: bannerStateOverride ?? state,
   };
@@ -171,7 +171,7 @@ async function maybeShowBanner(
 }
 
 /**
- * SB-SDK-03 AC2: the extension is installed + enabled, but is THIS origin granted
+ * The extension is installed + enabled, but is THIS origin granted
  * access? Safari's per-origin "Allow Every Website" is irreducibly manual
  * (project_ios26_safari_extension_settings_readonly). The W3C-conformant probe is
  * `navigator.bluetooth.getAvailability()`: a defined `navigator.bluetooth` that
@@ -192,7 +192,7 @@ async function isOriginDenied(): Promise<boolean> {
 }
 
 /**
- * SB-SDK-17: BEST-EFFORT Private Browsing detection. iOS Safari disables web
+ * BEST-EFFORT Private Browsing detection. iOS Safari disables web
  * extensions in Private Browsing (no per-extension opt-in), so beacio is inert and
  * the content script sets no markers — getExtensionInstallState() resolves
  * 'not-installed' and the user wrongly gets the "install the app" sheet even though
@@ -241,7 +241,7 @@ export async function initBeacio(options: BeacioOptions): Promise<void> {
   dispatchInstallState(installState);
 
   if (installState === 'active') {
-    // SB-SDK-03 AC2: the extension is enabled, but this ORIGIN may still be
+    // The extension is enabled, but this ORIGIN may still be
     // blocked ("Allow Every Website" not granted here) — the one funnel position
     // the install-state markers cannot distinguish. The W3C signal is
     // navigator.bluetooth being DEFINED while getAvailability() resolves false
@@ -263,14 +263,14 @@ export async function initBeacio(options: BeacioOptions): Promise<void> {
       window.dispatchEvent(new CustomEvent(BEACIO_EVENTS.READY));
     }
     options.onReady?.();
-    // SB-PRD-03 AC5: on the active transition, surface the once-only "beacio is
+    // On the active transition, surface the once-only "beacio is
     // ready — tap Connect" toast (showReadyToast self-suppresses for returning
     // users), replacing the old silent empty state.
     await maybeShowBanner(options, installState);
     return;
   }
 
-  // SB-SDK-17: two iOS-Safari dead ends both look like a marker-less
+  // Two iOS-Safari dead ends both look like a marker-less
   // 'not-installed'/'installed-inactive' to getExtensionInstallState(), so without
   // this block initBeacio would fall through to the misleading "install the app"
   // sheet even though the app may already be installed. We reach here only for the
@@ -294,7 +294,7 @@ export async function initBeacio(options: BeacioOptions): Promise<void> {
 
   // 2) Marker-suppressed per-origin "Deny": no markers, yet navigator.bluetooth is
   //    defined and reports unavailable HERE → a prior "Deny" left the extension
-  //    inert on this origin. Surface the SB-SDK-03 'denied' guidance (aA → Manage
+  //    inert on this origin. Surface the 'denied' guidance (aA → Manage
   //    Extensions → Allow Every Website), the same copy block the active branch uses.
   if (await isOriginDenied()) {
     reportEvent(options.key ?? '', 'extension_installed_inactive');
@@ -331,11 +331,11 @@ export async function initBeacio(options: BeacioOptions): Promise<void> {
   }
 }
 
-// ─── SBOPT-P2.4: the tier-3 HEADLESS onboarding funnel state ─────────────────
+// ─── The tier-3 HEADLESS onboarding funnel state ─────────────────
 //
 // initBeacio (above) welds the funnel classification to a banner render: every
 // routing branch reports an event, dispatches a DOM CustomEvent, and calls
-// maybeShowBanner. A tier-3 partner (Storz & Bickel) draws its OWN install prompt
+// maybeShowBanner. A tier-3 partner draws its OWN install prompt
 // and needs that classification with NONE of those side effects. resolveOnboarding-
 // State is the pure, zero-DOM projection of initBeacio's routing OUTCOMES — one
 // tagged-union variant per `return` — so the partner renders its own card from the

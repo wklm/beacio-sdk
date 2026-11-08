@@ -55,9 +55,9 @@ export const DEFAULT_BEACIO_OPTIONS: BeacioOptions = {
 };
 
 /**
- * Declarative native periodic-write keep-warm request (SB-NAT-04).
+ * Declarative native periodic-write keep-warm request.
  *
- * Poll-driven devices (e.g. S&B Venty/Veazy) emit no unsolicited notifications —
+ * Poll-driven devices emit no unsolicited notifications —
  * their telemetry only advances because the page writes a status-request frame
  * every ~500 ms. A backgrounded Safari tab issues no writes, so the session goes
  * stale. Declaring this lets the native iOS side re-issue the frame on a
@@ -88,7 +88,7 @@ export interface BackgroundConnectionOptions {
   /** Unique identifier of the device to maintain a background connection to (from `BeacioDevice.id`). */
   deviceId: string;
   /**
-   * Optional native periodic-write keep-warm poll (SB-NAT-04). Omit to hold the
+   * Optional native periodic-write keep-warm poll. Omit to hold the
    * connection passively (the native side relays only values the device pushes).
    * Supply it for poll-driven devices so telemetry keeps advancing while Safari
    * is backgrounded, on a clamped best-effort cadence (see {@link PeriodicWriteOptions}).
@@ -150,15 +150,15 @@ export type NotificationCondition = {
   /**
    * Byte offset into the characteristic value where the scalar is decoded.
    * Defaults to `0`. Lets a condition read past the start of a vendor frame —
-   * e.g. the S&B Venty/Veazy CMD `0x01` reply puts the settings bitmask at
-   * byte 14 and the auto-shutoff countdown at byte 9.
+   * e.g. a vendor status reply that carries a flags byte after a fixed-size
+   * header.
    */
   byteOffset?: number;
   /**
    * Optional bitwise-AND mask applied to the decoded **integer** before the
    * comparison, to isolate a single status bit in a packed flags byte. For
-   * example, `{ decode: 'uint8', byteOffset: 14, mask: 0x02, operator: 'eq',
-   * threshold: 2 }` fires on Venty/Veazy "setpoint reached" (byte 14, bit 1).
+   * example, `{ decode: 'uint8', byteOffset: 3, mask: 0x08, operator: 'eq',
+   * threshold: 8 }` fires when bit 3 of byte 3 is set.
    * Ignored for the `float32*` decoders.
    */
   mask?: number;
@@ -636,7 +636,7 @@ export interface AutoReconnectOptions {
 
 /**
  * Configuration for the transparent foreground auto-reconnect supervisor that
- * `@beacio/core/auto` layers over the polyfilled `navigator.bluetooth` (SB-SDK-13).
+ * `@beacio/core/auto` layers over the polyfilled `navigator.bluetooth`.
  *
  * Unlike {@link AutoReconnectOptions}, this is read by the auto-install shim — NOT
  * by {@link ConnectOptions} — so raw-`navigator.bluetooth` consumers get foreground

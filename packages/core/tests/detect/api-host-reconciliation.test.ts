@@ -1,7 +1,7 @@
 /**
- * SB-SDK-16 — the SDK↔infra HOST RECONCILIATION contract test.
+ * The SDK↔infra HOST RECONCILIATION contract test.
  *
- * Sibling api-auth.test.ts locks the *auth* dimension of SB-SDK-16 (the key must
+ * Sibling api-auth.test.ts locks the *auth* dimension of the ingest seam (the key must
  * travel as `Authorization: Bearer`, never `?key=`). This file locks the
  * *host* dimension, which is the issue's headline acceptance criterion:
  *
@@ -12,8 +12,8 @@
  * `@beacio/detect`'s `API_BASE` (src/api.ts) POSTs `/v1/events` and GETs
  * `/v1/config`. The Worker that actually serves those keyed paths is the
  * `ioswebble-api` Worker at `cloudflare/workers/api`, which declares the ingest
- * host as a `custom_domain` route in `cloudflare/workers/api/wrangler.toml`. The original WF2
- * triage evidence got this WRONG — it claimed `api.beacio.com` was a phantom host
+ * host as a `custom_domain` route in `cloudflare/workers/api/wrangler.toml`. An earlier
+ * triage note got this WRONG — it claimed `api.beacio.com` was a phantom host
  * and that live ingest was `beacon.beacio.com`. `beacon.beacio.com` is a SEPARATE
  * Worker (cloudflare/workers/beacon) that has NO `/v1/events` or `/v1/config`
  * route, so repointing `API_BASE` there (the "obvious" fix suggested by the stale
@@ -78,7 +78,7 @@ function readWorkerRouteHosts(): Set<string> {
   return hosts;
 }
 
-describe('SB-SDK-16: detect API_BASE host matches the Worker that ingests /v1/events + /v1/config', () => {
+describe('detect API_BASE host matches the Worker that ingests /v1/events + /v1/config', () => {
   // AC#1 + AC#2 — the host the SDK points at is a real, deployed route of the
   // api Worker (the one with the keyed-path handlers), not a phantom.
   it('API_BASE host is declared as an api Worker wrangler route', () => {

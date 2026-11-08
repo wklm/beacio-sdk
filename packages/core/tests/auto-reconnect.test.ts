@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-// SB-SDK-13 — Foreground auto-reconnect + subscription recovery on the RAW
+// Foreground auto-reconnect + subscription recovery on the RAW
 // polyfilled `navigator.bluetooth` path.
 //
 // beacio's free foreground auto-reconnect engine lives on the BeacioDevice
 // wrapper (device.ts handleDisconnect/startAutoReconnect + notification-manager
-// recoverSubscriptions). Real drop-in apps — the Storz & Bickel demo
-// (integration-demo/app/js/main.js) — consume the BARE global:
+// recoverSubscriptions). Real drop-in apps — a vanilla-JS partner site, say —
+// consume the BARE global:
 //   navigator.bluetooth.requestDevice(options)
 //   device.addEventListener('gattserverdisconnected', onDisconnected)  // → location.reload()
 // so NONE of that engine runs: requestDevice returns the extension's raw
@@ -90,7 +90,7 @@ interface TestService {
  * third_party/blink/renderer/modules/bluetooth/bluetooth_remote_gatt_server.idl.
  *
  * `connectAndDiscover` is NOT a Chromium Web Bluetooth concept: it is the
- * beacio extension's GATT fast-path (SB-SDK-13). When the extension exposes it,
+ * beacio extension's GATT fast-path. When the extension exposes it,
  * the polyfill supervisor prefers it over connect()+getPrimaryServices(); the
  * tests deliberately assert its presence/absence, so it stays an optional,
  * clearly-typed extra here.
@@ -162,8 +162,8 @@ function makeExtensionNavigatorWithDevice(opts?: { withConnectAndDiscover?: bool
   // test can fire the event the way the extension's injected device would.
   const disconnectListeners: Array<(ev?: Event) => void> = [];
   const device: TestDevice = {
-    id: 'sb-volcano-1',
-    name: 'S&B VOLCANO 12345',
+    id: 'acme-thermo-1',
+    name: 'ACME THERMO 12345',
     gatt: server,
     addEventListener: jest.fn((type: string, listener: (ev?: Event) => void) => {
       if (type === 'gattserverdisconnected') disconnectListeners.push(listener);
@@ -196,7 +196,7 @@ function makeExtensionNavigatorWithDevice(opts?: { withConnectAndDiscover?: bool
   return { nav, device, server, service, characteristic, requestDevice, fireDisconnect };
 }
 
-describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription recovery', () => {
+describe('Raw polyfill foreground auto-reconnect + subscription recovery', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -208,12 +208,12 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
 
     // The drop-in app consumes the BARE polyfilled global — no Beacio wrapper.
     const device = await (globalThis.navigator as unknown as { bluetooth: TestBluetooth }).bluetooth.requestDevice({
-      filters: [{ namePrefix: 'S&B VOLCANO' }],
+      filters: [{ namePrefix: 'ACME THERMO' }],
     });
     expect(requestDevice).toHaveBeenCalledTimes(1);
 
     // Initial foreground connect + an active notification subscription, exactly
-    // as the S&B telemetry path (current-temperature 10110001) does.
+    // as a vendor telemetry path does.
     const gattServer = await device.gatt.connect();
     const svc = await gattServer.getPrimaryService(characteristic.uuid);
     const ch = await svc.getCharacteristic(characteristic.uuid);
@@ -307,7 +307,7 @@ describe('SB-SDK-13 — raw polyfill foreground auto-reconnect + subscription re
 // AC#5 — the feature is a NO-OP off the beacio runtime: a native-shaped
 // navigator (Chrome/Edge/Android) and the unsupported stub must keep
 // requestDevice untouched and attach no reconnect supervisor.
-describe('SB-SDK-13 — no-op off the beacio runtime (AC#5)', () => {
+describe('no-op off the beacio runtime (AC#5)', () => {
   it('leaves a native (Chrome) navigator.bluetooth.requestDevice strictly untouched', async () => {
     const requestDevice = jest.fn(async () => ({ id: 'x', gatt: { connect: jest.fn(), connected: false } }));
     const bluetooth = {

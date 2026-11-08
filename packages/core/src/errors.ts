@@ -119,7 +119,7 @@ export class BeacioError extends Error {
    */
   static from<T>(error: T, code: BeacioErrorCode = 'GATT_OPERATION_FAILED'): BeacioError {
     if (error instanceof BeacioError) return error;
-    // SB-SDK-05 AC6: a native DOMException/Error message can carry a multi-line
+    // A native DOMException/Error message can carry a multi-line
     // stack, a native URL, and engine/competitor jargon. The CLASSIFIER still
     // inspects the full RAW text (so e.g. "GATT Server is disconnected" is detected
     // even when followed by a stack), but the message that survives onto the

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import * as ts from 'typescript';
 import * as ReactSdk from '../src/index';
 
-// AIDEV-NOTE: Public-surface contract guard (SBOPT-P3.2, slim-in-place).
+// AIDEV-NOTE: Public-surface contract guard (slim-in-place).
 // @beacio/react is a pinned future-client asset: the slim pass prunes dead
 // internal code + unused devDependencies but MUST NOT change the PUBLIC export
 // surface. onboarding-manifest.json names `BeacioProvider` in
@@ -15,11 +15,11 @@ import * as ReactSdk from '../src/index';
 //     erased and never appear here).
 //   * TYPE-only exports are erased at runtime, so they are parsed from the
 //     barrel (src/index.ts) via the TypeScript compiler API — the same `ts`
-//     dependency the SB-SDK-24 docs-migration guard uses. `X as Y` aliases are
+//     dependency the docs-migration guard uses. `X as Y` aliases are
 //     resolved to the exported (consumer-visible) name `Y`.
 // The contract is BEFORE == AFTER: this test is GREEN on the current tree by
 // design and must stay GREEN through the slim; a removed/renamed public export
-// reds it (see the non-vacuity proof in the SBOPT-P3.2 fix-note).
+// reds it (see the non-vacuity proof in the fix-note).
 
 // --- FROZEN CONTRACT: the public surface of @beacio/react (src/index.ts) ------
 
@@ -110,7 +110,7 @@ function barrelExports(): { value: Set<string>; type: Set<string> } {
 
 const sorted = (xs: Iterable<string>): string[] => [...xs].sort();
 
-describe('@beacio/react public-surface contract (SBOPT-P3.2 slim-in-place)', () => {
+describe('@beacio/react public-surface contract (slim-in-place)', () => {
   it('keeps BeacioProvider + useBeacio as named exports (onboarding-manifest lowerLevelPrimitives)', () => {
     const keys = new Set(Object.keys(ReactSdk));
     expect(keys.has('BeacioProvider')).toBe(true);

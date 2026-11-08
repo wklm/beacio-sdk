@@ -8,7 +8,7 @@ import type { Platform } from './types';
  * Single-sourced here and consumed by every reader ({@link detectPlatform},
  * {@link getBluetoothAPI}, and browser-auto's banner gate) and by the writer in
  * auto.ts, so the native-vs-stub discriminator cannot silently drift apart. Pinned
- * by `tests/cdn-stub-marker.test.ts` (SB-TST-35).
+ * by `tests/cdn-stub-marker.test.ts`.
  */
 export const CDN_STUB_MARKER = '__beacioCDNStub';
 

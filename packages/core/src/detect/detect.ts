@@ -2,7 +2,7 @@
  * Platform detection utilities for Beacio
  */
 
-// SB-SDK-12: the install-state marker derivation now lives in the single shared
+// The install-state marker derivation now lives in the single shared
 // install-state module (consumed here, by the react-sdk ExtensionDetector, and by
 // the headless API), so the detection logic is shared rather than duplicated.
 import { getInstallState, type ExtensionInstallState } from './install-state';

@@ -3,7 +3,7 @@
  */
 
 import { BEACIO_EVENTS } from '@beacio/core';
-// SB-SDK-12: the install-state marker derivation is now the SINGLE shared
+// The install-state marker derivation is now the SINGLE shared
 // accessor in @beacio/core/detect (consumed by the detect package's own detect.ts and
 // the framework-agnostic headless onboarding API). This react-sdk detector reads
 // through the SAME getInstallState() so the four old copies cannot drift — AC1

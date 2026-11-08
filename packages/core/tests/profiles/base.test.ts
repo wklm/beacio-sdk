@@ -217,12 +217,12 @@ describe('defineProfile', () => {
 });
 
 // ---------------------------------------------------------------------------
-// SB-SDK-14 — BaseProfile.onOverflow base surface. The protected hook forwards
+// BaseProfile.onOverflow base surface. The protected hook forwards
 // to device.onCharacteristicOverflow, decodes the beacio:overflow event detail,
 // and registers cleanup into the profile's cleanup set (parity with subscribe()).
 // A minimal subclass exposes the protected hook publicly for the test.
 // ---------------------------------------------------------------------------
-describe('SB-SDK-14 — BaseProfile.onOverflow', () => {
+describe('BaseProfile.onOverflow', () => {
   const SVC = '0000feed-0000-1000-8000-00805f9b34fb';
   const CHAR = '0000beef-0000-1000-8000-00805f9b34fb';
 

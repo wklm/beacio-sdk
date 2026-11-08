@@ -12,7 +12,7 @@
  * realm/bundle boundary and hand-code bare `beacio:*` literals (they cannot import
  * the const today), so the compile-time guarantee does not reach them. Their
  * anti-drift guard is the static parity test at
- * src/extension/event-name-parity.test.ts (SB-SDK-21), which reads each seam file
+ * src/extension/event-name-parity.test.ts, which reads each seam file
  * and asserts every literal is a verbatim BEACIO_EVENTS member.
  *
  * This drives initBeacio down the `active` install-state path, which:

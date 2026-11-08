@@ -1,38 +1,21 @@
-import { describe, expect, it, vi } from 'vitest';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-// SB-SDK-04 (RED): the brownfield CLI subcommand does not exist yet. This import
+import { join } from 'node:path';
+// Originally RED: the brownfield CLI subcommand does not exist yet. This import
 // is the failing seam — `packages/mcp/src/cli/commands/migrate.ts` and its `migrate`
 // export must be created. Until then the suite fails to resolve the module,
 // which is the intended RED signal for AC#3/#4.
 import { migrate } from '../../src/cli/commands/migrate.js';
-
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
-const DEMO_APP_DIR = join(REPO_ROOT, 'outreach', 'storz-bickel', 'integration-demo', 'app');
-const CAPTURED_DIR = join(REPO_ROOT, 'outreach', 'storz-bickel', 'captured');
+import { CONNECT_GATE_ALERT, runMigrateIn, writeUnpatchedApp } from '../fixtures/brownfield-app.js';
 
 function read(p: string): string {
   return readFileSync(p, 'utf8');
 }
 
-/** Run `migrate` with cwd swapped to a forked app dir, restoring cwd + silencing logs. */
-async function runMigrateIn(dir: string, args: string[] = []): Promise<void> {
-  const cwd = process.cwd();
-  const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-  try {
-    process.chdir(dir);
-    await migrate(args);
-  } finally {
-    process.chdir(cwd);
-    logSpy.mockRestore();
-  }
-}
-
 describe('beacio migrate — idempotency (AC#3)', () => {
   it('applies brownfield edits and a second run is byte-identical (robust, not a content.includes guard)', async () => {
-    const work = mkdtempSync(join(tmpdir(), 'sb-migrate-idem-'));
+    const work = mkdtempSync(join(tmpdir(), 'migrate-idem-'));
     try {
       // A minimal brownfield jQuery/HTML app that reads navigator.bluetooth from
       // a body-end script (the shape `beacio init` mis-handles via </body> insert).
@@ -55,14 +38,14 @@ describe('beacio migrate — idempotency (AC#3)', () => {
       writeFileSync(
         join(work, 'js', 'main.js'),
         [
-          'function userAgent_iOS(){return /iPhone|iPad/.test(navigator.userAgent);}',
+          'function isIOS(){return /iPhone|iPad/.test(navigator.userAgent);}',
           'function onConnect(){',
           '  if (navigator.bluetooth) {',
           '    var options = {};',
-          '    if (userAgent_iOS()) { options.filters = [{ namePrefix: "X" }]; options.acceptAllDevices = false; }',
+          '    if (isIOS()) { options.filters = [{ namePrefix: "X" }]; options.acceptAllDevices = false; }',
           '    navigator.bluetooth.requestDevice(options);',
           '  } else {',
-          '    alert("Web Bluetooth is not supported by Safari. Please use Bluefy or Web BLE browser.");',
+          `    ${CONNECT_GATE_ALERT}`,
           '  }',
           '}',
           '',
@@ -89,13 +72,10 @@ describe('beacio migrate — idempotency (AC#3)', () => {
   });
 });
 
-describe('beacio migrate — round-trip on the demo fork (AC#4)', () => {
-  it('forks the demo app to tmp, migrates, and index.html loads the bootstrap before main.js', async () => {
-    // Fork the UNPATCHED captured app (the migration input) into os.tmpdir() — never
-    // a committed path (check-no-captured-leak guards captured/ + integration-demo/app/).
-    const work = mkdtempSync(join(tmpdir(), 'sb-migrate-rt-'));
+describe('beacio migrate — round-trip on a synthetic app (AC#4)', () => {
+  it('migrates a tmp app, and index.html loads the bootstrap before main.js', async () => {
+    const work = writeUnpatchedApp('migrate-rt-');
     try {
-      cpSync(CAPTURED_DIR, work, { recursive: true });
       await runMigrateIn(work);
 
       const html = read(join(work, 'index.html'));
@@ -103,13 +83,12 @@ describe('beacio migrate — round-trip on the demo fork (AC#4)', () => {
       const mainIdx = html.indexOf('js/main.js');
       expect(bootstrapIdx).toBeGreaterThanOrEqual(0);
       expect(mainIdx).toBeGreaterThanOrEqual(0);
-      // The headline AC#4 assertion: bootstrap before main.js — matching the
-      // hand-authored demo golden (integration-demo/app/index.html).
+      // The headline AC#4 assertion: bootstrap before main.js.
       expect(bootstrapIdx).toBeLessThan(mainIdx);
 
       const js = read(join(work, 'js', 'main.js'));
-      // Reproduces the demo's beacio: iOS optionalServices edit ...
-      expect(js).toMatch(/userAgent_iOS\(\)[\s\S]{0,600}optionalServices/);
+      // Adds the iOS optionalServices edit ...
+      expect(js).toMatch(/isIOS\(\)[\s\S]{0,600}optionalServices/);
       // ... and removes the active-path third-party-browser alert.
       expect(js).not.toMatch(/alert\([^)]*Bluefy/);
     } finally {
@@ -117,20 +96,80 @@ describe('beacio migrate — round-trip on the demo fork (AC#4)', () => {
     }
   });
 
-  it('the demo golden it targets really does load the bootstrap before main.js (fixture sanity)', () => {
-    // Guards the assumption above: if someone regresses the demo golden, this
-    // fails loudly rather than the round-trip silently passing against a bad target.
-    // Anchor on the real <script src=…> TAGS, not the bare substrings: the demo's
-    // <head> comment explains the edit in prose ("Loaded FIRST — before jQuery and
-    // js/main.js —"), so a naive indexOf('js/main.js') matches that comment, not the
-    // actual app-entry script tag. We assert the real script-tag order instead.
-    const demoHtml = read(join(DEMO_APP_DIR, 'index.html'));
-    const bootstrapTag = demoHtml.match(
-      /<script\b[^>]*\bsrc\s*=\s*["'][^"']*beacio-core-auto\.js["'][^>]*>/i,
-    );
-    const mainTag = demoHtml.match(/<script\b[^>]*\bsrc\s*=\s*["'][^"']*js\/main\.js["'][^>]*>/i);
-    expect(bootstrapTag, 'a bootstrap <script src=…beacio-core-auto.js> tag').toBeTruthy();
-    expect(mainTag, 'an app-entry <script src=…js/main.js> tag').toBeTruthy();
-    expect(mainTag!.index!).toBeGreaterThan(bootstrapTag!.index!);
+  it('the migrated index.html loads the bootstrap <script> tag before the js/main.js tag', async () => {
+    // Anchor on the real <script src=…> TAGS, not the bare substrings, so a prose
+    // mention of js/main.js in a comment cannot stand in for the app-entry tag.
+    const work = writeUnpatchedApp('migrate-rt-tags-');
+    try {
+      await runMigrateIn(work);
+      const html = read(join(work, 'index.html'));
+      const bootstrapTag = html.match(
+        /<script\b[^>]*\bsrc\s*=\s*["'][^"']*browser-auto\.global\.js["'][^>]*>/i,
+      );
+      const mainTag = html.match(/<script\b[^>]*\bsrc\s*=\s*["'][^"']*js\/main\.js["'][^>]*>/i);
+      expect(bootstrapTag, 'a bootstrap <script src=…browser-auto.global.js> tag').toBeTruthy();
+      expect(mainTag, 'an app-entry <script src=…js/main.js> tag').toBeTruthy();
+      expect(mainTag!.index!).toBeGreaterThan(bootstrapTag!.index!);
+    } finally {
+      rmSync(work, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('beacio migrate — any iOS requestDevice branch', () => {
+  /** Write a minimal static app whose js/main.js is `js`, migrate it, and return the migrated JS. */
+  async function migrateJs(js: string[]): Promise<string> {
+    const work = mkdtempSync(join(tmpdir(), 'migrate-ios-branch-'));
+    try {
+      mkdirSync(join(work, 'js'), { recursive: true });
+      writeFileSync(
+        join(work, 'index.html'),
+        '<!DOCTYPE html>\n<html>\n<head><title>app</title></head>\n<body>\n  <script src="js/main.js"></script>\n</body>\n</html>\n',
+      );
+      writeFileSync(join(work, 'js', 'main.js'), js.join('\n'));
+      await runMigrateIn(work);
+      return read(join(work, 'js', 'main.js'));
+    } finally {
+      rmSync(work, { recursive: true, force: true });
+    }
+  }
+
+  it('adds optionalServices to an inline user-agent iOS branch', async () => {
+    const out = await migrateJs([
+      'function onConnect(){',
+      '  var options = {};',
+      '  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) { options.filters = [{ namePrefix: "X" }]; options.acceptAllDevices = false; }',
+      '  navigator.bluetooth.requestDevice(options);',
+      '}',
+      '',
+    ]);
+    expect(out).toMatch(/options\.acceptAllDevices = false; ;\/\* beacio: [^*]*\*\/options\.optionalServices=/);
+  });
+
+  it('leaves non-iOS branches alone (scenarios / radios / bios are not iOS tests)', async () => {
+    const js = [
+      'function onConnect(){',
+      '  var options = {};',
+      '  if (scenarios.length > 0) { options.filters = [{ namePrefix: "X" }]; }',
+      '  if (radios.length) { options.acceptAllDevices = true; }',
+      '  if (bios) { options.filters = []; }',
+      '  navigator.bluetooth.requestDevice(options);',
+      '}',
+      '',
+    ];
+    expect(await migrateJs(js)).toBe(js.join('\n'));
+  });
+
+  it('leaves a negated `if (!isIOS())` branch alone (it is the non-iOS branch)', async () => {
+    const js = [
+      'function onConnect(){',
+      '  var options = {};',
+      '  if (!isIOS()) { options.filters = filters; }',
+      '  else { options.filters = filters; options.acceptAllDevices = false; }',
+      '  navigator.bluetooth.requestDevice(options);',
+      '}',
+      '',
+    ];
+    expect(await migrateJs(js)).toBe(js.join('\n'));
   });
 });

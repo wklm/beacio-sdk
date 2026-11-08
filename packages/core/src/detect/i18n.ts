@@ -1,12 +1,12 @@
 /**
- * @beacio/detect#i18n — SB-SDK-07
+ * @beacio/detect#i18n
  *
  * The shared localized-string seam for the two user-facing surfaces in
  * @beacio/detect: the install banner (banner.ts) and the branded error
  * presenter (error-presenter.ts). The install banner is the SINGLE end-user
- * onboarding screen that replaces S&B's Bluefy alert, and it was hardcoded
- * English — only `text`/`buttonText` were overridable. S&B is HQ'd in Bayreuth
- * and its German users would see English at the make-or-break moment. This
+ * onboarding screen that replaces a site's third-party-browser alert, and it was
+ * hardcoded English — only `text`/`buttonText` were overridable — so German-speaking
+ * users would see English at the make-or-break moment. This
  * module centralises every visible token into a typed string pack, ships a
  * built-in German (`de`) pack alongside the English (`en`) default, and exposes
  * one PURE selector with a documented policy.
@@ -84,10 +84,10 @@ export interface ErrorStrings {
 export interface LocaleStrings {
   /** Primary CTA label on the not-installed sheet + the lightweight bar. */
   buttonText: string;
-  /** Sheet soft-dismiss ("Not now") label — short suppression (SB-PRD-08). */
+  /** Sheet soft-dismiss ("Not now") label — short suppression. */
   dismiss: string;
   /**
-   * SB-PRD-08: the EXPLICIT "Don't show again" opt-out label — the long-suppression
+   * The EXPLICIT "Don't show again" opt-out label — the long-suppression
    * control, distinct from the soft "Not now" {@link dismiss} above.
    */
   dontShowAgain: string;
@@ -97,7 +97,7 @@ export interface LocaleStrings {
     'installed-inactive': StateCopy;
     denied: StateCopy;
     /**
-     * SB-SDK-17: Private Browsing dead end. iOS Safari disables web extensions in
+     * Private Browsing dead end. iOS Safari disables web extensions in
      * Private Browsing (no per-extension opt-in), so beacio is inert and the app
      * may already be installed — the recovery is to reopen the page in a normal
      * tab, NOT to install anything. A distinct hint (no install CTA, no steps).
@@ -410,7 +410,7 @@ export interface ResolveStringsOptions {
 }
 
 /**
- * PURE locale selector implementing the SB-SDK-07 policy:
+ * PURE locale selector implementing the policy:
  *   explicit `lang` (prefix-matched) > navigator.language (prefix-matched) > English,
  * then a partial `strings` override deep-merged over the selected pack.
  *

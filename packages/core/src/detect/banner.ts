@@ -18,20 +18,20 @@
 // optional-peer inline-pin/`typeof import(...)` dance.
 import { SETUP_URL } from '../urls';
 
-// SB-NAT-01: the canonical event-name map — the sheet's live teardown listens on
+// The canonical event-name map — the sheet's live teardown listens on
 // BOTH the package-lifecycle READY ('beacio:ready') and the extension's in-page
 // handshake EXTENSION_READY ('beacio:extension:ready'), sourced from the single
 // source of truth so neither literal can drift (events.test.ts is the control).
 import { BEACIO_EVENTS } from '../events';
 
-// SB-SDK-07: the shared localized-string seam. Every visible token routes
+// The shared localized-string seam. Every visible token routes
 // through a resolved LocaleStrings pack (explicit `lang` > navigator.language >
-// English), so a German S&B user sees German at the make-or-break moment. The
+// English), so a German-speaking user sees German at the make-or-break moment. The
 // built-in `en` pack reproduces today's copy byte-for-byte, so a caller that
 // passes no lang/strings is unchanged.
 import { type DeepPartial, EN_STRINGS, type LocaleStrings, resolveStrings } from './i18n';
 
-// SB-SDK-12: the install-state marker read, the return-link/clipboard context
+// The install-state marker read, the return-link/clipboard context
 // helpers, and the dismissal frequency-cap now live in the single shared
 // install-state module (also re-exported from the package root as the headless,
 // zero-DOM onboarding API for vanilla-JS partners). The banner consumes them
@@ -57,7 +57,7 @@ import {
  *  - 'active'             → ready; render the once-only success toast
  * Mirrors ExtensionInstallState ('active' | 'installed-inactive' | 'not-installed')
  * plus the in-page refinements only the page flow can distinguish: the per-site
- * 'denied' grant and the SB-SDK-17 'private-browsing' dead end.
+ * 'denied' grant and the 'private-browsing' dead end.
  */
 export type BannerState =
   | 'not-installed'
@@ -81,13 +81,13 @@ export interface BannerOptions {
   apiKey?: string;
   /**
    * Days to suppress the PASSIVE on-load banner after the EXPLICIT "Don't show
-   * again" opt-out (default: 14). SB-PRD-08: the soft "Not now"/backdrop tap uses
+   * again" opt-out (default: 14). The soft "Not now"/backdrop tap uses
    * a separate, short (1-day) window and is NOT governed by this option, so one
    * reflexive dismiss no longer silences guidance for a fortnight.
    */
   dismissDays?: number;
   /**
-   * SB-PRD-08 (AC3): ignore the active dismissal cooldown and render anyway. The
+   * Ignore the active dismissal cooldown and render anyway. The
    * passive on-load banner leaves this false so a dismissed user is not nagged;
    * a USER-INITIATED recovery gesture (e.g. tapping Connect, or a "Set up
    * Bluetooth"/"Can't connect?" affordance) passes `forceShow: true` to re-open
@@ -103,22 +103,22 @@ export interface BannerOptions {
   /**
    * Setup destination shown behind the "still stuck?" affordance and the
    * "How does setup work?" disclosure. Defaults to the canonical /setup page;
-   * an operator (e.g. Storz & Bickel) can point it at their own branded help.
+   * an operator can point it at their own branded help.
    */
   setupUrl?: string;
   /**
-   * SB-SDK-07: BCP-47 UI language (e.g. 'de'). When set, its primary subtag
+   * BCP-47 UI language (e.g. 'de'). When set, its primary subtag
    * selects the built-in pack; when omitted, the language is derived from
    * navigator.language, else English. Always wins over navigator.language.
    */
   lang?: string;
   /**
-   * SB-SDK-07: partial copy overrides deep-merged over the selected language
+   * Partial copy overrides deep-merged over the selected language
    * pack — override one field (e.g. `buttonText`) without restating the rest.
    */
   strings?: DeepPartial<LocaleStrings>;
   /**
-   * SB-SDK-11 (tier-2 co-brand): partner accent colour applied to the sheet/bar
+   * Tier-2 co-brand: partner accent colour applied to the sheet/bar
    * chrome (icon tile, step bullets, primary CTA, disclosure links). Routed
    * through a `--bc-accent` CSS variable so every accent rule switches to
    * var(--bc-accent); when omitted the variable defaults to the beacio Apple-blue
@@ -126,7 +126,7 @@ export interface BannerOptions {
    */
   accentColor?: string;
   /**
-   * SB-SDK-11: partner logo, restricted to a URL (no raw SVG markup) so it can
+   * Partner logo, restricted to a URL (no raw SVG markup) so it can
    * never inject script. Validated with `new URL()` against the page origin and
    * accepted ONLY when the resolved protocol is http(s); a `javascript:`/`data:`/
    * `ftp:` value is dropped and the default beacio chrome icon is kept. Rendered
@@ -134,25 +134,25 @@ export interface BannerOptions {
    */
   brandLogoUrl?: string;
   /**
-   * SB-SDK-11: the specific device being connected (e.g. "VOLCANO HYBRID"). When
+   * The specific device being connected (e.g. "ACME THERMO"). When
    * set it is interpolated into the `{device}` token of any copy that carries it,
-   * so a co-brand sheet can read "Connect your VOLCANO HYBRID in Safari".
+   * so a co-brand sheet can read "Connect your ACME THERMO in Safari".
    */
   deviceName?: string;
   /**
-   * SB-SDK-11: a one-shot override for the sheet's lead body copy. Wins over the
+   * A one-shot override for the sheet's lead body copy. Wins over the
    * resolved language pack's state body (HTML-escaped via esc(), like all copy).
-   * For finer-grained per-field overrides use the SB-SDK-07 `strings` seam.
+   * For finer-grained per-field overrides use the `strings` seam.
    */
   body?: string;
   /**
-   * SB-SDK-11: override for the privacy reassurance body (the medical-market
+   * Override for the privacy reassurance body (the medical-market
    * trust line). HTML-escaped. Defaults to the resolved pack's privacyBody.
    */
   privacyBody?: string;
 }
 
-// AIDEV-NOTE: SB-PRD-03 — the single canonical onboarding copy block. The
+// AIDEV-NOTE: The single canonical onboarding copy block. The
 // irreducibly-manual iOS-26 enable + per-origin grant is the weakest funnel point
 // (memory project_ios26_safari_extension_settings_readonly), and the decisive
 // GESTURE — tap aA in the address bar → Manage Extensions → Allow Every Website —
@@ -173,7 +173,7 @@ export interface SetupStep {
  * are the contract: install → open app → enable extension → allow website access
  * (the aA gesture) → allow Bluetooth on first scan → return.
  *
- * SB-SDK-07: this is the ENGLISH step list, now sourced from EN_STRINGS.steps so
+ * This is the ENGLISH step list, now sourced from EN_STRINGS.steps so
  * the exported constant (mirrored by the react-sdk InstallationWizard) and the
  * localized pack never drift. Localized rendering reads the resolved pack's
  * steps; the per-state filtering below is by INDEX into this canonical order, so
@@ -187,7 +187,7 @@ export const SETUP_STEPS: readonly SetupStep[] = EN_STRINGS.steps;
  * website-access gesture + Bluetooth prompt + return (indices 3,4,5). Keyed by
  * index (not label text) so localization cannot change which steps show.
  *
- * SB-SDK-17: 'private-browsing' shows NO steps — the only action is "open this
+ * 'private-browsing' shows NO steps — the only action is "open this
  * page in a normal tab" (no Settings walkthrough), so the sheet renders just the
  * distinct hint with an empty step strip.
  */
@@ -202,11 +202,11 @@ const STATE_STEP_INDICES: Record<Exclude<BannerState, 'active' | 'not-installed'
 // with no URL config and still send users to a flow that actually completes setup. Imported from
 // @beacio/core (SETUP_URL) so the banner and the react-sdk InstallationWizard share one constant.
 const DEFAULT_ONBOARDING_URL = SETUP_URL;
-// SB-PRD-03 AC5: once-only success toast. Set on the first load that observes the
+// Once-only success toast. Set on the first load that observes the
 // 'active' transition so returning users get the fast path (no banner, no toast).
 const READY_SHOWN_KEY = 'beacio_ready_shown';
 
-// SB-SDK-03 AC4: the install sheet is a LIVE affordance. The irreducibly-manual
+// The install sheet is a LIVE affordance. The irreducibly-manual
 // iOS-26 enable step (project_ios26_safari_extension_settings_readonly) happens
 // OUTSIDE the page in Settings, so a visible sheet must re-check on foreground
 // return + on the extension's READY signal and remove itself the moment the
@@ -214,7 +214,7 @@ const READY_SHOWN_KEY = 'beacio_ready_shown';
 // names: the active DOM marker the content script sets (detect.ts hasActiveMarker)
 // and BEACIO_EVENTS.READY dispatched by initBeacio (index.ts:114).
 const READY_EVENT = BEACIO_EVENTS.READY;
-// SB-NAT-01 regression fix (2026-07-21): READY alone is DEAF to same-load late
+// Regression fix (2026-07-21): READY alone is DEAF to same-load late
 // activation. 'beacio:ready' is dispatched ONLY by initBeacio's active path — a
 // path that, by construction, never ran in the page-load that rendered this
 // non-active sheet — and visibilitychange never fires while Safari stays
@@ -222,7 +222,7 @@ const READY_EVENT = BEACIO_EVENTS.READY;
 // itself AFTER detect's 2s window via its OWN in-page handshake event
 // (BEACIO_EVENTS.EXTENSION_READY, the same seam observeInstallState awaits), so
 // the sheet must ALSO listen there or it sits over the operator's app forever
-// and swallows the Connect tap (hardware-observed on the S&B fork).
+// and swallows the Connect tap (hardware-observed).
 const EXTENSION_READY_EVENT = BEACIO_EVENTS.EXTENSION_READY;
 // Bounded foreground re-check poll, modeled on website-src/scripts/setup-verify.js
 // (PING_ATTEMPTS/PING_INTERVAL_MS): a capped number of attempts so we never leave
@@ -230,7 +230,7 @@ const EXTENSION_READY_EVENT = BEACIO_EVENTS.EXTENSION_READY;
 const RECHECK_ATTEMPTS = 5;
 const RECHECK_INTERVAL_MS = 300;
 
-// SB-SDK-12: isExtensionActiveNow / isDismissed / dismiss / saveReturnContext
+// isExtensionActiveNow / isDismissed / dismiss / saveReturnContext
 // / getReturnContext were promoted into the shared install-state module (imported
 // above) and re-exported from the package root as the headless API. They keep the
 // same localStorage keys and return-link form, so the call sites below are
@@ -241,12 +241,12 @@ function resolveOnboardingUrl(options: Pick<BannerOptions, 'startOnboardingUrl' 
 }
 
 /**
- * SB-PRD-07 AC4: PURE URL builder for the onboarding redirect — the durable seam
+ * PURE URL builder for the onboarding redirect — the durable seam
  * the click handlers delegate to (jsdom 26 makes window.location.href set/readback
  * un-observable, so the branded-continuity contract is pinned here, not on a
  * navigation). Two mutually-exclusive shapes by destination:
  *  - App Store (apps.apple.com): campaign ct/mt ONLY, exactly as before — the deep
- *    link must NOT carry the operator identity / return origin. SB-SDK-12 AC4: the
+ *    link must NOT carry the operator identity / return origin. The
  *    path is normalized to the id form (apps.apple.com/app/id<digits>) using the
  *    canonical APP_STORE_URL, so a caller-supplied NAME slug (/app/<slug>/id…) — the
  *    form that 404s / misleads if Apple's slug differs from "beacio" — is stripped.
@@ -265,7 +265,7 @@ export function buildOnboardingUrl(
   const isAppStore = parsed.hostname === 'apps.apple.com';
 
   if (isAppStore) {
-    // SB-SDK-12 AC4: collapse the path to the id form. Keep the app id segment
+    // Collapse the path to the id form. Keep the app id segment
     // (idNNNN) if the caller supplied one; otherwise fall back to the canonical
     // APP_STORE_URL path. Either way no NAME slug survives onto the deep link.
     const idSegment = parsed.pathname.match(/id\d+/)?.[0];
@@ -290,7 +290,7 @@ export function buildOnboardingUrl(
 function redirectToOnboarding(url: string, apiKey?: string, operatorName?: string): void {
   saveReturnContext();
 
-  // SB-PRD-07 AC4: thread the operator identity + the originating page through the
+  // Thread the operator identity + the originating page through the
   // redirect so /setup (and /setup-verify) can render the branded return CTA.
   const returnUrl = getReturnContext().url;
   window.location.href = buildOnboardingUrl(url, { apiKey, operatorName, returnUrl });
@@ -302,11 +302,11 @@ function esc(s: string): string {
   return d.innerHTML;
 }
 
-// SB-SDK-07: substitute the resolved operator name into a localized template's
+// Substitute the resolved operator name into a localized template's
 // `{operator}` token. All operator-bearing strings (the not-installed body, the
 // return CTA, the clipboard hint, the ready toast) carry `{operator}` in BOTH
 // language packs, so this is the single, language-independent interpolation.
-// SB-SDK-11: also substitutes the optional `{device}` token (the connected
+// Also substitutes the optional `{device}` token (the connected
 // device's display name) where co-brand copy names it; an empty deviceName
 // leaves a bare token-free string.
 function fill(template: string, operatorName: string, deviceName = ''): string {
@@ -314,11 +314,11 @@ function fill(template: string, operatorName: string, deviceName = ''): string {
 }
 
 /**
- * SB-SDK-11 AC2 injection guard: a partner logo is accepted ONLY as a URL that
+ * Injection guard: a partner logo is accepted ONLY as a URL that
  * resolves (against the page origin) to an http(s) resource. A `javascript:`,
  * `data:`, `ftp:` (or any non-http) value — the XSS vectors — is rejected and the
  * caller falls back to the default beacio chrome icon. Relative URLs (e.g. a
- * site-hosted `logo-sb.svg`) resolve to the page's http(s) origin and are allowed.
+ * site-hosted `logo.svg`) resolve to the page's http(s) origin and are allowed.
  * Returns the resolved absolute URL string when safe, else null. Never throws.
  */
 function safeLogoUrl(raw: string | undefined): string | null {
@@ -342,7 +342,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
     state = 'not-installed',
   } = options;
   const onboardingUrl = resolveOnboardingUrl(options);
-  // SB-SDK-07: resolve the localized pack ONCE (explicit lang > navigator.language
+  // Resolve the localized pack ONCE (explicit lang > navigator.language
   // > English), then deep-merge any partial `strings` override.
   const t = resolveStrings({ lang: options.lang, strings: options.strings });
   const buttonText = t.buttonText;
@@ -350,14 +350,14 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
   // remaining states each carry their own lead copy + only-the-relevant steps.
   const sheetState = (state === 'active' ? 'not-installed' : state) as Exclude<BannerState, 'active'>;
   const { title } = t.states[sheetState];
-  // SB-SDK-11: a top-level `body` override wins over the resolved pack body so a
+  // A top-level `body` override wins over the resolved pack body so a
   // co-brand caller can pass device-specific lead copy; else use the pack's state
   // body with {operator}/{device} interpolated.
   const body = options.body ?? t.states[sheetState].body;
   const setupUrl = options.setupUrl ?? onboardingUrl;
   const ret = getReturnContext();
 
-  // SB-SDK-11 (tier-2 co-brand): resolve the optional theme. The accent is routed
+  // Tier-2 co-brand: resolve the optional theme. The accent is routed
   // through a `--bc-accent` CSS variable defaulting to the beacio Apple-blue, so
   // every accent rule below reads var(--bc-accent) and an unthemed sheet is
   // byte-identical to before. A partner logo is URL-validated (no raw SVG) and,
@@ -374,7 +374,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
   // not-installed → the full first-run walkthrough (AC6: show the SPECIFIC step,
   // do not restart). The Bluetooth-prompt + return steps stay so the user is
   // never surprised by the first-scan permission and always has a next action.
-  // SB-SDK-07: filter by INDEX into the canonical order (language-independent),
+  // Filter by INDEX into the canonical order (language-independent),
   // and render the RESOLVED pack's step copy (German labels/why when lang='de').
   const steps =
     sheetState === 'not-installed'
@@ -393,7 +393,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
   overlay.dataset.beacioState = sheetState;
   overlay.innerHTML = `
 <style>
-/* SB-SDK-11: the partner accent is exposed as a single CSS custom property on the
+/* The partner accent is exposed as a single CSS custom property on the
    sheet root; every accent rule below reads var(--bc-accent). When unthemed the
    value defaults to the beacio Apple-blue, so the rendered sheet is unchanged. */
 #bc-s{--bc-accent:${esc(accent)}}
@@ -431,7 +431,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
   text-decoration:none;-webkit-tap-highlight-color:transparent}
 .bc-ret:active{opacity:.85}
 .bc-cb{font-size:11px;color:#8e8e93;text-align:center;margin-top:6px}
-/* SB-SDK-11 AC3: VISIBLE trust surfaces (not the collapsed <details>) — the
+/* VISIBLE trust surfaces (not the collapsed <details>) — the
    medical-market "No data collected" reassurance + the no-affiliation microcopy. */
 .bc-privacy{font-size:12px;color:#8e8e93;line-height:1.4;margin-top:12px}
 .bc-noaff{font-size:11px;color:#8e8e93;line-height:1.3;margin-top:6px;text-align:center}
@@ -450,7 +450,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
 .bc-dis{display:block;width:100%;padding:8px;background:none;border:none;font-size:14px;
   color:#8e8e93;cursor:pointer;text-align:center;margin-top:4px;
   -webkit-tap-highlight-color:transparent}
-/* SB-PRD-08: the explicit long opt-out (#bc-dont-show) is visually quieter than the
+/* The explicit long opt-out (#bc-dont-show) is visually quieter than the
    soft dismiss (#bc-dismiss) above it — smaller, less padding — so the soft dismiss
    stays the default gesture and the long opt-out is a deliberate secondary choice.
    NB keep this comment free of literal UI copy: the <style> block is part of the
@@ -491,7 +491,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
   <details class="bc-det"><summary>${esc(t.privacySummary)}</summary><p>${esc(privacyBody)}</p></details>
   ${
     themed
-      ? // SB-SDK-11 AC3: a VISIBLE privacy reassurance (the medical-market trust
+      ? // A VISIBLE privacy reassurance (the medical-market trust
         // angle) — distinct from the collapsed <details> above — plus a
         // no-affiliation microcopy line. Device-agnostic, neutral install-path
         // framing only (no App-Store-approved/cleared/audited claims).
@@ -505,18 +505,18 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
 </div>
 </div>`;
 
-  // SB-PRD-03 AC4: persist the originating page so the return link survives the
+  // Persist the originating page so the return link survives the
   // round trip, and (best-effort) copy it — but the link above is the primary,
   // VISIBLE affordance and the copy is announced in the .bc-cb line, not silent.
   saveReturnContext();
 
-  // SB-SDK-03 AC4/AC5: wire the LIVE lifecycle synchronously (not deferred to
+  // Wire the LIVE lifecycle synchronously (not deferred to
   // rAF) so a foreground return / READY signal that lands in the same tick — e.g.
   // the content script setting the active marker the instant the sheet renders —
   // still tears the sheet down. Each listener and the bounded poll are unwound by
   // detachLifecycle() so nothing keeps firing after the sheet is gone (battery).
   //
-  // SB-PRD-08 AC3 (2026-07-21 device evidence): a `forceShow: true` sheet is a
+  // Device evidence (2026-07-21): a `forceShow: true` sheet is a
   // USER-INITIATED recovery gesture ("Can't connect?" / the E2E selector-liveness
   // control) — the user explicitly asked for the guidance even though the markers
   // may already read 'active', so the automatic self-clearing lifecycle is
@@ -552,7 +552,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
     clearIfActive();
   }
 
-  // SB-NAT-01: the injected polyfill just announced it is live in THIS page-load
+  // The injected polyfill just announced it is live in THIS page-load
   // (cold-appex late activation — the scenario READY structurally cannot cover).
   // The active marker normally lands in the same tick as the event; when the
   // ordering races, the bounded re-check absorbs it (battery-safe, capped).
@@ -603,7 +603,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
       if (clearIfActive()) return;
       window.location.reload();
     });
-    // SB-PRD-08 (AC1): "Not now" is a SOFT dismissal — suppress the passive banner
+    // "Not now" is a SOFT dismissal — suppress the passive banner
     // for one day only, not the full dismissDays window, so an interested user is
     // not silenced for a fortnight by one reflexive tap.
     overlay.querySelector('#bc-dismiss')?.addEventListener('click', () => {
@@ -611,7 +611,7 @@ function showBottomSheet(options: BannerOptions): HTMLElement {
       overlay.remove();
       dismissShort();
     });
-    // SB-PRD-08 (AC1): the EXPLICIT "Don't show again" opt-out — the LONG
+    // The EXPLICIT "Don't show again" opt-out — the LONG
     // (dismissDays, default 14) suppression. Only this deliberate control earns
     // the long silence.
     overlay.querySelector('#bc-dont-show')?.addEventListener('click', () => {
@@ -646,12 +646,12 @@ function showBarBanner(options: BannerOptions): HTMLElement {
     apiKey,
     operatorName,
   } = options;
-  // SB-SDK-07: resolve the localized pack for the bar copy.
+  // Resolve the localized pack for the bar copy.
   const t = resolveStrings({ lang: options.lang, strings: options.strings });
   const text = t.barText;
   const buttonText = t.buttonText;
   const onboardingUrl = resolveOnboardingUrl(options);
-  // SB-SDK-11: the same co-brand theme as the sheet — accent (default beacio
+  // The same co-brand theme as the sheet — accent (default beacio
   // Apple-blue) + URL-validated partner logo (else the default beacio glyph).
   const accent = options.accentColor ?? '#007AFF';
   const logoUrl = safeLogoUrl(options.brandLogoUrl);
@@ -698,7 +698,7 @@ function showBarBanner(options: BannerOptions): HTMLElement {
   el.querySelector('#beacio-banner-install')?.addEventListener('click', () => {
     redirectToOnboarding(onboardingUrl, apiKey, operatorName);
   });
-  // SB-PRD-08 (AC1): the bar's × is an incidental close → SOFT (1-day) dismissal,
+  // The bar's × is an incidental close → SOFT (1-day) dismissal,
   // matching the sheet's "Not now"; the lightweight bar has no explicit
   // "Don't show again" opt-out, so it never triggers the long window.
   el.querySelector('#beacio-banner-close')?.addEventListener('click', () => {
@@ -729,7 +729,7 @@ function markReadyShown(): void {
 }
 
 /**
- * SB-PRD-03 AC5: the FIRST page load that observes the 'active' transition gets a
+ * The FIRST page load that observes the 'active' transition gets a
  * dismissible "beacio is ready — tap Connect" toast, exactly once. Returning users
  * (key already set) get the fast path: no toast, no banner. Returns null on the
  * second+ call so callers can treat it like the suppressed banner.
@@ -739,7 +739,7 @@ function showReadyToast(options: BannerOptions): HTMLElement | null {
   markReadyShown();
 
   const operatorName = options.operatorName || document.title || window.location.hostname;
-  // SB-SDK-07: localized success-toast copy (explicit lang > navigator.language >
+  // Localized success-toast copy (explicit lang > navigator.language >
   // English), with `{operator}` filled by the resolved operator name.
   const t = resolveStrings({ lang: options.lang, strings: options.strings });
   const el = document.createElement('div');
@@ -775,11 +775,11 @@ function showReadyToast(options: BannerOptions): HTMLElement | null {
 // ─── Public API ────────────────────────────────────────────────────────────
 
 export function showInstallBanner(options: BannerOptions = {}): HTMLElement | null {
-  // SB-PRD-03 AC5: the ready toast is its OWN affordance and must fire even
+  // The ready toast is its OWN affordance and must fire even
   // during the dismiss window — a returning, now-ready user should be welcomed,
   // not silenced by an old "Not now". Only the install/guidance sheets honour dismiss.
   if (options.state === 'active') return showReadyToast(options);
-  // SB-PRD-08 (AC3): the passive on-load banner honours the dismissal cooldown so
+  // The passive on-load banner honours the dismissal cooldown so
   // it is not nagging; a user-initiated recovery gesture passes forceShow:true to
   // re-open the flow without waiting out the timer (no localStorage clearing).
   if (!options.forceShow && isDismissed()) return null;

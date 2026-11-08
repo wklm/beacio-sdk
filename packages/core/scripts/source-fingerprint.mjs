@@ -2,7 +2,7 @@
 // B1 recurrence pin (S5-CONDITIONS.md, blocker B1) — the CANONICAL fingerprint of the
 // inputs `npm run build -w packages/core` compiles into dist/.
 //
-// WHY THIS EXISTS: three S5 stages measured a vendored bundle / SRI digest against a
+// WHY THIS EXISTS: earlier checks measured a bundle / SRI digest against a
 // STALE dist — packages/core/src had changed with no rebuild — and recorded a
 // born-stale allowlist adjudication from what they saw (the "esbuild inlines the
 // factory" misreading). dist/integrity.json only hashed the OUTPUT bundles, so nothing
@@ -14,7 +14,7 @@
 // HONEST LIMITS (recorded, not hidden): the fingerprint covers packages/core/src/**
 // and the three tsup configs. It does NOT cover toolchain drift (an esbuild/tsup
 // version bump that changes minified output without a src edit) — that direction is
-// owned by the rebuild-and-diff guards (vendor:sb:check, sri-integrity-table.test.ts),
+// owned by the rebuild-and-diff guard (sri-integrity-table.test.ts),
 // which the gate runs downstream of its build:packages DAG root.
 
 import { createHash } from 'node:crypto';

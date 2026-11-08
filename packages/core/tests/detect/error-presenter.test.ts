@@ -1,14 +1,14 @@
 /**
- * SB-SDK-05: @beacio/detect#presentError — the drop-in, framework-free branded
- * error card S&B routes its generateErrorMsg() + connect-catch alerts through.
+ * @beacio/detect#presentError — the drop-in, framework-free branded error card a
+ * vanilla-JS site routes its own error-message helper + connect-catch alerts through.
  *
  * The polished branded surface already exists (banner.ts) but is stranded behind
- * the @beacio/core API; S&B uses raw navigator.bluetooth across 202 call sites and
+ * the @beacio/core API; such a site uses raw navigator.bluetooth across many call sites and
  * will not rewrite them. presentError converts the worst surface — a blocking,
  * stack-leaking window.alert() — into a non-blocking, dismissible, branded,
  * recovery-oriented card with ~1-line edits.
  *
- * This test pins the SB-SDK-05 acceptance criteria so the presenter cannot
+ * This test pins the acceptance criteria so the presenter cannot
  * silently regress: a card (NOT alert), per-code human copy, no stack/no
  * competitor names, retry affordance for retriable codes, raw DOMException/string
  * normalisation, identical-error debounce, and the i18n copy-override seam.
@@ -94,7 +94,7 @@ function removeCard(): void {
   cardEl()?.remove();
 }
 
-describe('SB-SDK-05 presentError renders a branded, non-blocking error card', () => {
+describe('presentError renders a branded, non-blocking error card', () => {
   let alertSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
@@ -169,7 +169,7 @@ describe('SB-SDK-05 presentError renders a branded, non-blocking error card', ()
     }
   });
 
-  // AC1: the retry affordance invokes a caller-supplied onRetry handler (so S&B
+  // AC1: the retry affordance invokes a caller-supplied onRetry handler (so a site
   // can re-run connect()), and dismisses the card.
   it('AC1: tapping retry invokes onRetry and dismisses the card', () => {
     const onRetry = jest.fn();
@@ -200,8 +200,8 @@ describe('SB-SDK-05 presentError renders a branded, non-blocking error card', ()
     expect(text).not.toContain('NetworkError:');
   });
 
-  // AC1: a bare string renders branded copy in a card (this is the S&B
-  // generateErrorMsg(errMsg) path), not a window.alert of the raw string.
+  // AC1: a bare string renders branded copy in a card (this is a site's own
+  // error-message helper path), not a window.alert of the raw string.
   it('AC1: a bare string message renders as a branded card, not window.alert', () => {
     presentError('Connection failed. Please move closer to the device.');
     expect(alertSpy).not.toHaveBeenCalled();
@@ -210,21 +210,21 @@ describe('SB-SDK-05 presentError renders a branded, non-blocking error card', ()
     expect(text).toContain('Connection failed');
   });
 
-  // AC1/AC6: the bare-string path is the S&B generateErrorMsg(errMsg) ->
-  // presentError(errMsg) chokepoint. S&B's real strings are built from the native
-  // error (main.js historically appends `error.stack` and references the
+  // AC1/AC6: the bare-string path is a site's own error-message helper ->
+  // presentError(errMsg) chokepoint. Such a site's real strings are built from the native
+  // error (an app may append `error.stack` and reference the
   // competitor name), so a string handed to presentError can ITSELF carry a stack
   // frame, a native webkit:// URL, or "Bluefy". AC1 requires presentError to
   // "strip/omit any stack trace ... and never emit competitor names" for ANY input
   // — and the file's own contract promises the card NEVER leaks those. The branded
   // copy table protects the structured/DOMException paths, but a bare string was
   // rendered verbatim; these pin the bare-string sanitisation so the leak cannot
-  // return on the very path S&B integrates through.
+  // return on the very path such a site integrates through.
   it('AC1/AC6: a bare string carrying a stack/native-URL is sanitised in the card (leading sentence kept)', () => {
     presentError(
       'GATT operation failed: the device disconnected.\n' +
-        '    at BeacioDevice.read (webkit://internal/device.js:1018:23)\n' +
-        '    at async onButtonClick (https://app.storz-bickel.com/js/main.js:736:9)'
+        '    at BeacioDevice.read (webkit://internal/device.js:212:7)\n' +
+        '    at async onConnectClick (https://app.example.com/js/main.js:48:15)'
     );
     expect(alertSpy).not.toHaveBeenCalled();
     const text = cardText();
@@ -236,11 +236,11 @@ describe('SB-SDK-05 presentError renders a branded, non-blocking error card', ()
       expect(text).not.toContain(tok);
     }
     expect(text).not.toContain('at BeacioDevice.read');
-    expect(text).not.toContain('at async onButtonClick');
+    expect(text).not.toContain('at async onConnectClick');
   });
 
   it('AC1/AC6: a bare string mentioning the competitor name never emits it in the card', () => {
-    presentError('Bluetooth unavailable. Please use Bluefy or the Web BLE browser instead.');
+    presentError('Bluetooth unavailable. Open this page in Bluefy or the Web BLE browser.');
     expect(alertSpy).not.toHaveBeenCalled();
     const text = cardText();
     expect(text.length).toBeGreaterThan(0);
@@ -263,7 +263,7 @@ describe('SB-SDK-05 presentError renders a branded, non-blocking error card', ()
   });
 
   // AC2: repeated identical errors within a short window are debounced/coalesced —
-  // defends against the qvap 500ms backgrounding alert-storm.
+  // defends against a burst of repeated alerts.
   it('AC2: two identical errors fired within the debounce window produce a single card', () => {
     presentError(new BeacioError('DEVICE_DISCONNECTED'));
     presentError(new BeacioError('DEVICE_DISCONNECTED'));
@@ -282,11 +282,11 @@ describe('SB-SDK-05 presentError renders a branded, non-blocking error card', ()
   // BannerOptions) appear in the card.
   it('AC1: honors operatorName and a CTA/copy override', () => {
     presentError(new BeacioError('DEVICE_DISCONNECTED'), {
-      operatorName: 'STORZ & BICKEL',
+      operatorName: 'EXAMPLE & CO',
       retryText: 'Reconnect now',
     });
     const text = cardText();
-    expect(text).toContain('STORZ & BICKEL');
+    expect(text).toContain('EXAMPLE & CO');
     expect(text).toContain('Reconnect now');
   });
 
@@ -305,7 +305,7 @@ describe('SB-SDK-05 presentError renders a branded, non-blocking error card', ()
     expect(el.style.borderRadius).toBe('4px');
   });
 
-  // AC7/SB-SDK-07: the dismiss control label is a user-visible string the override
+  // AC7: the dismiss control label is a user-visible string the override
   // object explicitly enumerates ("dismiss label"). It must be localizable via both
   // the dedicated dismissText option and strings.dismiss — and surface on the
   // rendered control (accessible name), not just be computed and discarded.

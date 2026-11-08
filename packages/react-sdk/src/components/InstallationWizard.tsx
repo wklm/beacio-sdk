@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { SETUP_URL, BEACIO_EVENTS } from '@beacio/core';
-// SB-PRD-03: reuse the SINGLE canonical onboarding copy block authored in
+// Reuse the SINGLE canonical onboarding copy block authored in
 // @beacio/core/detect so the web banner and this react wizard never drift on the
 // decisive aA → Manage Extensions → Allow Every Website gesture + the first-scan
 // Bluetooth prompt.
@@ -11,7 +11,7 @@ const RETURN_KEY = 'beacio_return';
 
 /**
  * The originating page the user came from (saved in handleInstall before the
- * redirect). SB-PRD-03 AC4: surface this as a VISIBLE return affordance rather
+ * redirect). Surface this as a VISIBLE return affordance rather
  * than relying on the silent clipboard write. Falls back to the current href.
  */
 function readReturnUrl(): string {
@@ -38,28 +38,28 @@ interface InstallationWizardProps {
   /** Operator/app name shown in the prompt */
   operatorName?: string;
   /**
-   * SB-SDK-11 (tier-2 co-brand): partner accent colour applied to the icon tile,
+   * Tier-2 co-brand: partner accent colour applied to the icon tile,
    * step bullets, primary CTA, and disclosure links. Defaults to the beacio
    * Apple-blue (#007aff) so an unthemed wizard renders exactly as before.
    */
   accentColor?: string;
   /**
-   * SB-SDK-11: partner logo, restricted to an http(s) URL (no raw markup) so it
+   * Partner logo, restricted to an http(s) URL (no raw markup) so it
    * can never inject script. Validated with `new URL()`; a non-http value is
    * dropped and the default beacio glyph is kept. Rendered as an <img>.
    */
   brandLogoUrl?: string;
-  /** SB-SDK-11: the connected device's display name (e.g. "VOLCANO HYBRID"). */
+  /** The connected device's display name (e.g. "ACME THERMO"). */
   deviceName?: string;
-  /** SB-SDK-11: one-shot lead body copy override (e.g. "Connect your VOLCANO HYBRID …"). */
+  /** One-shot lead body copy override (e.g. "Connect your ACME THERMO …"). */
   body?: string;
-  /** SB-SDK-11: privacy reassurance body override (the medical-market trust line). */
+  /** Privacy reassurance body override (the medical-market trust line). */
   privacyBody?: string;
   className?: string;
 }
 
 /**
- * SB-SDK-11 AC2 injection guard (mirrors @beacio/core/detect banner.ts safeLogoUrl):
+ * Injection guard (mirrors @beacio/core/detect banner.ts safeLogoUrl):
  * a partner logo is accepted ONLY as a URL resolving to an http(s) resource. A
  * `javascript:`/`data:`/`ftp:` (or any non-http) value is rejected so it can never
  * inject script; relative URLs resolve against the page origin and are allowed.
@@ -109,7 +109,7 @@ export function InstallationWizard({
 
   const displayName = operatorName || (typeof document !== 'undefined' ? document.title : '') || 'this website';
 
-  // SB-SDK-11 (tier-2 co-brand): resolve the optional theme. The accent defaults
+  // Tier-2 co-brand: resolve the optional theme. The accent defaults
   // to the beacio Apple-blue, so an unthemed wizard is unchanged; the logo is
   // URL-validated (else the beacio glyph is kept); `themed` gates the VISIBLE
   // privacy line + the no-affiliation microcopy (the medical-market trust angle).
@@ -192,7 +192,7 @@ export function InstallationWizard({
         <div style={headerStyle} data-beacio-wizard-header="">
           <div style={themedIconStyle} data-beacio-wizard-icon="">
             {logoUrl ? (
-              // SB-SDK-11: URL-validated partner logo replaces the beacio glyph.
+              // URL-validated partner logo replaces the beacio glyph.
               <img src={logoUrl} alt="" aria-hidden="true" style={logoImgStyle} />
             ) : (
               <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
@@ -216,7 +216,7 @@ export function InstallationWizard({
           <span>Takes 1 minute</span>
         </div>
 
-        {/* SB-PRD-03: the real tapped sequence, each grant with its "why" — the
+        {/* The real tapped sequence, each grant with its "why" — the
             aA gesture + the first-scan Bluetooth prompt — reused from @beacio/core/detect. */}
         <ol style={stepsStyle} data-beacio-wizard-steps="">
           {SETUP_STEPS.map((s, i) => (
@@ -232,7 +232,7 @@ export function InstallationWizard({
           {installState === 'installed-inactive' ? 'Finish Safari Setup' : 'Start Setup'}
           </button>
 
-        {/* SB-PRD-03 AC4: VISIBLE, origin-correct return affordance. */}
+        {/* VISIBLE, origin-correct return affordance. */}
         <a style={returnStyle} href={readReturnUrl()} data-beacio-wizard-return="">
           Return to {displayName}
         </a>
@@ -254,7 +254,7 @@ export function InstallationWizard({
           <p style={detailsTextStyle}>{privacyText}</p>
         </details>
 
-        {/* SB-SDK-11 AC3: VISIBLE trust surfaces (not the collapsed <details>) — the
+        {/* VISIBLE trust surfaces (not the collapsed <details>) — the
             medical-market "No data collected" reassurance + a no-affiliation
             microcopy line. Neutral install-path framing only (no App-Store-
             approved/cleared/audited claims). Rendered for co-brand (themed) prompts. */}
@@ -447,7 +447,7 @@ const detailsTextStyle: React.CSSProperties = {
   padding: '8px 0 4px',
 };
 
-// SB-SDK-11: partner logo <img> fills the accent tile (object-fit so any aspect
+// Partner logo <img> fills the accent tile (object-fit so any aspect
 // ratio sits inside the rounded square without distortion).
 const logoImgStyle: React.CSSProperties = {
   width: '100%',
@@ -455,7 +455,7 @@ const logoImgStyle: React.CSSProperties = {
   objectFit: 'contain',
 };
 
-// SB-SDK-11 AC3: the VISIBLE privacy reassurance line (distinct from the collapsed
+// The VISIBLE privacy reassurance line (distinct from the collapsed
 // <details>) and the no-affiliation microcopy, for the medical-market trust angle.
 const visiblePrivacyStyle: React.CSSProperties = {
   fontSize: 13,

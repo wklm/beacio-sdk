@@ -73,12 +73,12 @@ describe('Beacio.requestDevice', () => {
   });
 });
 
-describe('Beacio.registerServices / defaultOptionalServices (SB-SDK-08)', () => {
+describe('Beacio.registerServices / defaultOptionalServices', () => {
   // Canonical lowercase 128-bit forms the SDK normalizes these aliases to.
   const HEART_RATE = '0000180d-0000-1000-8000-00805f9b34fb';
   const BATTERY = '0000180f-0000-1000-8000-00805f9b34fb';
   const DEVICE_INFO = '0000180a-0000-1000-8000-00805f9b34fb';
-  const SB_SERVICE = '00000001-4c45-4b43-4942-265a524f5453';
+  const VENDOR_SERVICE = '7ec2bc12-0792-42d0-a1a3-a44a2c52e5b8';
 
   function mockBluetooth() {
     const requestDevice = jest.fn(async () => ({ id: 'device-reg', addEventListener: jest.fn(), gatt: { connect: jest.fn() } }));
@@ -106,12 +106,12 @@ describe('Beacio.registerServices / defaultOptionalServices (SB-SDK-08)', () => 
   it('(b) registry-only: registered defaults become optionalServices even when the caller passes filters but no optionalServices', async () => {
     const requestDevice = mockBluetooth();
     const ble = new Beacio();
-    ble.registerServices(['battery_service', SB_SERVICE]);
+    ble.registerServices(['battery_service', VENDOR_SERVICE]);
 
     await ble.requestDevice({ filters: [{ services: ['heart_rate'] }] });
 
     const forwarded = forwardedOptions(requestDevice);
-    expect(forwarded.optionalServices).toEqual([BATTERY, SB_SERVICE]);
+    expect(forwarded.optionalServices).toEqual([BATTERY, VENDOR_SERVICE]);
     // Filters are forwarded untouched (registry must not fold services into the picker).
     expect(forwarded.filters).toEqual([{ services: [HEART_RATE] }]);
   });
@@ -184,11 +184,11 @@ describe('Beacio.registerServices / defaultOptionalServices (SB-SDK-08)', () => 
     const requestDevice = mockBluetooth();
     const ble = new Beacio();
     // Mixed aliases/hex/canonical across caller + registry, with overlaps.
-    ble.registerServices(['battery_service', SB_SERVICE]);
+    ble.registerServices(['battery_service', VENDOR_SERVICE]);
 
     await ble.requestDevice({
       acceptAllDevices: true,
-      optionalServices: ['heart_rate', '180F', SB_SERVICE],
+      optionalServices: ['heart_rate', '180F', VENDOR_SERVICE],
     });
 
     const forwarded = forwardedOptions(requestDevice);
@@ -200,7 +200,7 @@ describe('Beacio.registerServices / defaultOptionalServices (SB-SDK-08)', () => 
     // No duplicates survived the merge.
     const set = new Set(forwarded.optionalServices);
     expect(set.size).toBe((forwarded.optionalServices ?? []).length);
-    expect(forwarded.optionalServices).toEqual([HEART_RATE, BATTERY, SB_SERVICE]);
+    expect(forwarded.optionalServices).toEqual([HEART_RATE, BATTERY, VENDOR_SERVICE]);
   });
 });
 

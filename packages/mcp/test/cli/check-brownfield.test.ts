@@ -1,17 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { cpSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { rmSync } from 'node:fs';
 import { check } from '../../src/cli/commands/check.js';
+import { writePatchedApp, writeUnpatchedApp } from '../fixtures/brownfield-app.js';
 
-// SB-SDK-04 AC#5 (CLI side, RED): `beacio check` gains a brownfield/existing-app
-// mode. On a patched app it all-passes; on the unpatched captured app it must
-// fail the optionalServices + ordering checks (non-zero exit).
-
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
-const CAPTURED_DIR = join(REPO_ROOT, 'outreach', 'storz-bickel', 'captured');
-const DEMO_APP_DIR = join(REPO_ROOT, 'outreach', 'storz-bickel', 'integration-demo', 'app');
+// AC#5 (CLI side): `beacio check` has a brownfield/existing-app mode. On a patched
+// app it all-passes; on the unpatched app it must fail the optionalServices +
+// ordering checks (non-zero exit).
 
 /**
  * Run `check` with cwd swapped to `dir`, capturing the process.exit code (the CLI
@@ -39,15 +33,9 @@ async function runCheckIn(dir: string, args: string[]): Promise<number> {
   return exitCode;
 }
 
-function fork(srcDir: string): string {
-  const work = mkdtempSync(join(tmpdir(), 'sb-check-'));
-  cpSync(srcDir, work, { recursive: true });
-  return work;
-}
-
 describe('beacio check --brownfield (AC#5)', () => {
-  it('passes (exit 0) on the patched demo fork', async () => {
-    const work = fork(DEMO_APP_DIR);
+  it('passes (exit 0) on a patched app', async () => {
+    const work = await writePatchedApp('check-');
     try {
       const code = await runCheckIn(work, ['--brownfield']);
       expect(code).toBe(0);
@@ -56,8 +44,8 @@ describe('beacio check --brownfield (AC#5)', () => {
     }
   });
 
-  it('fails (exit 1) on the unpatched captured app — missing iOS optionalServices + ordering', async () => {
-    const work = fork(CAPTURED_DIR);
+  it('fails (exit 1) on the unpatched app — missing iOS optionalServices + ordering', async () => {
+    const work = writeUnpatchedApp('check-');
     try {
       const code = await runCheckIn(work, ['--brownfield']);
       expect(code).toBe(1);

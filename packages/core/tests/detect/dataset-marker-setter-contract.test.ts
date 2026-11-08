@@ -1,10 +1,10 @@
 /**
- * Durable static guard for SB-SDK-25.
+ * Durable static guard for the dataset-marker setter contract.
  *
- * SB-SDK-25 (a WF2/CONF-30 carry-over) asked us to EITHER wire an extension-side
+ * An earlier review asked us to EITHER wire an extension-side
  * setter for the @beacio/detect dataset handshake markers OR remove the dead
  * read-path. On the current tree the FIRST branch of that acceptance criterion is
- * already satisfied — the WF2 "dead read-path" premise is FALSE:
+ * already satisfied — the "dead read-path" premise is FALSE:
  *
  *   - src/extension/content-full.ts:598 sets
  *       document.documentElement.dataset.beacioInstalled = 'true'
@@ -19,17 +19,17 @@
  * Both ship in the BUILT artifact (`Shared (Extension)/Resources/content.js`
  * carries exactly one `beacioInstalled="true"` and one `beacioExtension="true"`).
  * The setters predate the rebrand (they were webbleInstalled/webbleExtension and
- * commit 42fc370e merely renamed them to beacio*); the WF2 snapshot grepped the
+ * commit 42fc370e merely renamed them to beacio*); an earlier snapshot grepped the
  * wrong term and so missed them. The evidence line numbers in the fix-queue
- * (detect.ts:30-36, injected-full.ts) are likewise stale: the SB-SDK-12 refactor
+ * (detect.ts:30-36, injected-full.ts) are likewise stale: the headless-API refactor
  * moved the dataset READS out of detect.ts into install-state.ts's
  * hasInstallMarker()/hasActiveMarker(), and injected-full.ts sets
  * navigator.beacio/window.__beacio — a DIFFERENT handshake channel, not these
  * dataset markers.
  *
  * The read-path is therefore LIVE and depended-upon (website-src/{setup-verify,
- * demo,home}.js, examples/web-scanner/*, and the S&B vendored bundles all key off
- * this convention), so removing it would be wrong. The one obligation SB-SDK-25
+ * demo,home}.js, examples/web-scanner/*, and vendored copies of the bundle all key off
+ * this convention), so removing it would be wrong. The one obligation that issue
  * left genuinely unmet is the DURABLE GUARD: nothing pinned the setter<->reader
  * pairing, so a future refactor that deletes a setter (or adds an unbacked dataset
  * read) could silently re-create the exact dead-read this issue warned about.
@@ -73,7 +73,7 @@ function readMarkers(): string[] {
 /**
  * Strip `//` line comments so a setter that was DISABLED by commenting it out is
  * not mistaken for a live one. A commented-out setter never executes — it is
- * functionally the exact dead read SB-SDK-25 guards against — so the contract must
+ * functionally the exact dead read this contract guards against — so the contract must
  * treat it as absent. (Block comments are not used around these one-line setters in
  * content-full.ts; line-comment stripping is sufficient and avoids a brittle full
  * JS tokenizer. We deliberately do NOT strip inside string literals because the
@@ -99,7 +99,7 @@ function hasSetterFor(contentScript: string, marker: string): boolean {
   return setter.test(stripLineComments(contentScript));
 }
 
-describe('SB-SDK-25: every @beacio/detect dataset handshake read has an extension setter', () => {
+describe('Every @beacio/detect dataset handshake read has an extension setter', () => {
   it('install-state.ts reads the documented two-marker handshake (read-path is not gutted)', () => {
     // Guards the OTHER direction: if a refactor silently drops BOTH reads, the
     // pairing assertion below would vacuously pass — so pin the meaning here.
@@ -110,14 +110,14 @@ describe('SB-SDK-25: every @beacio/detect dataset handshake read has an extensio
     const contentScript = readFileSync(CONTENT_SCRIPT_SRC, 'utf8');
     const unbacked = readMarkers().filter((marker) => !hasSetterFor(contentScript, marker));
 
-    // RED if any setter is deleted (re-creating the dead read SB-SDK-25 warns
+    // RED if any setter is deleted (re-creating the dead read this contract warns
     // about) or a new unbacked dataset read is added to install-state.ts.
     expect(unbacked).toEqual([]);
   });
 
   it('treats a commented-out setter as absent (a disabled setter is the dead read)', () => {
     // A setter that is commented out never executes, so it is functionally the
-    // same dead read-path SB-SDK-25 warns about. The first RED-proof pass for this
+    // same dead read-path this contract warns about. The first RED-proof pass for this
     // issue showed a naive text-match would be fooled by a `// …dataset.x = 'true'`
     // line; pin the stronger behavior so the guard cannot be defeated by disabling
     // (rather than deleting) a setter.

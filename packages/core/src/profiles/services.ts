@@ -30,7 +30,7 @@ function isProfileWithServices(source: OptionalServicesSource): source is Profil
  *
  * This retires the hand-maintained parallel `optionalServices` lists a multi-
  * device integration would otherwise keep in sync: declare the profiles (or a
- * vendor bundle such as `StorzBickel.allServices()`) once and derive the list.
+ * raw service-UUID array) once and derive the list.
  *
  * Pure and idempotent: `deriveOptionalServices(deriveOptionalServices(x))` equals
  * `deriveOptionalServices(x)`, because the output is already canonical UUIDs that

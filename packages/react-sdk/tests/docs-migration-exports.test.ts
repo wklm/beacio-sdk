@@ -3,7 +3,7 @@ import { join, dirname } from 'node:path';
 import * as ts from 'typescript';
 import * as ReactSdk from '../src/index';
 
-// AIDEV-NOTE: Regression guard (SB-SDK-24, retargeted by T1-F1) for the
+// AIDEV-NOTE: Regression guard (retargeted by T1-F1) for the
 // docs-drift bug where the react-sdk docs documented a phantom `beacio.*`
 // namespace object (`import { beacio } from '@beacio/react'`,
 // `beacio.useBluetooth()`, `<beacio.Provider>`) that the mechanical
@@ -54,7 +54,7 @@ function documentedReactImports(): string[] {
   return [...names];
 }
 
-describe('README.md aligns with the @beacio/react export surface (SB-SDK-24)', () => {
+describe('README.md aligns with the @beacio/react export surface', () => {
   it('sanity: the real export surface has the named React API symbols (no `beacio` aggregate)', () => {
     expect(EXPORTED_NAMES.has('BeacioProvider')).toBe(true);
     expect(EXPORTED_NAMES.has('useBluetooth')).toBe(true);
@@ -88,7 +88,7 @@ describe('README.md aligns with the @beacio/react export surface (SB-SDK-24)', (
   });
 });
 
-// AIDEV-NOTE: SB-SDK-24 acceptance criterion 1 — "Every example code block
+// AIDEV-NOTE: Acceptance criterion 1 — "Every example code block
 // compiles against the actual @beacio/react export surface." The import-level
 // guard above is necessary but not sufficient: the mechanical WebBLE->beacio
 // rebrand also left example BODIES calling hooks with the OLD shape
@@ -173,7 +173,7 @@ export function Probe${idx}() {
   return { ${site.members.join(', ')} };
 }
 `;
-  return { name: join(PKG_DIR, `__sb24_probe_${idx}.tsx`), text };
+  return { name: join(PKG_DIR, `__docs_probe_${idx}.tsx`), text };
 }
 
 function compileProbes(probes: { name: string; text: string }[]): ts.Diagnostic[] {
@@ -222,7 +222,7 @@ function compileProbes(probes: { name: string; text: string }[]): ts.Diagnostic[
     .filter((d) => d.file != null && probeMap.has(d.file.fileName));
 }
 
-describe('README.md examples compile against the real hooks (SB-SDK-24)', () => {
+describe('README.md examples compile against the real hooks', () => {
   const sites = hookSites(DOC);
 
   it('sanity: the doc contains @beacio/react hook destructure sites to check', () => {

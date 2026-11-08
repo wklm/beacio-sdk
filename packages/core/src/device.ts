@@ -43,7 +43,7 @@ type DeviceTransportInfo = {
 };
 
 /**
- * SB-SDK-05 AC3: is this native rejection the "service not declared in
+ * Is this native rejection the "service not declared in
  * optionalServices" failure? WebKit raises it as a SecurityError DOMException
  * ("Origin is not allowed to access the service…"); other engines word it as an
  * access/allowed/blocklist failure. We match the SecurityError name OR that
@@ -65,7 +65,7 @@ function isUndeclaredServiceSecurityError<T>(error: T): boolean {
 }
 
 /**
- * SB-SDK-05 AC3: build the human, stack-free SecurityError for an undeclared
+ * Build the human, stack-free SecurityError for an undeclared
  * service. The .message is a complete plain-English sentence that NAMES the
  * offending service UUID (canonical resolved form) and states the optionalServices
  * remedy (mirroring SUGGESTIONS.SERVICE_NOT_FOUND), with no native URL/jargon, no
@@ -1083,7 +1083,7 @@ export class BeacioDevice {
       this.serviceCache.set(uuid, svc);
       return svc;
     } catch (e) {
-      // SB-SDK-05 AC3: the dominant real failure for a vanilla site (e.g. S&B) is
+      // The dominant real failure for a vanilla site is
       // forgetting to declare a service in requestDevice({ optionalServices }).
       // WebKit then rejects getPrimaryService with a SecurityError carrying terse,
       // jargon-laden, UUID-LESS text — the one detail (which service) the operator

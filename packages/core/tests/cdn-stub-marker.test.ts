@@ -1,7 +1,7 @@
 /**
- * SB-TST-35 — single-source + parity guard for the CDN-stub discriminator marker.
+ * Single-source + parity guard for the CDN-stub discriminator marker.
  *
- * The whole off-iOS no-op the S&B demo relies on hinges on ONE literal string,
+ * The whole off-iOS no-op a drop-in site relies on hinges on ONE literal string,
  * `__beacioCDNStub`. It is STAMPED once by the unsupported-stub writer
  * (auto.ts createUnsupportedBluetoothStub, via Object.defineProperty(stub, …)) and
  * READ at three independent sites — platform.ts detectPlatform() and
@@ -24,12 +24,12 @@
  *     mis-detect the stub as 'native', failing here.
  * The writer site shares the same constant after the fix and is independently
  * re-verified by auto.test.ts (its unsupported stub detects as 'unsupported') and
- * by vendor:sb:check (the vendored beacio-detect.js inlines core's writer+readers
- * and must still reproduce byte-for-byte).
+ * by the build itself (a bundle that inlines core's writer+readers reproduces them
+ * byte-for-byte).
  *
- * Note on @beacio/detect: detect's SOURCE does not duplicate the literal — its
- * vendored bundle (beacio-detect.js) re-uses core's readers because the vendor
- * esbuild step inlines core's platform.ts. So pinning core's single source pins
+ * Note on @beacio/detect: detect's SOURCE does not duplicate the literal — a
+ * bundled beacio-detect.js re-uses core's readers because its esbuild step
+ * inlines core's platform.ts. So pinning core's single source pins
  * the value detect ships too.
  *
  * jsdom; @jest/globals import style (project_jest_globals_import_gotcha).
@@ -57,10 +57,10 @@ afterEach(() => {
   });
 });
 
-describe('SB-TST-35 — CDN_STUB_MARKER single source + reader parity', () => {
+describe('CDN_STUB_MARKER single source + reader parity', () => {
   // (a) Pin the wire value. A rename of the discriminator is then a deliberate,
-  // test-visible change (and would have to update the value @beacio/detect's
-  // vendored bundle ships, caught additionally by vendor:sb:check).
+  // test-visible change (and would have to update the value a bundled
+  // @beacio/detect ships).
   it('pins the marker wire string to "__beacioCDNStub"', () => {
     expect(CDN_STUB_MARKER).toBe('__beacioCDNStub');
   });

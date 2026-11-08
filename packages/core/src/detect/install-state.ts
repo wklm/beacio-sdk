@@ -1,6 +1,6 @@
 /**
- * SB-SDK-12: the framework-agnostic, ZERO-DOM headless onboarding primitive for
- * vanilla-JS partners (Storz & Bickel's app is vanilla JS + jQuery and cannot use
+ * The framework-agnostic, ZERO-DOM headless onboarding primitive for
+ * vanilla-JS partners (a vanilla JS + jQuery app cannot use
  * the React wizard; the only vanilla option before this — showInstallBanner —
  * injects beacio chrome).
  *
@@ -18,7 +18,7 @@
  *
  * NONE of these helpers inject DOM.
  *
- * SB-SDK-02 (Part B) constraint: this module is reachable from the package-root
+ * Constraint: this module is reachable from the package-root
  * barrel, and `@beacio/core` is an OPTIONAL peer (it may be absent on a standalone
  * `npm i @beacio/detect`). So it must NOT hard-import core at module top level —
  * that throws at load. NOTE (W13-RECONCILE 2026-08-05): this used to cite
@@ -64,7 +64,7 @@ const RETURN_KEY = 'beacio_return';
 const RETURN_LINK_HOST = 'link.beacio.com';
 
 /**
- * SB-SDK-12 (AC4): the canonical id-form App Store URL for the public beacio app.
+ * The canonical id-form App Store URL for the public beacio app.
  * The id form survives the public App Store rename — pinning the banner CTA here
  * means no banner code path can hardcode a NAME slug (`/app/<slug>/id…`) that
  * would 404 or mislead if Apple's slug differs from "beacio". The slug-form URL is
@@ -121,7 +121,7 @@ export function isExtensionActive(): boolean {
 }
 
 /**
- * SB-SDK-12 (AC3): the headless detector. Resolves the CURRENT install state
+ * The headless detector. Resolves the CURRENT install state
  * immediately when it is already 'active' (markers set); otherwise it waits for
  * the in-page extension to announce itself via the canonical EXTENSION_READY
  * handshake ('beacio:extension:ready') — the seam the react-sdk ExtensionDetector
@@ -156,7 +156,7 @@ export function observeInstallState(timeoutMs = 3000): Promise<ExtensionInstallS
 // ─── Dismissal frequency-capping (zero-DOM bookkeeping) ──────────────────────
 
 /**
- * SB-PRD-08 (AC5): the two suppression windows, written to the SAME DISMISS_KEY.
+ * The two suppression windows, written to the SAME DISMISS_KEY.
  *
  * - LONG (`DEFAULT_DISMISS_DAYS`) is the EXPLICIT "Don't show again" — the user
  *   deliberately opted out, so honour it for a fortnight.
@@ -164,7 +164,7 @@ export function observeInstallState(timeoutMs = 3000): Promise<ExtensionInstallS
  *   interested-but-not-ready, not opted out.
  *
  * Why the long default is 14 and NOT longer in a hardware-companion context: a
- * Storz & Bickel device is a considered EUR300-700 purchase whose owner returns
+ * premium device is a considered purchase whose owner returns
  * over days/weeks while they actually receive and set up the hardware. The old
  * behaviour applied this 14-day silence to EVERY dismiss gesture, so one reflexive
  * "Not now" churned a warm lead. We keep 14 ONLY for the explicit opt-out and make
@@ -201,7 +201,7 @@ export function dismiss(days = DEFAULT_DISMISS_DAYS): void {
 }
 
 /**
- * SB-PRD-08 (AC1): the SHORT, soft-dismissal primitive — a "Not now" / backdrop
+ * The SHORT, soft-dismissal primitive — a "Not now" / backdrop
  * tap suppresses the passive banner for {@link SHORT_DISMISS_DAYS} (1 day) only,
  * not the full fortnight, so an interested-but-not-ready user is not silenced for
  * two weeks. Writes the SAME DISMISS_KEY window as {@link dismiss}, just shorter.
@@ -213,7 +213,7 @@ export function dismissShort(): void {
 // ─── Return-to-web-app context (zero-DOM; clipboard + localStorage) ──────────
 
 /**
- * SBOPT-P2.4: the PURE, side-effect-free return-link builder — the
+ * The PURE, side-effect-free return-link builder — the
  * `https://link.beacio.com/return?url=<encoded current href>` form, with NO
  * localStorage write and NO clipboard copy. {@link saveReturnContext} persists and
  * copies this exact string; the tier-3 headless resolveOnboardingState (index.ts)

@@ -91,7 +91,7 @@ The banner's default CTA opens the guided setup flow at `https://beacio.com/setu
 
 For partners (e.g. a vanilla-JS + jQuery app) that render their own 100%-on-brand "Enable Bluetooth in Safari" card and want **no beacio pixels**. These primitives inject no DOM — you draw the UI, they supply state, the return link, dismissal capping, and the App Store destination. This is the **tier-3** rung of the [embedding ladder](https://beacio.com/docs-md/white-label.md).
 
-<!-- SB-SDK-12:headless-readme:start -->
+<!-- headless-readme:start -->
 <!-- onboarding:headless-vanilla -->
 ```js
 // Classic <script> build — no bundler, no framework. The package root exposes the
@@ -124,13 +124,13 @@ if (navigator.bluetooth === undefined && getInstallState() !== 'active' && !isDi
   });
 }
 ```
-<!-- SB-SDK-12:headless-readme:end -->
+<!-- headless-readme:end -->
 
 Detection is the **same** logic the React `InstallationWizard` and the built-in banner use, so a partner card and the beacio banner can never disagree about install state.
 
 ### Private Browsing & per-site "Deny" recovery (best-effort)
 
-<!-- SB-SDK-17:private-browsing-readme:start -->
+<!-- private-browsing-readme:start -->
 Two iOS-Safari states make an installed, enabled extension look like it is *not installed* to
 detection (the content script sets no markers), so `initBeacio()` would otherwise show the generic
 "install the app" sheet to a user who has nothing to install. `initBeacio()` instead routes each to
@@ -151,7 +151,7 @@ Browsing signal is a `localStorage` write-probe that throws under a zero quota),
 check is a `getAvailability()` probe. They can occasionally miss or over-fire, so they are
 deliberately conservative — when neither fires, `initBeacio()` falls back to the generic install
 guidance unchanged. Both are no-ops off iOS Safari (gated behind `isIOSSafari()`).
-<!-- SB-SDK-17:private-browsing-readme:end -->
+<!-- private-browsing-readme:end -->
 
 ### `BeacioProvider` (React, lower-level primitive)
 

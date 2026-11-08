@@ -1,62 +1,40 @@
 import { describe, expect, it } from 'vitest';
-import { cpSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { tmpdir } from 'node:os';
-// SB-SDK-04 (RED): the brownfield MCP action does not exist yet. This import is
+// Originally RED: the brownfield MCP action does not exist yet. This import is
 // the failing seam — `packages/mcp/src/tools/patch-existing-app.ts` and its
 // `runPatchExistingApp` export must be created. Until then the suite fails to
 // resolve the module, which is the intended RED signal for AC#1/#4/#6.
 import {
   runPatchExistingApp,
   patchExistingAppTool,
+  THIRD_PARTY_BROWSER_REPLACEMENT,
   type PatchExistingAppOutput,
 } from '../src/tools/patch-existing-app.js';
 import { ALL_TOOLS } from '../src/tool-registry.js';
+import { CONNECT_GATE_ALERT, UNPATCHED_HTML, UNPATCHED_JS, writeUnpatchedApp } from './fixtures/brownfield-app.js';
 
-// ---------------------------------------------------------------------------
-// Fixtures are read at RUNTIME from the captured / demo trees by ABSOLUTE path.
-// We deliberately do NOT inline any captured Storz & Bickel bytes (service-UUID
-// identifiers, vendor JS) into this committed file: scripts/ci/check-no-captured-leak.mjs
-// fingerprint-scans packages/** and would (correctly) flag captured byte-blobs
-// pasted here. Reading the originals in place keeps this test clean-room on the
-// mirror-reachable surface. Forks are written ONLY to os.tmpdir().
-// ---------------------------------------------------------------------------
-const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
-const CAPTURED_DIR = join(REPO_ROOT, 'outreach', 'storz-bickel', 'captured');
-const CANONICAL_QUICKSTART = join(
-  REPO_ROOT,
-  '.claude',
-  'skills',
-  'beacio',
-  'references',
-  'quickstart.md',
-);
-const RUNBOOK = join(
-  REPO_ROOT,
-  'outreach',
-  'storz-bickel',
-  'integration-demo',
-  'BROWNFIELD-RUNBOOK.md',
-);
+const PACKAGES_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const CANONICAL_SKILL = join(PACKAGES_DIR, 'skill', 'SKILL.md');
 
 function read(p: string): string {
   return readFileSync(p, 'utf8');
 }
 
-/** The canonical classic bootstrap snippet from quickstart.md — the ONE the AC#6 "no fourth variant" rule pins. */
+/** The canonical classic bootstrap snippet from the published skill — the ONE the AC#6 "no fourth variant" rule pins. */
 function canonicalBootstrapUrl(): string {
-  const text = read(CANONICAL_QUICKSTART);
+  const text = read(CANONICAL_SKILL);
   const m = text.match(/https:\/\/cdn\.beacio\.com\/@beacio\/core@[0-9.]+\/dist\/browser-auto\.global\.js/);
-  if (!m) throw new Error('canonical browser-auto.global.js snippet not found in quickstart.md');
+  if (!m) throw new Error('canonical browser-auto.global.js snippet not found in SKILL.md');
   return m[0];
 }
 
-/** Run the action against the UNPATCHED captured S&B app (read from disk). */
-function patchCaptured(): PatchExistingAppOutput {
+/** Run the action against the synthetic UNPATCHED brownfield app. */
+function patchUnpatched(): PatchExistingAppOutput {
   return runPatchExistingApp({
-    entry_html: read(join(CAPTURED_DIR, 'index.html')),
-    entry_js: read(join(CAPTURED_DIR, 'js', 'main.js')),
+    entry_html: UNPATCHED_HTML,
+    entry_js: UNPATCHED_JS,
     html_path: 'index.html',
     js_path: 'js/main.js',
   });
@@ -73,19 +51,19 @@ describe('beacio_patch_existing_app — brownfield FileEdits (AC#1)', () => {
   });
 
   it('emits a bootstrap edit positioned in <head> BEFORE the first navigator.bluetooth read', () => {
-    const out = patchCaptured();
+    const out = patchUnpatched();
     const bootstrap = out.files_to_edit.find(
       (e) => e.path === 'index.html' && /beacio/i.test(e.insert) && /script/i.test(e.insert),
     );
     expect(bootstrap, 'a bootstrap edit for index.html').toBeTruthy();
     // For a static HTML app the bootstrap must land in <head> (parse-time safe),
-    // NOT body-end — the captured app reads navigator.bluetooth synchronously in
+    // NOT body-end — the app reads navigator.bluetooth synchronously in
     // js/main.js, so a deferred/body-end insert would lose the gate race.
     expect(bootstrap!.position).toBe('head');
   });
 
   it('reuses the canonical browser-auto.global.js bootstrap (no fourth variant) (AC#6)', () => {
-    const out = patchCaptured();
+    const out = patchUnpatched();
     const joined = out.files_to_edit.map((e) => e.insert).join('\n');
     // The emitted bootstrap must reference the SAME canonical classic artifact the
     // quickstart documents — a self-hosted vendored copy of it is acceptable, but
@@ -95,17 +73,17 @@ describe('beacio_patch_existing_app — brownfield FileEdits (AC#1)', () => {
   });
 
   it('adds optionalServices into the iOS requestDevice() branch (AC#1b)', () => {
-    const out = patchCaptured();
+    const out = patchUnpatched();
     const jsEdit = out.files_to_edit.find((e) => e.path === 'js/main.js');
     expect(jsEdit, 'an edit for js/main.js').toBeTruthy();
-    // The unpatched captured iOS branch is `if(userAgent_iOS()){options.filters=...;
-    // options.acceptAllDevices=false}` with NO optionalServices. The edit must
+    // The unpatched iOS branch is `if (isIOS()) { options.filters = filters;
+    // options.acceptAllDevices = false; }` with NO optionalServices. The edit must
     // introduce optionalServices onto that iOS branch.
     expect(jsEdit!.insert).toMatch(/optionalServices/);
   });
 
   it("swaps the active-path 'Bluefy / Web BLE browser' message for a beacio install/enable affordance (AC#1c)", () => {
-    const out = patchCaptured();
+    const out = patchUnpatched();
     const jsEdit = out.files_to_edit.find((e) => e.path === 'js/main.js');
     expect(jsEdit, 'an edit for js/main.js').toBeTruthy();
     // After applying the edit there must be NO active-path third-party-browser
@@ -115,17 +93,15 @@ describe('beacio_patch_existing_app — brownfield FileEdits (AC#1)', () => {
   });
 });
 
-describe('beacio_patch_existing_app — round-trip on the demo fork (AC#4)', () => {
-  it('reproduces the demo app\'s beacio: edits (bootstrap before main.js + iOS optionalServices) on a tmp fork', () => {
-    const out = patchCaptured();
+describe('beacio_patch_existing_app — round-trip on a synthetic app (AC#4)', () => {
+  it('applies the emitted edits (bootstrap before main.js + iOS optionalServices) on a tmp app', () => {
+    const out = patchUnpatched();
 
-    // Fork the captured app into os.tmpdir() (NEVER a committed path — that would
-    // trip check-no-captured-leak), apply the emitted edits, and assert the result
-    // matches the hand-authored demo golden's load order + iOS optionalServices.
-    const work = mkdtempSync(join(tmpdir(), 'sb-brownfield-'));
+    // Write the unpatched app into os.tmpdir(), apply the emitted edits, and assert
+    // the load order + iOS optionalServices of the result.
+    const work = writeUnpatchedApp('brownfield-');
     try {
-      cpSync(CAPTURED_DIR, work, { recursive: true });
-      // Apply every emitted edit to the fork.
+      // Apply every emitted edit to the app.
       applyEdits(work, out);
 
       const patchedHtml = read(join(work, 'index.html'));
@@ -133,12 +109,12 @@ describe('beacio_patch_existing_app — round-trip on the demo fork (AC#4)', () 
       const mainIdx = patchedHtml.indexOf('js/main.js');
       expect(bootstrapIdx).toBeGreaterThanOrEqual(0);
       expect(mainIdx).toBeGreaterThanOrEqual(0);
-      // The crux of AC#4: bootstrap loads BEFORE main.js (mirrors demo index.html).
+      // The crux of AC#4: bootstrap loads BEFORE main.js.
       expect(bootstrapIdx).toBeLessThan(mainIdx);
 
       const patchedJs = read(join(work, 'js', 'main.js'));
-      // iOS branch now carries optionalServices (the demo's headline edit).
-      expect(patchedJs).toMatch(/userAgent_iOS\(\)[\s\S]{0,400}optionalServices/);
+      // iOS branch now carries optionalServices (the headline edit).
+      expect(patchedJs).toMatch(/isIOS\(\)[\s\S]{0,400}optionalServices/);
       // No active-path third-party-browser alert survives.
       expect(patchedJs).not.toMatch(/alert\([^)]*Bluefy/);
     } finally {
@@ -147,17 +123,39 @@ describe('beacio_patch_existing_app — round-trip on the demo fork (AC#4)', () 
   });
 });
 
-describe('beacio_patch_existing_app — runbook (AC#6)', () => {
-  it('BROWNFIELD-RUNBOOK.md exists and enumerates the agentic sequence + irreducible human step', () => {
-    const text = read(RUNBOOK);
-    // The exact agentic chain.
-    expect(text).toMatch(/beacio_patch_existing_app/);
-    expect(text).toMatch(/beacio migrate/);
-    expect(text).toMatch(/verify-integration/);
-    // The one irreducible human step.
-    expect(text.toLowerCase()).toMatch(/enable[\s\S]{0,40}safari[\s\S]{0,40}extension|enables the safari extension/);
-    // Reuses the canonical bootstrap; introduces no fourth variant.
-    expect(text).toContain(canonicalBootstrapUrl());
+describe('beacio_patch_existing_app — generic iOS branch and connect-gate swap', () => {
+  const HTML = '<!DOCTYPE html>\n<html>\n<head><title>app</title></head>\n<body><script src="js/main.js"></script></body>\n</html>\n';
+  const patch = (js: string) =>
+    runPatchExistingApp({ entry_html: HTML, entry_js: js, html_path: 'index.html', js_path: 'js/main.js' });
+
+  it('adds optionalServices to an `if (isIOS()) { options.filters = … }` branch', () => {
+    const branch = 'if (isIOS()) { options.filters = filters; options.acceptAllDevices = false; }';
+    const out = patch(`function isIOS(){return /iPhone/.test(navigator.userAgent);}\nvar options = {};\n${branch}\n`);
+    const edit = out.files_to_edit.find((e) => e.op === 'replace' && e.find === branch);
+    expect(edit).toBeDefined();
+    expect(edit!.insert.startsWith('if (isIOS()) { options.filters = filters;')).toBe(true);
+    expect(edit!.insert).toMatch(/options\.optionalServices=\(options\.optionalServices\|\|\[\]\)\.concat\(/);
+    expect(edit!.insert.endsWith('}')).toBe(true);
+  });
+
+  it('swaps only the alert and keeps a guard in front of it', () => {
+    const alertCall = CONNECT_GATE_ALERT;
+    const out = patch(`if (bluetoothUnavailable()) ${alertCall}\n`);
+    const edit = out.files_to_edit.find((e) => e.op === 'replace' && e.insert === THIRD_PARTY_BROWSER_REPLACEMENT);
+    expect(edit).toBeDefined();
+    expect(edit!.find).toBe(alertCall);
+  });
+
+  it.each([
+    'if (!isIOS())',
+    'if (!(isIOS()))',
+    'if (!/iPhone|iPad/.test(navigator.userAgent))',
+    "if (platform !== 'ios')",
+    "if ('ios' != platform)",
+  ])('leaves a negated iOS test alone: `%s { … }` is not the iOS branch', (header) => {
+    const branch = `${header} { options.filters = filters; options.acceptAllDevices = false; }`;
+    const out = patch(`var options = {};\n${branch}\nelse { options.filters = filters; }\n`);
+    expect(out.files_to_edit.filter((e) => e.op === 'replace')).toEqual([]);
   });
 });
 
@@ -190,7 +188,6 @@ function applyEdits(root: string, out: PatchExistingAppOutput): void {
 }
 
 function writeFileEnsuring(target: string, content: string): void {
-  const fs = require('node:fs') as typeof import('node:fs');
-  fs.mkdirSync(dirname(target), { recursive: true });
-  fs.writeFileSync(target, content);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, content);
 }

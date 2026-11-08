@@ -55,7 +55,7 @@ export function detectFramework(projectPath: string): DetectionResult {
   const packageManager = detectPackageManager(projectPath);
 
   // Static-HTML entry candidates. Covers a vendored-jQuery app served from the repo
-  // root, a public/ dir, or an app/ dir (the Storz & Bickel shape, SB-SDK-04 AC#2).
+  // root, a public/ dir, or an app/ dir.
   const HTML_ENTRY_CANDIDATES = ['index.html', 'public/index.html', 'app/index.html', 'src/index.html'];
 
   if (!pkg) {
@@ -160,7 +160,7 @@ export function detectFramework(projectPath: string): DetectionResult {
 
   // Plain HTML — including a vendored-library (e.g. jQuery) static app that carries a
   // package.json with NO framework dependency. Its entry HTML may live at the repo root,
-  // under public/, or under app/ (the Storz & Bickel layout). SB-SDK-04 AC#2.
+  // under public/, or under app/.
   const htmlFile = findFile(projectPath, HTML_ENTRY_CANDIDATES);
   if (htmlFile) {
     return { framework: 'html', entryFile: htmlFile, packageManager };

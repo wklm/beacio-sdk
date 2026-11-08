@@ -1,17 +1,17 @@
 /**
- * SBOPT-P2.4 — the tier-3 HEADLESS onboarding state machine (zero-beacio-chrome).
+ * The tier-3 HEADLESS onboarding state machine (zero-beacio-chrome).
  *
- * Tier-2 (BannerOptions co-brand) is shipped; tier-3 lets a partner (Storz &
- * Bickel) render ENTIRELY their own install prompt, using beacio only for the
+ * Tier-2 (BannerOptions co-brand) is shipped; tier-3 lets a partner render
+ * ENTIRELY their own install prompt, using beacio only for the
  * programmatic funnel STATE + the deep-link the partner wires to its own button.
  *
- * SB-SDK-12 already shipped the COARSE headless surface (getInstallState →
+ * The headless API already shipped the COARSE headless surface (getInstallState →
  * 'not-installed'|'installed-inactive'|'active', observeInstallState, the
  * dismissal + return-context helpers). What is still UNSHIPPED — and what this
  * suite pins — is the RICH funnel classification that today lives welded INSIDE
  * initBeacio (index.ts): the 'unsupported' (non-iOS-Safari) early-return, the
  * per-origin 'denied' refinement (navigator.bluetooth.getAvailability()===false),
- * and the SB-SDK-17 'private-browsing' dead end. Those positions are computed only
+ * and the 'private-browsing' dead end. Those positions are computed only
  * as a side-effecting banner render and are unreachable to a headless partner.
  *
  * The design "exposes the existing state machine, it does not invent one": the
@@ -60,7 +60,7 @@ const DISMISS_KEY = 'beacio_dismiss_until';
 const RETURN_KEY = 'beacio_return';
 
 /** The required config (sentinel empty strings — no optional args on the surface). */
-const CONFIG = { operatorName: 'Storz & Bickel', apiKey: '' };
+const CONFIG = { operatorName: 'Example & Co', apiKey: '' };
 
 function clearMarkers(): void {
   delete document.documentElement.dataset.beacioExtension;
@@ -99,7 +99,7 @@ function clearBeacioStorage(): void {
 }
 
 /**
- * Trip the SB-SDK-17 best-effort Private-Browsing heuristic: make a
+ * Trip the best-effort Private-Browsing heuristic: make a
  * localStorage.setItem write-probe throw (the classic iOS Private-mode zero-quota
  * QuotaExceededError). Spy restored in afterEach via restoreAllMocks.
  */
@@ -137,7 +137,7 @@ function label(state: OnboardingState): string {
   }
 }
 
-describe('SBOPT-P2.4 resolveOnboardingState — tier-3 headless funnel state (zero-DOM)', () => {
+describe('resolveOnboardingState — tier-3 headless funnel state (zero-DOM)', () => {
   beforeEach(() => {
     clearMarkers();
     clearBeacioStorage();
@@ -178,7 +178,7 @@ describe('SBOPT-P2.4 resolveOnboardingState — tier-3 headless funnel state (ze
     expect(state.kind).toBe('not-installed');
     if (state.kind !== 'not-installed') throw new Error('narrowing guard');
     // The partner wires state.installUrl to its OWN "Get the app" button — it MUST
-    // be the id-form App Store URL (SB-SDK-12 AC4): no /app/<slug>/id name segment
+    // be the id-form App Store URL: no /app/<slug>/id name segment
     // that could 404 if Apple's slug differs from "beacio".
     const url = new URL(state.installUrl);
     expect(url.hostname).toBe('apps.apple.com');
@@ -197,9 +197,9 @@ describe('SBOPT-P2.4 resolveOnboardingState — tier-3 headless funnel state (ze
     expect(state.kind).toBe('installed-inactive');
     if (state.kind !== 'installed-inactive') throw new Error('narrowing guard');
     // The guided setup deep-link threads the operator identity + return origin so
-    // /setup renders "Return to Storz & Bickel" instead of generic copy.
+    // /setup renders "Return to Example & Co" instead of generic copy.
     expect(state.setupUrl).toContain('beacio.com/setup');
-    expect(state.setupUrl).toContain(`operatorName=${encodeURIComponent('Storz & Bickel')}`);
+    expect(state.setupUrl).toContain(`operatorName=${encodeURIComponent('Example & Co')}`);
     expect(state.setupUrl).toContain('return=');
     expect(state.returnLink).toContain('https://link.beacio.com/return?url=');
   });
