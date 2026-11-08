@@ -7,7 +7,7 @@ const here = (path) => new URL(path, import.meta.url);
 const SDK = 'https://cdn.jsdelivr.net/npm/@beacio/core@2.2.0/dist/browser.global.js';
 const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb';
 
-// Runs in the page before app.js. sessionStorage survives a reload, like a real registration.
+// Runs in the page before app.js and blink.js. sessionStorage survives a reload, like a real registration.
 function installDouble() {
   const saved = (key) => sessionStorage.getItem(key) === '1';
   const ble = (window.__ble = { writes: [], programs: [], order: [], inTap: null, requestOptions: null,
@@ -73,9 +73,14 @@ function installDouble() {
 
 test('guides each step, blinks in both modes and stops cleanly', async ({ page }) => {
   await page.route('**', (route) => route.abort()); // no network at all
+  const served = []; // the files of this folder the page loaded, like a static host serves them
   await page.route('https://led.test/**', async (route) => {
-    const file = new URL(route.request().url()).pathname === '/app.js' ? '../app.js' : '../index.html';
-    await route.fulfill({ body: await readFile(here(file)), contentType: file.endsWith('.js') ? 'text/javascript' : 'text/html' });
+    const path = new URL(route.request().url()).pathname;
+    const file = path === '/' ? 'index.html' : path.slice(1);
+    const body = await readFile(here(`../${file}`)).catch(() => null);
+    if (!body) return route.fulfill({ status: 404 });
+    served.push(file);
+    await route.fulfill({ body, contentType: file.endsWith('.js') ? 'text/javascript' : 'text/html' });
   });
   // The published npm file, served at the CDN URL: Chromium enforces the page's SRI hash on it.
   await page.route(SDK, async (route) => route.fulfill({
@@ -118,6 +123,13 @@ test('guides each step, blinks in both modes and stops cleanly', async ({ page }
     await expect(page.getByRole('img', { name: /^Timeline: when the page is hidden/ })).toBeVisible();
     await expect(page.getByRole('listitem').filter({ hasText: 'not an iOS limit' })).toBeVisible();
     await expect(banner).toBeHidden(); // nothing left running
+  });
+
+  await test.step('app.js loads blink.js, and Pages publishes every file the page loads', async () => {
+    expect([...new Set(served)].sort()).toEqual(['app.js', 'blink.js', 'index.html']);
+    const workflow = await readFile(here('../../../.github/workflows/led-continuity-pages.yml'), 'utf8');
+    const publish = workflow.split('\n').find((line) => line.includes('mkdir _site'));
+    for (const file of served) expect(publish).toContain(` examples/led-continuity/${file} `);
   });
 
   await test.step('connects from the tap', async () => {
