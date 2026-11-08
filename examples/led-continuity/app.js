@@ -1,55 +1,30 @@
-// Blink a Bluetooth LED from Safari: the page blinks it, or beacio does in the background.
-const { Beacio } = window.BeacioCore; // @beacio/core, loaded by index.html
+// The page: the lamp, the steps, the banner and the buttons. blink.js does the Bluetooth part.
+import {
+  connect, readLed, blinkFromPage, blinkInBackground, backgroundPrograms, stopBackground, switchOff,
+  canBlinkInBackground,
+} from './blink.js';
 
-const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb';
-const LED = '0000fff1-0000-1000-8000-00805f9b34fb'; // read, write, notify: 01 on, 00 off
 const $ = (id) => document.getElementById(id);
 
 let state = 'disconnected'; // disconnected | unsupported | connected | foreground | background | recovered
-let device, ledId, timer, inflight;
+let device;
+let stopPageBlink = async () => {}; // from blinkFromPage(), while the page blinks
 let led = 'unknown'; // what the LED last reported: on, off or unknown
 let leftPage = false; // the page was hidden while it blinked (step 5 is done)
 
-// Background programs are not in @beacio/core 2.2.0 yet, so they are called on navigator.
-const programs = () => navigator.beacio?.backgroundSync ?? navigator.bluetooth?.backgroundSync;
-const hasPrograms = () => typeof programs()?.declareProgram === 'function';
-const write = (byte) => device.write(SERVICE, LED, Uint8Array.of(byte), { timeoutMs: 4000 });
-const read = () => device.read(SERVICE, LED, { timeoutMs: 3000 });
-
-async function connect() {
-  const ble = new Beacio(); // built on the tap: the extension may mount after page load
-  if (!ble.isSupported) return render('unsupported');
-  // The chooser opens straight from the tap: Safari requires a user gesture.
-  device = await ble.requestDevice({ filters: [{ services: [SERVICE] }] });
-  try {
-    await device.connect();
-    device.on('disconnected', onDrop);
-    await device.subscribeAsync(SERVICE, LED, show, { autoRecover: false });
-    const value = await read();
-    show(value);
-    // The background program needs beacio's instance id of the characteristic, not its UUID.
-    const service = await device.raw.gatt.getPrimaryService(SERVICE);
-    const characteristic = await service.getCharacteristic(LED);
-    ledId = characteristic.id;
-    if (await leftoverProgram()) render('recovered');
-    else render('connected');
-  } catch (err) {
-    device.disconnect();
-    throw err;
-  }
-}
-
-// The blink programs beacio runs for this site, from this visit or an earlier one.
-async function runningPrograms() {
-  if (!programs()) return [];
-  const registrations = await programs().getRegistrations();
-  return registrations.filter((r) => r.type === 'connection');
+async function connectLed() {
+  // connect() opens the chooser at once, inside this tap.
+  const connected = await connect({ onValue: show, onDisconnect: onDrop });
+  if (!connected) return render('unsupported');
+  device = connected;
+  if (await leftoverProgram()) render('recovered');
+  else render('connected');
 }
 
 // Before a new writer starts, a program we cannot look up counts as running.
 async function leftoverProgram() {
   try {
-    const running = await runningPrograms();
+    const running = await backgroundPrograms();
     return running.length > 0;
   } catch {
     return true;
@@ -59,7 +34,7 @@ async function leftoverProgram() {
 // On load, a program left running by an earlier visit gets the banner and its Stop button.
 async function lookForLeftover() {
   try {
-    const running = await runningPrograms();
+    const running = await backgroundPrograms();
     if (running.length > 0 && state === 'disconnected') render('recovered');
   } catch {
     // No answer yet: Connect looks again.
@@ -67,48 +42,31 @@ async function lookForLeftover() {
 }
 
 function startForeground() {
-  let next = 1;
-  timer = setInterval(() => {
-    if (inflight) return; // skip a tick rather than queue GATT writes
-    inflight = write(next)
-      .then(() => { next = next ? 0 : 1; }, onWriteError)
-      .finally(() => { inflight = undefined; });
-  }, 500);
+  stopPageBlink = blinkFromPage(device, onWriteError);
   leftPage = false;
   render('foreground');
 }
 
+// A write from the page failed. blink.js has already stopped its timer.
 function onWriteError(err) {
   if (state !== 'foreground') return;
-  clearInterval(timer);
   if (device.connected) render('connected');
   else render('disconnected');
   report(err);
 }
 
 async function startBackground() {
-  await programs().requestBackgroundConnection({
-    deviceId: device.id,
-    program: {
-      deviceId: device.id,
-      characteristicId: ledId,
-      activeWhen: 'always', // visible or hidden
-      cycle: { frames: [[0x01], [0x00]], timer: { cadence: 'uniform', everyMs: 2000 } },
-    },
-  });
+  await blinkInBackground(device);
   leftPage = false;
   render('background');
 }
 
 async function stop() {
-  clearInterval(timer);
-  if (state !== 'foreground') {
-    // Unregister first, from a fresh lookup. If it throws, the state stays and Stop retries.
-    for (const program of await runningPrograms()) await program.unregister();
-  }
-  await inflight; // never let a late "on" land after "off"
+  // Unregister first, from a fresh lookup. If it throws, the state stays and Stop retries.
+  if (state !== 'foreground') await stopBackground();
+  await stopPageBlink(); // never let a late "on" land after "off"
   if (device?.connected) {
-    await write(0); // then off
+    await switchOff(device); // then off
     render('connected');
   } else {
     render('disconnected');
@@ -118,7 +76,7 @@ async function stop() {
 }
 
 function onDrop() {
-  if (state === 'foreground') clearInterval(timer);
+  if (state === 'foreground') stopPageBlink();
   // A background program may still be registered: keep Stop on offer.
   if (state === 'background' || state === 'recovered') render();
   else render('disconnected');
@@ -181,7 +139,7 @@ function render(next = state) {
   const running = state === 'foreground' || state === 'background' || state === 'recovered';
   $('app').toggleAttribute('data-running', running);
   const bg = $('bg-input');
-  bg.disabled = Boolean(device) && !hasPrograms(); // only offer it when beacio supports programs
+  bg.disabled = Boolean(device) && !canBlinkInBackground(); // only offer it when beacio supports programs
   if (state === 'recovered') bg.checked = true; // a leftover is a background program
   else if (bg.disabled) $('fg-input').checked = true;
   if (bg.disabled) $('bg-d').textContent = 'Needs a beacio version with background programs.';
@@ -214,7 +172,7 @@ async function run(action) {
 }
 
 $('go').addEventListener('click', () => {
-  if (state === 'disconnected' || state === 'unsupported') run(connect); // opens the chooser first
+  if (state === 'disconnected' || state === 'unsupported') run(connectLed); // opens the chooser first
   else if (state === 'connected' && $('bg-input').checked) run(startBackground);
   else if (state === 'connected') run(startForeground);
   else run(stop);
@@ -228,7 +186,7 @@ document.addEventListener('visibilitychange', () => {
     return;
   }
   render();
-  if (device?.connected) read().then(show, report);
+  if (device?.connected) readLed(device).then(show, report);
 });
 
 render();

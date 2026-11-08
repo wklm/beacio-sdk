@@ -49,33 +49,41 @@ A sketch, not a measurement: how soon Safari slows and pauses a hidden page vari
 
 ## The code that matters
 
+All of it is in [`blink.js`](blink.js): about 70 lines, plain JavaScript, no page code.
+[`app.js`](app.js) only draws the page: the lamp, the steps, the banner and the buttons. The core of `blink.js`:
+
 ```js
+// 1. Connect, straight from the tap: Safari opens the chooser only from a user gesture.
 const device = await new Beacio().requestDevice({ filters: [{ services: [SERVICE] }] });
 await device.connect();
-await device.subscribeAsync(SERVICE, LED, showLed); // the LED reports what it shows
-await device.write(SERVICE, LED, Uint8Array.of(1)); // on (0 is off)
+await device.subscribeAsync(SERVICE, LED, onValue, { autoRecover: false }); // the LED reports each value
 
-// Or let beacio blink it every 2 seconds, with the page in the background:
+// 2a. The page blinks it, one write every 500 ms. Safari slows this timer, then pauses it, when the page is hidden.
+await device.write(SERVICE, LED, Uint8Array.of(ON));
+
+// 2b. Or beacio blinks it, 2 s on and 2 s off, with the page hidden or the phone locked.
 const service = await device.raw.gatt.getPrimaryService(SERVICE);
-const led = await service.getCharacteristic(LED);
-const registration = await navigator.beacio.backgroundSync.requestBackgroundConnection({
+const led = await service.getCharacteristic(LED); // the program needs beacio's id for it, not the UUID
+await navigator.beacio.backgroundSync.requestBackgroundConnection({
   deviceId: device.id,
   program: { deviceId: device.id, characteristicId: led.id, activeWhen: 'always',
-    cycle: { frames: [[0x01], [0x00]], timer: { cadence: 'uniform', everyMs: 2000 } } },
+    cycle: { frames: [[ON], [OFF]], timer: { cadence: 'uniform', everyMs: 2000 } } },
 });
 
-// Stop: unregister first, then turn it off.
-await registration.unregister();
-await device.write(SERVICE, LED, Uint8Array.of(0));
+// 3. Stop. Leaving the page never stops a program. Unregister first, then off.
+for (const program of await backgroundPrograms()) await program.unregister();
+await device.write(SERVICE, LED, Uint8Array.of(OFF));
 ```
 
-The rest of [`app.js`](app.js) is the button, the lamp and the steps. There is no build step:
-[`index.html`](index.html) loads [`@beacio/core`](https://www.npmjs.com/package/@beacio/core) 2.2.0
-from jsDelivr, pinned with a subresource integrity hash.
+`blink.js` wraps these in a few functions: `connect()`, `blinkFromPage()`, `blinkInBackground()`,
+`backgroundPrograms()`, `stopBackground()`, `switchOff()` and `canBlinkInBackground()`.
+`blinkFromPage()` gives a stop function that waits for the write in flight, so a late on never lands after off.
+There is no build step: [`index.html`](index.html) loads [`@beacio/core`](https://www.npmjs.com/package/@beacio/core) 2.2.0
+from jsDelivr, pinned with a subresource integrity hash, then `app.js`, which imports `blink.js`.
 
 The SDK turns each GATT step into one line with string UUIDs, and its errors carry a
-`suggestion` you can show as is. Background programs are newer than @beacio/core 2.2.0, so the
-page calls them on `navigator.beacio.backgroundSync` (or `navigator.bluetooth.backgroundSync`).
+`suggestion` you can show as is. Background programs are newer than @beacio/core 2.2.0, so
+`blink.js` calls them on `navigator.beacio.backgroundSync` (or `navigator.bluetooth.backgroundSync`).
 The page offers background continuity only when beacio supports programs, and it opens the
 device chooser straight from your tap, as Safari requires.
 
@@ -113,5 +121,5 @@ npx playwright test
 ```
 
 One smoke test runs the page and the published SDK file against a Bluetooth double, and checks
-that the steps, the pictures and the leftover-program banner render, and that the SVG files here
-match the ones on the page. It does not prove radio behaviour or iOS background timing.
+that the steps, the pictures and the leftover-program banner render, that the SVG files here
+match the ones on the page, and that Pages publishes every file the page loads. It does not prove radio behaviour or iOS background timing.
