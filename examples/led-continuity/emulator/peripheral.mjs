@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Emulates the BLE peripheral the LED continuity demo expects (contract in README.md):
+// Emulates the Bluetooth LED the example expects (contract in ../README.md):
 // service FFF0, characteristic FFF1 with read, write (with response) and notify.
 // Runs on macOS or Linux through @stoprocent/bleno (MIT).
 import bleno from '@stoprocent/bleno';
@@ -79,7 +79,7 @@ async function main() {
   } catch {
     console.error(`Bluetooth is not powered on (state: ${bleno.state}).`);
     console.error('macOS: turn Bluetooth on and allow it for this terminal app in System Settings > Privacy & Security > Bluetooth.');
-    console.error('Linux: stop bluetoothd and give Node raw-socket access; see README.md.');
+    console.error('Linux: stop bluetoothd and give Node raw-socket access; see ../README.md.');
     process.exit(1);
   }
 

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pic" viewBox="0 0 360 114" role="img" aria-labelledby="flow-title" font-family="-apple-system, system-ui, sans-serif" font-size="12" text-anchor="middle">
+<style>svg{color:#1C2630;--muted:#5A6774;--signal:#1746B5}@media (prefers-color-scheme:dark){svg{color:#E4EAF0;--muted:#95A3B0;--signal:#79A2FF}}</style>
+<title id="flow-title">Who does what: this page starts and stops a blink program, the beacio app sends on and off to the LED every 2 seconds, and the LED reports each value back.</title>
+<g fill="none" stroke="currentColor" stroke-width="1.5">
+<rect x="1" y="6" width="102" height="44" rx="10"/>
+<rect x="129" y="6" width="102" height="44" rx="10"/>
+<rect x="257" y="6" width="102" height="44" rx="10"/>
+</g>
+<g fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--signal,#1746B5)">
+<path d="M108 28h16m-5-5 5 5-5 5"/>
+<path d="M236 28h16m-5-5 5 5-5 5"/>
+</g>
+<g font-size="14" font-weight="600" fill="currentColor">
+<text x="52" y="33">This page</text>
+<text x="180" y="33">beacio app</text>
+<text x="308" y="33">LED</text>
+</g>
+<g style="fill:var(--muted,#5A6774)">
+<text x="52" y="72">starts and stops</text>
+<text x="52" y="88">a blink program,</text>
+<text x="52" y="104">shows the lamp</text>
+<text x="180" y="72">sends on and off</text>
+<text x="180" y="88">every 2 s, even</text>
+<text x="180" y="104">when locked</text>
+<text x="308" y="72">turns on or off</text>
+<text x="308" y="88">and reports each</text>
+<text x="308" y="104">value back</text>
+</g>
+</svg>

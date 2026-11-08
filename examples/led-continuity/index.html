@@ -1,74 +1,269 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>beacio · LED continuity</title>
-  </head>
-  <body>
-    <main>
-      <header>
-        <p class="eyebrow">beacio / LED continuity</p>
-        <h1>Keep the light blinking.</h1>
-        <p class="intro">Compare foreground LED blinking with background continuity using an emulated Bluetooth peripheral.</p>
-      </header>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Blink an LED</title>
+<style>
+  :root {
+    --panel: #E8EDF1; --ink: #1C2630; --muted: #5A6774; --rule: #C9D2DA;
+    --bezel: #CDD5DC; --bezel-hi: #F7F9FB; --glass: #39434C; --glass-hi: #56626C;
+    --amber: #FFB21C; --amber-hot: #FFE08A; --halo: rgba(255, 178, 28, .45);
+    --signal: #1746B5; --on-signal: #fff; --group: #F6F8FA;
+    --stop: #C4001A; --on-stop: #fff; --alert: #FBE4E7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --panel: #17212A; --ink: #E4EAF0; --muted: #95A3B0; --rule: #2C3944;
+      --bezel: #26323C; --bezel-hi: #3A4752; --glass: #0E151B; --glass-hi: #222D36;
+      --signal: #79A2FF; --on-signal: #0D1830; --group: #1E2933;
+      --stop: #FF7A85; --on-stop: #2A0A0E; --alert: #3A2229;
+    }
+  }
+  :root[data-theme="dark"] {
+    --panel: #17212A; --ink: #E4EAF0; --muted: #95A3B0; --rule: #2C3944;
+    --bezel: #26323C; --bezel-hi: #3A4752; --glass: #0E151B; --glass-hi: #222D36;
+    --signal: #79A2FF; --on-signal: #0D1830; --group: #1E2933;
+    --stop: #FF7A85; --on-stop: #2A0A0E; --alert: #3A2229;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--panel); color: var(--ink);
+    font: 17px/1.45 -apple-system, system-ui, sans-serif; -webkit-text-size-adjust: 100%;
+  }
+  main {
+    max-width: 26rem; margin: 0 auto; overflow-x: clip; /* the halo may spill, the page may not scroll sideways */
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+             max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  h1, .word { font-family: ui-rounded, -apple-system, system-ui, sans-serif; }
+  h1 { font-size: 22px; font-weight: 650; margin: 0; line-height: 28px; }
+  h2 { font-size: 17px; font-weight: 650; margin: 32px 0 10px; }
+  p { margin: 0; }
+  .lede { color: var(--muted); font-size: 15px; }
+  a { color: var(--signal); }
+  :focus-visible { outline: 3px solid var(--signal); outline-offset: 3px; }
+  button { font: 600 17px/1 -apple-system, system-ui, sans-serif; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  button:active { filter: brightness(.92); }
+  button:disabled { opacity: .6; cursor: default; }
+  .stop { background: var(--stop); color: var(--on-stop); }
 
-      <section aria-labelledby="peripheral-heading">
-        <h2 id="peripheral-heading">1. Connect the emulated peripheral</h2>
-        <p class="help">Choose <strong>EmulatedPeripheral</strong> in the Bluetooth picker. Keep your phone near the computer running the emulated peripheral. The website does not relay the Bluetooth connection.</p>
-        <p id="connection" role="status">Disconnected</p>
-        <div class="buttons">
-          <button id="connect" class="primary">Connect emulated peripheral</button>
-          <button id="reconnect">Reconnect emulated peripheral</button>
-          <button id="disconnect" disabled>Disconnect</button>
-        </div>
-      </section>
+  /* app.js sets data-state on <main>; these rules show what each state needs. */
+  #leftover, #setup { display: none; }
+  [data-state="recovered"] #leftover { display: flex; }
+  [data-state="recovered"] :is(.card, #go) { display: none; }
+  [data-state="unsupported"] #setup { display: block; }
 
-      <section class="led-panel" aria-label="Last observed emulated peripheral value">
-        <div id="led" data-state="unknown" aria-hidden="true"></div>
-        <div>
-          <p class="eyebrow">Last observed value</p>
-          <p id="led-state" class="led-state">Unknown</p>
-          <p id="observed" class="subtle">No emulated peripheral value received yet</p>
-        </div>
-      </section>
+  /* A program left running by an earlier visit: impossible to miss, one way out. */
+  #leftover {
+    align-items: center; gap: 12px; margin: 12px 0 0; padding: 12px 12px 12px 14px;
+    border-radius: 12px; background: var(--alert); box-shadow: inset 4px 0 var(--stop); font-size: 15px;
+  }
+  #leftover p { flex: 1; }
+  #leftover button { min-width: 76px; height: 44px; border-radius: 10px; }
 
-      <section aria-labelledby="blink-heading">
-        <h2 id="blink-heading">2. Blink the LED</h2>
-        <label for="mode">Blinking mode</label>
-        <select id="mode">
-          <option value="browser">Foreground only</option>
-          <option value="native">Background continuity</option>
-        </select>
-        <p id="mode-help" class="help"></p>
-        <div class="buttons">
-          <button id="start" class="primary" disabled>Start blinking</button>
-          <button id="stop" disabled>Stop</button>
-          <button id="on" disabled>LED on</button>
-          <button id="off" disabled>LED off</button>
-        </div>
-        <p id="run-state" role="status">Stopped</p>
-        <p id="error" role="alert" hidden></p>
-      </section>
+  /* The lamp: a panel pilot light. It lights only when the LED reports 01. */
+  .lamp {
+    position: relative; width: min(36vw, clamp(96px, 17svh, 150px)); aspect-ratio: 1; margin: 12px auto 0; padding: 7%;
+    border-radius: 50%; background: radial-gradient(circle at 50% 30%, var(--bezel-hi), var(--bezel) 70%);
+    box-shadow: inset 0 2px 2px rgba(255, 255, 255, .35), inset 0 -3px 6px rgba(0, 0, 0, .22), 0 14px 28px -16px rgba(0, 0, 0, .5);
+  }
+  .lens, .lens::after { position: relative; display: block; width: 100%; height: 100%; border-radius: 50%; }
+  .lens {
+    background: radial-gradient(circle at 36% 28%, rgba(255, 255, 255, .2), transparent 26%),
+                radial-gradient(circle at 50% 60%, var(--glass-hi), var(--glass) 75%);
+    box-shadow: inset 0 5px 12px rgba(0, 0, 0, .55);
+  }
+  .lens::after {
+    content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity 90ms linear;
+    background: radial-gradient(circle at 36% 28%, rgba(255, 255, 255, .7), transparent 24%),
+                radial-gradient(circle at 50% 55%, var(--amber-hot), var(--amber) 52%, #C46A00);
+    box-shadow: inset 0 -5px 14px rgba(150, 60, 0, .45), 0 0 36px 8px var(--halo);
+  }
+  .lamp::before { /* the halo that spills onto the panel */
+    content: ""; position: absolute; inset: -55%; border-radius: 50%; pointer-events: none;
+    background: radial-gradient(closest-side, var(--halo), transparent); opacity: 0; transition: opacity 90ms linear;
+  }
+  .lamp[data-led="on"] .lens::after, .lamp[data-led="on"]::before { opacity: 1; }
+  .lamp[data-led="none"] { opacity: .55; }
+  .readout { text-align: center; margin: 4px 0 10px; }
+  .word { display: block; font-size: 40px; font-weight: 600; line-height: 44px; }
+  .readout small { display: block; font-size: 14px; color: var(--muted); min-height: 1.45em; }
+  /* Until the LED reports on or off, the word stays quiet: same height, no shouting. */
+  .lamp:is([data-led="none"], [data-led="unknown"]) + .readout .word { font-size: 22px; color: var(--muted); }
 
-      <details>
-        <summary>Timing and background behavior</summary>
-        <p>Foreground only alternates on/off every 500 ms while Safari runs the page. Safari can slow or pause this timer when the page is hidden.</p>
-        <p>Background continuity gives beacio the repeating sequence. It targets 2 seconds on, 2 seconds off, while the page is visible or hidden. Returning to Safari doesn’t stop it. Stop ends the sequence and sends LED off.</p>
-        <p>The 2-second minimum is beacio’s current conservative battery/resource policy, rather than an iOS-imposed minimum. Sustained 500 ms app operation hasn’t been validated or enabled. App timing is best effort and needs a live Bluetooth connection and a running native session.</p>
-        <p>The indicator shows the emulated peripheral’s last reported value. The page can’t display live changes while its JavaScript is paused. A read refreshes it when you return. Closing or reloading the tab, ending the native session, or losing the connection can interrupt continuity.</p>
-      </details>
+  /* The seven steps. The ones you are on are highlighted, and repeated in the card by the lamp. */
+  .steps { list-style: none; margin: 0; padding: 0; }
+  .steps li { display: grid; grid-template-columns: 24px 1fr; gap: 1px 10px; }
+  .steps .n {
+    grid-row: span 2; width: 24px; height: 24px; border-radius: 50%; margin-top: 1px;
+    font: 600 13px/24px -apple-system, system-ui, sans-serif; text-align: center; background: var(--rule);
+  }
+  .do { font-size: 15px; font-weight: 600; line-height: 1.35; }
+  .see { font-size: 14px; color: var(--muted); line-height: 1.35; }
+  .card { background: var(--group); border-radius: 12px; padding: 10px 12px; margin: 0 0 12px; }
+  .card li + li { margin-top: 8px; }
+  #steps li { padding: 10px 12px; border-radius: 12px; }
+  #steps li.now { background: var(--group); box-shadow: inset 3px 0 var(--signal); }
+  li.now .n { background: var(--signal); color: var(--on-signal); }
 
-      <section aria-labelledby="log-heading">
-        <div class="log-heading">
-          <h2 id="log-heading">Event log</h2>
-          <button id="clear-log" class="small">Clear log</button>
-        </div>
-        <p class="subtle"><span id="writes">0</span> page writes acknowledged · <span id="notifications">0</span> notifications received</p>
-        <pre id="log" aria-label="Event log"></pre>
-      </section>
-      <footer>Emulated peripheral: service FFF0 · characteristic FFF1 · 01 on / 00 off</footer>
-    </main>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+  /* Mode choice: an iOS inset grouped list. While it runs, the chosen mode stays bright. */
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+  legend { font-size: 13px; letter-spacing: .02em; text-transform: uppercase; color: var(--muted); padding: 0 16px 6px; }
+  .group { background: var(--group); border-radius: 12px; overflow: hidden; }
+  .row { display: grid; grid-template-columns: 24px 1fr; gap: 0 12px; padding: 10px 16px; cursor: pointer; transition: opacity .2s; }
+  .row + .row { border-top: 1px solid var(--rule); }
+  .row input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--signal); }
+  .row b { font-weight: 600; }
+  .row span { grid-column: 2; font-size: 15px; line-height: 1.35; color: var(--muted); }
+  .row:has(:disabled) { opacity: .5; cursor: default; }
+  [data-running] .row:has(:checked) { opacity: 1; }
+  [data-running] .row:has(:checked) b { color: var(--signal); }
+
+  /* The one button: Connect, then Start blinking, then a red Stop. */
+  #go { display: block; width: 100%; height: 56px; margin: 14px 0 0; border-radius: 14px; background: var(--signal); color: var(--on-signal); }
+  [data-running] #go { background: var(--stop); color: var(--on-stop); }
+  .msg { font-size: 15px; color: var(--muted); margin: 8px 4px 0; }
+  .msg:empty { margin: 0; }
+
+  .pic { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; }
+  figure { margin: 0; padding: 14px 12px; border-radius: 12px; background: var(--group); }
+  figcaption, .note { font-size: 14px; color: var(--muted); margin-top: 10px; }
+  .facts { margin: 0; padding-left: 20px; font-size: 15px; }
+  .facts li + li { margin-top: 8px; }
+  footer { display: flex; justify-content: center; gap: 24px; margin-top: 24px; font-size: 15px; }
+  footer a { padding: 12px 0; } /* 44 pt tall targets */
+  @media (prefers-reduced-motion: reduce) { .lens::after, .lamp::before, .row { transition: none; } }
+</style>
+<script defer src="https://cdn.jsdelivr.net/npm/@beacio/core@2.2.0/dist/browser.global.js"
+  integrity="sha384-uK/7FDka3ATzClhOhVBY+WCXAR4CkSlXVNL/wXopCI3TyyqweWpNYiYZaji31sDd"
+  crossorigin="anonymous"></script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<main id="app" data-state="disconnected">
+  <h1>Blink an LED</h1>
+  <p class="lede">Blink a Bluetooth LED, then lock your phone.</p>
+
+  <div id="leftover" role="alert">
+    <p><b>A blink program from your last visit is still running.</b> It keeps writing to your LED until you stop it.</p>
+    <button id="stop-leftover" class="stop" type="button">Stop</button>
+  </div>
+
+  <!-- Not a live region on purpose: announcing a blink every half second would drown VoiceOver. -->
+  <div class="lamp" id="lamp" role="img" aria-label="LED not connected" data-led="none"><span class="lens"></span></div>
+  <p class="readout" aria-hidden="true"><span class="word" id="word">Not connected</span><small id="caption"></small></p>
+
+  <!-- app.js copies the current steps from the list below into this card. -->
+  <div class="card" role="status" aria-label="Now"><ol class="steps" id="now"></ol></div>
+
+  <fieldset id="modes" disabled>
+    <legend>Who keeps it blinking?</legend>
+    <div class="group">
+      <label class="row">
+        <input type="radio" name="mode" value="foreground" id="fg-input" checked aria-labelledby="fg" aria-describedby="fg-d">
+        <b id="fg">Foreground only</b>
+        <span id="fg-d">The page sends each blink.</span>
+      </label>
+      <label class="row">
+        <input type="radio" name="mode" value="background" id="bg-input" aria-labelledby="bg" aria-describedby="bg-d">
+        <b id="bg">Background continuity</b>
+        <span id="bg-d">beacio blinks it, even when locked.</span>
+      </label>
+    </div>
+  </fieldset>
+
+  <button id="go" type="button">Connect</button>
+  <div role="status">
+    <p class="msg" id="setup">Bluetooth isn’t available here. Open this page in Safari on an iPhone with beacio. <a href="https://beacio.com/setup">Set up beacio</a></p>
+    <p class="msg" id="msg"></p>
+  </div>
+
+  <h2>Step by step</h2>
+  <ol class="steps" id="steps">
+    <li data-step="1"><span class="n">1</span><p class="do">Open the beacio app and leave it running.</p><p class="see">You see the beacio app. Come back here.</p></li>
+    <li data-step="2"><span class="n">2</span><p class="do">Tap Connect and choose your LED.</p><p class="see">You see the lamp say Connected, On or Off.</p></li>
+    <li data-step="3"><span class="n">3</span><p class="do">Pick who keeps it blinking.</p><p class="see">You see your choice ticked.</p></li>
+    <li data-step="4"><span class="n">4</span><p class="do">Tap Start blinking.</p><p class="see">You see the LED and the lamp blink.</p></li>
+    <li data-step="5"><span class="n">5</span><p class="do">Leave Safari or lock the phone.</p><p class="see">Watch the LED. Foreground only: it slows, then stops. Background continuity: it keeps blinking every 2 s.</p></li>
+    <li data-step="6"><span class="n">6</span><p class="do">Come back to this page.</p><p class="see">You see the lamp catch up, still blinking.</p></li>
+    <li data-step="7"><span class="n">7</span><p class="do">Tap Stop.</p><p class="see">You see the LED turn off if connected. Leaving the page never stops a background program.</p></li>
+  </ol>
+
+  <h2>Who does what</h2>
+  <figure>
+<svg class="pic" viewBox="0 0 360 114" role="img" aria-labelledby="flow-title" font-family="-apple-system, system-ui, sans-serif" font-size="12" text-anchor="middle">
+<title id="flow-title">Who does what: this page starts and stops a blink program, the beacio app sends on and off to the LED every 2 seconds, and the LED reports each value back.</title>
+<g fill="none" stroke="currentColor" stroke-width="1.5">
+<rect x="1" y="6" width="102" height="44" rx="10"/>
+<rect x="129" y="6" width="102" height="44" rx="10"/>
+<rect x="257" y="6" width="102" height="44" rx="10"/>
+</g>
+<g fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="stroke:var(--signal,#1746B5)">
+<path d="M108 28h16m-5-5 5 5-5 5"/>
+<path d="M236 28h16m-5-5 5 5-5 5"/>
+</g>
+<g font-size="14" font-weight="600" fill="currentColor">
+<text x="52" y="33">This page</text>
+<text x="180" y="33">beacio app</text>
+<text x="308" y="33">LED</text>
+</g>
+<g style="fill:var(--muted,#5A6774)">
+<text x="52" y="72">starts and stops</text>
+<text x="52" y="88">a blink program,</text>
+<text x="52" y="104">shows the lamp</text>
+<text x="180" y="72">sends on and off</text>
+<text x="180" y="88">every 2 s, even</text>
+<text x="180" y="104">when locked</text>
+<text x="308" y="72">turns on or off</text>
+<text x="308" y="88">and reports each</text>
+<text x="308" y="104">value back</text>
+</g>
+</svg>
+  </figure>
+  <p class="note">In Foreground only, the page sends every blink itself, through beacio. In Background continuity,
+    it hands the beacio app one small program, and the app keeps it going.</p>
+
+  <h2>Why the page alone stops</h2>
+  <figure>
+<svg class="pic" viewBox="0 0 360 146" role="img" aria-labelledby="timeline-title" font-family="-apple-system, system-ui, sans-serif" font-size="11">
+<title id="timeline-title">Timeline: when the page is hidden, its own timer slows down and then pauses, while the beacio program keeps the same rhythm, 2 seconds on and 2 seconds off.</title>
+<rect x="115" y="18" width="243" height="110" rx="8" fill="currentColor" fill-opacity=".08"/>
+<g style="fill:var(--muted,#5A6774)">
+<text x="8" y="12">page visible</text>
+<text x="121" y="12">page hidden or phone locked</text>
+<text x="8" y="76">every 0.5 s</text>
+<text x="128" y="76">slows</text>
+<text x="230" y="76">then pauses</text>
+<text x="29.5" y="140" text-anchor="middle">2 s on</text>
+<text x="72.5" y="140" text-anchor="middle">2 s off</text>
+<text x="352" y="140" text-anchor="end">the same rhythm, hidden or not</text>
+</g>
+<g font-size="12" font-weight="600" fill="currentColor">
+<text x="8" y="36">Foreground only: the page’s timer</text>
+<text x="8" y="98">Background continuity: beacio’s program</text>
+</g>
+<path d="M8 44v16M18.75 44v16M29.5 44v16M40.25 44v16M51 44v16M61.75 44v16M72.5 44v16M83.25 44v16M94 44v16M104.75 44v16M137 44v16M169.25 44v16M212.25 44v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M232 52H352" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 6" style="stroke:var(--muted,#5A6774)"/>
+<path d="M8 122V106H51V122H94V106H137V122H180V106H223V122H266V106H309V122H352V106" fill="none" stroke-width="2" stroke-linejoin="round" style="stroke:var(--signal,#1746B5)"/>
+</svg>
+    <figcaption>A sketch, not a measurement: how soon Safari slows and pauses a hidden page varies.</figcaption>
+  </figure>
+
+  <h2>Good to know</h2>
+  <ul class="facts">
+    <li><b>2 s on, 2 s off.</b> 2000 ms is the time between commands and beacio’s current minimum, not an iOS limit.
+      A faster program is rejected, not slowed down.</li>
+    <li><b>Coming back doesn’t stop it.</b> Only Stop does: it unregisters the program, then the page sends off if it is connected.</li>
+    <li><b>Best effort.</b> If iOS ends the beacio app or the Bluetooth link drops, blinks can be late or missed.</li>
+    <li><b>Twice is fine.</b> While beacio runs, a notified value can arrive twice. The lamp shows the value, so it stays right.</li>
+  </ul>
+
+  <footer>
+    <a href="https://github.com/wklm/beacio-sdk/tree/main/examples/led-continuity#no-led-run-the-emulator">No LED? Emulate one</a>
+    <a href="https://github.com/wklm/beacio-sdk/tree/main/examples/led-continuity">Source</a>
+  </footer>
+</main>
+</body>
 </html>
