@@ -1,10 +1,13 @@
 // Everything beacio needs to blink a Bluetooth LED. No page code here: app.js draws the page.
 const { Beacio } = window.BeacioCore; // @beacio/core, which index.html runs before this module
 
+// Your device: the only device-specific lines. For your own device, put its service and
+// characteristic UUIDs here, and the bytes it expects for on and off. A command can be any number
+// of bytes, such as the encoded command your own SDK already sends.
 export const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb';
-export const LED = '0000fff1-0000-1000-8000-00805f9b34fb'; // read, write, notify
-export const ON = 0x01;
-export const OFF = 0x00;
+export const LED = '0000fff1-0000-1000-8000-00805f9b34fb'; // the characteristic you write commands to
+export const ON = [0x01];
+export const OFF = [0x00];
 
 // Background programs are not in @beacio/core 2.2.0 yet, so they are called on navigator.
 const programs = () => navigator.beacio?.backgroundSync ?? navigator.bluetooth?.backgroundSync;
@@ -27,7 +30,7 @@ export async function connect({ onValue, onDisconnect }) {
 }
 
 export const readLed = (device) => device.read(SERVICE, LED, { timeoutMs: 3000 });
-export const setLed = (device, byte) => device.write(SERVICE, LED, Uint8Array.of(byte), { timeoutMs: 4000 });
+export const setLed = (device, command) => device.write(SERVICE, LED, Uint8Array.from(command), { timeoutMs: 4000 });
 
 // 2a. The page blinks it every 500 ms. Safari slows this timer, then pauses it, when the page is hidden.
 // Gives stop(): it clears the timer and waits for the write in flight, so a late "on" never lands after "off".
@@ -55,7 +58,7 @@ export async function blinkInBackground(device) {
       characteristicId: led.id,
       activeWhen: 'always', // visible or hidden
       cycle: {
-        frames: [[ON], [OFF]],
+        frames: [ON, OFF], // your two commands, in turn
         timer: { cadence: 'uniform', everyMs: 2000 }, // 2 s between commands: beacio's minimum
       },
     },
