@@ -6,7 +6,9 @@ const LED = '0000fff1-0000-1000-8000-00805f9b34fb'; // read, write, notify: 01 o
 const $ = (id) => document.getElementById(id);
 
 let state = 'disconnected'; // disconnected | unsupported | connected | foreground | background | recovered
-let device, ledId, led = 'unknown', timer, inflight;
+let device, ledId, timer, inflight;
+let led = 'unknown'; // what the LED last reported: on, off or unknown
+let leftPage = false; // the page was hidden while it blinked (step 5 is done)
 
 // Background programs are not in @beacio/core 2.2.0 yet, so they are called on navigator.
 const programs = () => navigator.beacio?.backgroundSync ?? navigator.bluetooth?.backgroundSync;
@@ -23,23 +25,45 @@ async function connect() {
     await device.connect();
     device.on('disconnected', onDrop);
     await device.subscribeAsync(SERVICE, LED, show, { autoRecover: false });
-    show(await read());
+    const value = await read();
+    show(value);
     // The background program needs beacio's instance id of the characteristic, not its UUID.
     const service = await device.raw.gatt.getPrimaryService(SERVICE);
-    ledId = (await service.getCharacteristic(LED)).id;
-    render((await leftoverProgram()) ? 'recovered' : 'connected');
+    const characteristic = await service.getCharacteristic(LED);
+    ledId = characteristic.id;
+    if (await leftoverProgram()) render('recovered');
+    else render('connected');
   } catch (err) {
     device.disconnect();
     throw err;
   }
 }
 
-// A program found after a reload has unknown status, and so does a failed lookup:
-// either way it must be stopped before a new writer starts.
+// The blink programs beacio runs for this site, from this visit or an earlier one.
+async function runningPrograms() {
+  if (!programs()) return [];
+  const registrations = await programs().getRegistrations();
+  return registrations.filter((r) => r.type === 'connection');
+}
+
+// Before a new writer starts, a program we cannot look up counts as running.
 async function leftoverProgram() {
-  if (!programs()) return false;
-  try { return (await programs().getRegistrations()).some((r) => r.type === 'connection'); }
-  catch { return true; }
+  try {
+    const running = await runningPrograms();
+    return running.length > 0;
+  } catch {
+    return true;
+  }
+}
+
+// On load, a program left running by an earlier visit gets the banner and its Stop button.
+async function lookForLeftover() {
+  try {
+    const running = await runningPrograms();
+    if (running.length > 0 && state === 'disconnected') render('recovered');
+  } catch {
+    // No answer yet: Connect looks again.
+  }
 }
 
 function startForeground() {
@@ -47,15 +71,19 @@ function startForeground() {
   timer = setInterval(() => {
     if (inflight) return; // skip a tick rather than queue GATT writes
     inflight = write(next)
-      .then(() => { next = next ? 0 : 1; }, (err) => {
-        if (state !== 'foreground') return;
-        clearInterval(timer);
-        render(device.connected ? 'connected' : 'disconnected');
-        report(err);
-      })
+      .then(() => { next = next ? 0 : 1; }, onWriteError)
       .finally(() => { inflight = undefined; });
   }, 500);
+  leftPage = false;
   render('foreground');
+}
+
+function onWriteError(err) {
+  if (state !== 'foreground') return;
+  clearInterval(timer);
+  if (device.connected) render('connected');
+  else render('disconnected');
+  report(err);
 }
 
 async function startBackground() {
@@ -68,6 +96,7 @@ async function startBackground() {
       cycle: { frames: [[0x01], [0x00]], timer: { cadence: 'uniform', everyMs: 2000 } },
     },
   });
+  leftPage = false;
   render('background');
 }
 
@@ -75,23 +104,31 @@ async function stop() {
   clearInterval(timer);
   if (state !== 'foreground') {
     // Unregister first, from a fresh lookup. If it throws, the state stays and Stop retries.
-    for (const r of await programs().getRegistrations()) if (r.type === 'connection') await r.unregister();
+    for (const program of await runningPrograms()) await program.unregister();
   }
   await inflight; // never let a late "on" land after "off"
-  if (device?.connected) await write(0);
-  render(device?.connected ? 'connected' : 'disconnected');
+  if (device?.connected) {
+    await write(0); // then off
+    render('connected');
+  } else {
+    render('disconnected');
+  }
 }
 
 function onDrop() {
   if (state === 'foreground') clearInterval(timer);
   // A background program may still be registered: keep Stop on offer.
-  render(state === 'background' || state === 'recovered' ? state : 'disconnected');
+  if (state === 'background' || state === 'recovered') render();
+  else render('disconnected');
 }
 
-// The lamp shows only what the LED itself reported, by notification or read.
+// The lamp shows only what the LED itself reported. It is set from the value, never toggled,
+// so a notification that arrives twice changes nothing.
 function show(view) {
-  const byte = view.byteLength === 1 ? view.getUint8(0) : null;
-  led = { 1: 'on', 0: 'off' }[byte] ?? 'unknown'; // BE AC, or anything else, is unknown
+  const byte = view.byteLength === 1 ? view.getUint8(0) : undefined;
+  if (byte === 1) led = 'on';
+  else if (byte === 0) led = 'off';
+  else led = 'unknown'; // BE AC, or anything else
   drawLamp();
 }
 
@@ -110,55 +147,88 @@ function drawLamp() {
   $('caption').textContent = LAMP[value].caption;
 }
 
-const BUTTON = { disconnected: 'Connect', unsupported: 'Connect', connected: 'Start blinking' };
-const STATUS = {
-  disconnected: 'Turn on your LED, then tap Connect.',
-  unsupported: 'Bluetooth isn’t available here. Open this page in Safari on an iPhone with beacio.',
-  connected: 'Choose who keeps it blinking, then tap Start.',
-  foreground: 'The page blinks the LED every half second. Lock your phone to see it slow down or stop.',
-  background: 'beacio blinks the LED every 2 seconds, even with Safari hidden or the phone locked.',
-  recovered: 'A program from an earlier visit may still be running. Stop it before you start again.',
+// The steps you are on, out of the seven in index.html.
+function currentSteps() {
+  if (state === 'unsupported') return [1];
+  if (state === 'disconnected') return [1, 2];
+  if (state === 'connected') return [3, 4];
+  if (state === 'recovered') return [7];
+  if (leftPage) return [6, 7]; // back on the page, still blinking
+  return [5];
+}
+
+// Highlight them in the list, and copy them into the card by the lamp.
+function drawSteps() {
+  const now = currentSteps();
+  $('now').replaceChildren();
+  for (const step of $('steps').children) {
+    const current = now.includes(Number(step.dataset.step));
+    step.classList.toggle('now', current);
+    if (current) $('now').append(step.cloneNode(true));
+  }
+}
+
+const BUTTON = {
+  disconnected: 'Connect', unsupported: 'Connect', connected: 'Start blinking',
+  foreground: 'Stop', background: 'Stop', recovered: 'Stop',
 };
 
 function render(next = state) {
   state = next;
-  const running = !BUTTON[state]; // foreground, background or recovered: the button is Stop
+  $('app').dataset.state = state; // index.html shows the banner, the card and the setup link from it
+  const running = state === 'foreground' || state === 'background' || state === 'recovered';
+  $('app').toggleAttribute('data-running', running);
   const bg = $('bg-input');
   bg.disabled = Boolean(device) && !hasPrograms(); // only offer it when beacio supports programs
   if (state === 'recovered') bg.checked = true; // a leftover is a background program
   else if (bg.disabled) $('fg-input').checked = true;
-  $('bg-d').textContent = bg.disabled
-    ? 'Needs a beacio version with background programs.'
-    : 'beacio keeps blinking, even with the phone locked.';
+  if (bg.disabled) $('bg-d').textContent = 'Needs a beacio version with background programs.';
+  else $('bg-d').textContent = 'beacio blinks it, even when locked.';
   $('modes').disabled = state !== 'connected';
-  $('app').toggleAttribute('data-running', running);
-  $('go').textContent = BUTTON[state] ?? 'Stop';
-  $('msg').textContent = STATUS[state];
-  $('setup').hidden = state !== 'unsupported';
+  $('go').textContent = BUTTON[state];
+  $('msg').textContent = '';
+  drawSteps();
   drawLamp();
 }
 
 function report(err) {
-  $('msg').textContent = [err?.message ?? String(err), err?.suggestion].filter(Boolean).join(' ');
+  let text = err?.message ?? String(err);
+  if (err?.suggestion) text += ' ' + err.suggestion;
+  $('msg').textContent = text;
 }
 
-$('go').addEventListener('click', async () => {
-  const go = $('go');
-  go.disabled = true;
+// One tap, one action. Both buttons wait while it runs; errors show under the main button.
+async function run(action) {
+  $('go').disabled = true;
+  $('stop-leftover').disabled = true;
   try {
-    if (state === 'disconnected' || state === 'unsupported') await connect(); // opens the chooser first
-    else if (state === 'connected') await ($('bg-input').checked ? startBackground() : startForeground());
-    else await stop();
+    await action();
   } catch (err) {
     report(err);
   } finally {
-    go.disabled = false;
+    $('go').disabled = false;
+    $('stop-leftover').disabled = false;
   }
-});
+}
 
-// Never stop on hide. On return, read the LED: the page could not see it while hidden.
+$('go').addEventListener('click', () => {
+  if (state === 'disconnected' || state === 'unsupported') run(connect); // opens the chooser first
+  else if (state === 'connected' && $('bg-input').checked) run(startBackground);
+  else if (state === 'connected') run(startForeground);
+  else run(stop);
+});
+$('stop-leftover').addEventListener('click', () => run(stop));
+
+// Never stop on hide. On return, show step 6 and read the LED: the page could not see it while hidden.
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && device?.connected) read().then(show, report);
+  if (document.hidden) {
+    if (state === 'foreground' || state === 'background') leftPage = true;
+    return;
+  }
+  render();
+  if (device?.connected) read().then(show, report);
 });
 
 render();
+lookForLeftover();
+window.addEventListener('beacio:extension:ready', lookForLeftover); // the extension may mount late

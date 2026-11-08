@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" class="pic" viewBox="0 0 360 146" role="img" aria-labelledby="timeline-title" font-family="-apple-system, system-ui, sans-serif" font-size="11">
+<style>svg{color:#1C2630;--muted:#5A6774;--signal:#1746B5}@media (prefers-color-scheme:dark){svg{color:#E4EAF0;--muted:#95A3B0;--signal:#79A2FF}}</style>
+<title id="timeline-title">Timeline: when the page is hidden, its own timer slows down and then pauses, while the beacio program keeps the same rhythm, 2 seconds on and 2 seconds off.</title>
+<rect x="115" y="18" width="243" height="110" rx="8" fill="currentColor" fill-opacity=".08"/>
+<g style="fill:var(--muted,#5A6774)">
+<text x="8" y="12">page visible</text>
+<text x="121" y="12">page hidden or phone locked</text>
+<text x="8" y="76">every 0.5 s</text>
+<text x="128" y="76">slows</text>
+<text x="230" y="76">then pauses</text>
+<text x="29.5" y="140" text-anchor="middle">2 s on</text>
+<text x="72.5" y="140" text-anchor="middle">2 s off</text>
+<text x="352" y="140" text-anchor="end">the same rhythm, hidden or not</text>
+</g>
+<g font-size="12" font-weight="600" fill="currentColor">
+<text x="8" y="36">Foreground only: the page’s timer</text>
+<text x="8" y="98">Background continuity: beacio’s program</text>
+</g>
+<path d="M8 44v16M18.75 44v16M29.5 44v16M40.25 44v16M51 44v16M61.75 44v16M72.5 44v16M83.25 44v16M94 44v16M104.75 44v16M137 44v16M169.25 44v16M212.25 44v16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+<path d="M232 52H352" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 6" style="stroke:var(--muted,#5A6774)"/>
+<path d="M8 122V106H51V122H94V106H137V122H180V106H223V122H266V106H309V122H352V106" fill="none" stroke-width="2" stroke-linejoin="round" style="stroke:var(--signal,#1746B5)"/>
+</svg>

@@ -27,7 +27,9 @@ function installDouble() {
       ble.writes.push(bytes);
       ble.order.push(`write:${bytes[0]}`);
       led.value = new DataView(Uint8Array.from(bytes).buffer);
-      if (led.notifying) led.dispatchEvent(new Event('characteristicvaluechanged')); // echo, like the emulator
+      // Echo, like the emulator. While beacio runs a value can arrive twice, so send it twice.
+      if (led.notifying) led.dispatchEvent(new Event('characteristicvaluechanged'));
+      if (led.notifying) led.dispatchEvent(new Event('characteristicvaluechanged'));
     },
     async writeValue(data) { return led.writeValueWithResponse(data); },
     async startNotifications() { led.notifying = true; return led; },
@@ -69,7 +71,7 @@ function installDouble() {
   Object.defineProperty(navigator, 'beacio', { configurable: true, value: bluetooth });
 }
 
-test('blinks in both modes and stops cleanly', async ({ page }) => {
+test('guides each step, blinks in both modes and stops cleanly', async ({ page }) => {
   await page.route('**', (route) => route.abort()); // no network at all
   await page.route('https://led.test/**', async (route) => {
     const file = new URL(route.request().url()).pathname === '/app.js' ? '../app.js' : '../index.html';
@@ -83,26 +85,53 @@ test('blinks in both modes and stops cleanly', async ({ page }) => {
   await page.addInitScript(installDouble);
   const ble = (key) => page.evaluate((k) => window.__ble[k], key);
   const button = page.locator('#go');
-  const lamp = page.getByRole('img');
+  const lamp = page.getByRole('img', { name: /^LED/ });
+  const steps = page.locator('#steps li.now');
+  const card = page.locator('#now');
+  const banner = page.getByRole('alert');
   const connect = async () => {
     await page.getByRole('button', { name: 'Connect' }).click();
     await expect(lamp).toHaveAccessibleName(/LED (on|off|value unknown)/);
     await expect(button).toHaveText(/Start blinking|Stop/); // connect() has finished and rendered
   };
 
-  await test.step('connects from the tap', async () => {
+  await test.step('the README pictures are the ones on the page', async () => {
+    const html = await readFile(here('../index.html'), 'utf8');
+    for (const name of ['flow.svg', 'timeline.svg']) {
+      const file = await readFile(here(`../${name}`), 'utf8');
+      // The file adds only its namespace and its own light and dark colours.
+      const inline = file.replace(' xmlns="http://www.w3.org/2000/svg"', '').replace(/<style>.*<\/style>\n/, '').trim();
+      expect(html).toContain(inline);
+    }
+  });
+
+  await test.step('shows the seven steps, the two pictures and the facts', async () => {
     await page.goto('https://led.test/');
     await expect(lamp).toHaveAccessibleName('LED not connected');
+    await expect(page.locator('#steps li')).toHaveCount(7);
+    await expect(page.locator('#steps .see')).toHaveText(Array(7).fill(/^You see /));
+    await expect(steps).toHaveText([/^1Open the beacio app/, /^2Tap Connect/]);
+    await expect(card).toContainText('Tap Connect');
+    await expect(page.getByRole('img', { name: /^Who does what: this page/ })).toBeVisible();
+    await expect(page.getByRole('img', { name: /^Timeline: when the page is hidden/ })).toBeVisible();
+    await expect(page.getByRole('listitem').filter({ hasText: 'not an iOS limit' })).toBeVisible();
+    await expect(banner).toBeHidden(); // nothing left running
+  });
+
+  await test.step('connects from the tap', async () => {
     await connect();
     expect(await ble('requestOptions')).toEqual({ filters: [{ services: [SERVICE] }] });
     expect(await ble('inTap')).toBe(true);
     await expect(lamp).toHaveAccessibleName('LED value unknown'); // BE AC
     await expect(button).toHaveText('Start blinking');
+    await expect(steps).toHaveText([/^3Pick/, /^4Tap Start/]);
   });
 
   await test.step('foreground only: the page blinks every 500 ms', async () => {
     await button.click();
-    await expect(lamp).toHaveAccessibleName('LED on'); // from the echoed notification
+    await expect(lamp).toHaveAccessibleName('LED on'); // from the echoed notification, delivered twice
+    await expect(steps).toHaveText([/^5Leave Safari/]);
+    await expect(card).toContainText('Leave Safari');
     await expect.poll(async () => (await ble('writes')).length).toBeGreaterThanOrEqual(3);
     expect((await ble('writes')).slice(0, 3)).toEqual([[1], [0], [1]]);
     await page.getByRole('button', { name: 'Stop' }).click();
@@ -132,21 +161,33 @@ test('blinks in both modes and stops cleanly', async ({ page }) => {
     await page.waitForTimeout(650);
     expect((await ble('writes')).length).toBe(writes); // the page itself writes nothing
     expect(await ble('registered')).toBe(true); // hiding the page never stops it
+    await expect(steps).toHaveText([/^6Come back/, /^7Tap Stop/]);
     await button.click();
     await expect(button).toHaveText('Start blinking');
     expect((await ble('order')).slice(-3)).toEqual(['register', 'unregister', 'write:0']);
   });
 
-  await test.step('a program left from an earlier visit must be stopped first', async () => {
+  await test.step('on load, a program from an earlier visit gets a banner with one Stop', async () => {
     await page.evaluate(() => { window.__ble.registered = true; });
     await page.reload();
+    await expect(banner).toContainText('A blink program from your last visit is still running');
+    await expect(button).toBeHidden(); // the banner's Stop is the only action
+    await expect(steps).toHaveText([/^7Tap Stop/]);
+    await page.getByRole('button', { name: 'Stop' }).click();
+    await expect(banner).toBeHidden();
+    expect(await ble('registered')).toBe(false);
+    await expect(button).toHaveText('Connect');
+  });
+
+  await test.step('a program found on connect must be stopped first, then off', async () => {
+    await page.evaluate(() => { window.__ble.registered = true; });
     await connect();
-    await expect(button).toHaveText('Stop');
-    await expect(page.getByRole('status')).toContainText('earlier visit');
+    await expect(banner).toContainText('still running');
     await expect(page.getByRole('radio', { name: 'Background continuity' })).toBeChecked(); // the leftover is a program
-    await button.click();
+    await page.getByRole('button', { name: 'Stop' }).click();
     await expect(button).toHaveText('Start blinking');
     expect(await ble('registered')).toBe(false);
+    expect((await ble('order')).slice(-2)).toEqual(['unregister', 'write:0']);
   });
 
   await test.step('without program support, only foreground is offered', async () => {
