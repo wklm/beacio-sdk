@@ -59,7 +59,7 @@ await device.connect();
 await device.subscribeAsync(SERVICE, LED, onValue, { autoRecover: false }); // the LED reports each value
 
 // 2a. The page blinks it, one write every 500 ms. Safari slows this timer, then pauses it, when the page is hidden.
-await device.write(SERVICE, LED, Uint8Array.of(ON));
+await device.write(SERVICE, LED, Uint8Array.from(ON));
 
 // 2b. Or beacio blinks it, 2 s on and 2 s off, with the page hidden or the phone locked.
 const service = await device.raw.gatt.getPrimaryService(SERVICE);
@@ -67,12 +67,12 @@ const led = await service.getCharacteristic(LED); // the program needs beacio's 
 await navigator.beacio.backgroundSync.requestBackgroundConnection({
   deviceId: device.id,
   program: { deviceId: device.id, characteristicId: led.id, activeWhen: 'always',
-    cycle: { frames: [[ON], [OFF]], timer: { cadence: 'uniform', everyMs: 2000 } } },
+    cycle: { frames: [ON, OFF], timer: { cadence: 'uniform', everyMs: 2000 } } },
 });
 
 // 3. Stop. Leaving the page never stops a program. Unregister first, then off.
 for (const program of await backgroundPrograms()) await program.unregister();
-await device.write(SERVICE, LED, Uint8Array.of(OFF));
+await device.write(SERVICE, LED, Uint8Array.from(OFF));
 ```
 
 `blink.js` wraps these in a few functions: `connect()`, `blinkFromPage()`, `blinkInBackground()`,
@@ -90,6 +90,25 @@ device chooser straight from your tap, as Safari requires.
 To host the page yourself, serve this folder over HTTPS with a certificate the iPhone trusts.
 On a computer, `python3 -m http.server` and `http://localhost:8000` in desktop Chrome
 runs foreground mode, since Chrome has Web Bluetooth built in.
+
+## Make it yours
+
+Everything device-specific is in four lines at the top of [`blink.js`](blink.js):
+
+```js
+export const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb'; // your device's service
+export const LED = '0000fff1-0000-1000-8000-00805f9b34fb';     // the characteristic you write commands to
+export const ON = [0x01];                                       // the bytes for "on"
+export const OFF = [0x00];                                      // the bytes for "off"
+```
+
+Put your device's UUIDs and commands there. A command can be several bytes, for example the
+encoded command your own SDK already sends: `export const ON = Array.from(yourOnCommand);`.
+
+The rest stays the same. `connect()` lists the devices that advertise your service.
+`blinkFromPage()` and `blinkInBackground()` send your two commands in turn, and Stop ends the
+program before it sends your "off". Only the lamp on the page is LED-specific: it reads the
+characteristic's notifications as `01` or `00`, in `show()` in [`app.js`](app.js).
 
 ## No LED? Run the emulator
 
