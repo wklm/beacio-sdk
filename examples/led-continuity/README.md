@@ -17,7 +17,15 @@ Its characteristic `0000FFF1-0000-1000-8000-00805F9B34FB` must support reading, 
 - Write `01`: store the value and notify subscribers; displayed as On.
 - Write `00`: store the value and notify subscribers; displayed as Off.
 
-Start the emulator on a separate nearby computer, or use hardware implementing this contract. The page does not create a Bluetooth peripheral. Its indicator shows the last value received from the peripheral and refreshes with a read when the page becomes visible. These payloads are specific to this emulation; real devices may require another service, characteristic and command format.
+Start the emulator on a separate nearby computer (macOS, Linux, or Windows), or use hardware implementing this contract:
+
+```sh
+npm run emulator
+```
+
+The emulator script (`emulate-peripheral.mjs`) uses `simplejsble` to advertise as **EmulatedPeripheral** and manage the required GATT service, characteristic reads/writes, and notifications.
+
+The page itself does not create a Bluetooth peripheral. Its indicator shows the last value received from the peripheral and refreshes with a read when the page becomes visible. These payloads are specific to this emulation; real devices may require another service, characteristic and command format.
 
 On iPhone, enable beacio for the demo's HTTPS website, tap **Connect emulated peripheral**, then choose **EmulatedPeripheral**. Bluetooth requires local radio range regardless of where the website is hosted. Selection is initiated directly from the tap to preserve Safari's user-gesture requirement.
 

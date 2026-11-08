@@ -11,7 +11,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
-    "test": "playwright test"
+    "test": "playwright test",
+    "emulator": "node emulate-peripheral.mjs"
   },
   "dependencies": {
     "@beacio/core": "2.2.0"
@@ -19,6 +20,7 @@
   "devDependencies": {
     "@playwright/test": "1.65.0",
     "@types/web-bluetooth": "0.0.21",
+    "simplejsble": "^1.4.0",
     "typescript": "7.0.2",
     "vite": "8.3.6"
   }
