@@ -49,43 +49,47 @@ A sketch, not a measurement: how soon Safari slows and pauses a hidden page vari
 
 ## LED example
 
-All of it is in [`blink.js`](blink.js): about 70 lines, plain JavaScript, no page code.
-[`app.js`](app.js) only draws the page: the lamp, the steps, the banner and the buttons. The core of `blink.js`:
+This is standard [Web Bluetooth](https://developer.mozilla.org/docs/Web/API/Web_Bluetooth_API), written like
+[Chrome's samples](https://github.com/GoogleChrome/samples/tree/gh-pages/web-bluetooth), so the same code runs
+in Chrome on a desktop. beacio brings `navigator.bluetooth` to Safari on iPhone. The only beacio-specific line is
+`backgroundSync.requestBackgroundConnection`, which keeps the LED blinking with the phone locked.
 
 ```js
-// 1. Connect, straight from the tap: Safari opens the chooser only from a user gesture.
-const device = await new Beacio().requestDevice({ filters: [{ services: [SERVICE] }] });
-await device.connect();
-await device.subscribeAsync(SERVICE, LED, onValue, { autoRecover: false }); // the LED reports each value
+// Your device
+const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb';
+const CHARACTERISTIC = '0000fff1-0000-1000-8000-00805f9b34fb'; // the one you write commands to
+const ON = Uint8Array.of(0x01);
+const OFF = Uint8Array.of(0x00);
 
-// 2a. The page blinks it, one write every 500 ms. Safari slows this timer, then pauses it, when the page is hidden.
-await device.write(SERVICE, LED, Uint8Array.from(ON));
+// Connect. Call this from a tap: Safari opens the chooser only from a user gesture.
+const device = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE] }] });
+const server = await device.gatt.connect();
+const service = await server.getPrimaryService(SERVICE);
+const characteristic = await service.getCharacteristic(CHARACTERISTIC);
 
-// 2b. Or beacio blinks it, 2 s on and 2 s off, with the page hidden or the phone locked.
-const service = await device.raw.gatt.getPrimaryService(SERVICE);
-const led = await service.getCharacteristic(LED); // the program needs beacio's id for it, not the UUID
-await navigator.beacio.backgroundSync.requestBackgroundConnection({
+// Switch it from the page. blink.js does this every 500 ms, one write at a time.
+await characteristic.writeValue(ON);
+await characteristic.writeValue(OFF);
+
+// Or let beacio blink it, 2 s on and 2 s off, even with the phone locked.
+const program = await navigator.bluetooth.backgroundSync.requestBackgroundConnection({
   deviceId: device.id,
-  program: { deviceId: device.id, characteristicId: led.id, activeWhen: 'always',
-    cycle: { frames: [ON, OFF], timer: { cadence: 'uniform', everyMs: 2000 } } },
+  program: {
+    deviceId: device.id,
+    characteristicId: characteristic.id, // beacio's id for this characteristic
+    activeWhen: 'always',
+    cycle: { frames: [Array.from(ON), Array.from(OFF)], timer: { cadence: 'uniform', everyMs: 2000 } },
+  },
 });
 
-// 3. Stop. Leaving the page never stops a program. Unregister first, then off.
-for (const program of await backgroundPrograms()) await program.unregister();
-await device.write(SERVICE, LED, Uint8Array.from(OFF));
+// Stop. Leaving the page does not stop a program: unregister it, then switch the LED off.
+await program.unregister();
+await characteristic.writeValue(OFF);
 ```
 
-`blink.js` wraps these in a few functions: `connect()`, `blinkFromPage()`, `blinkInBackground()`,
-`backgroundPrograms()`, `stopBackground()`, `switchOff()` and `canBlinkInBackground()`.
-`blinkFromPage()` gives a stop function that waits for the write in flight, so a late on never lands after off.
-There is no build step: [`index.html`](index.html) loads [`@beacio/core`](https://www.npmjs.com/package/@beacio/core) 2.2.0
-from jsDelivr, pinned with a subresource integrity hash, then `app.js`, which imports `blink.js`.
-
-The SDK turns each GATT step into one line with string UUIDs, and its errors carry a
-`suggestion` you can show as is. Background programs are newer than @beacio/core 2.2.0, so
-`blink.js` calls them on `navigator.beacio.backgroundSync` (or `navigator.bluetooth.backgroundSync`).
-The page offers background continuity only when beacio supports programs, and it opens the
-device chooser straight from your tap, as Safari requires.
+All of it is in [`blink.js`](blink.js), about 60 lines. It also listens to the LED's notifications, so the page
+shows what the LED reports. [`app.js`](app.js) only draws the page: the lamp, the steps, the banner and the buttons.
+There is no build step and no library: [`index.html`](index.html) loads `app.js`, which imports `blink.js`.
 
 To host the page yourself, serve this folder over HTTPS with a certificate the iPhone trusts.
 On a computer, `python3 -m http.server` and `http://localhost:8000` in desktop Chrome
@@ -93,22 +97,9 @@ runs foreground mode, since Chrome has Web Bluetooth built in.
 
 ## Make it yours
 
-Everything device-specific is in four lines at the top of [`blink.js`](blink.js):
-
-```js
-export const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb'; // your device's service
-export const LED = '0000fff1-0000-1000-8000-00805f9b34fb';     // the characteristic you write commands to
-export const ON = [0x01];                                       // the bytes for "on"
-export const OFF = [0x00];                                      // the bytes for "off"
-```
-
-Put your device's UUIDs and commands there. A command can be several bytes, for example the
-encoded command your own SDK already sends: `export const ON = Array.from(yourOnCommand);`.
-
-The rest stays the same. `connect()` lists the devices that advertise your service.
-`blinkFromPage()` and `blinkInBackground()` send your two commands in turn, and Stop ends the
-program before it sends your "off". Only the lamp on the page is LED-specific: it reads the
-characteristic's notifications as `01` or `00`, in `show()` in [`app.js`](app.js).
+Put your device's service, characteristic and commands in the four "Your device" lines at the top of
+[`blink.js`](blink.js). A command can be several bytes, for example the encoded command your own SDK sends:
+`export const ON = Uint8Array.from(yourOnCommand);`.
 
 ## No LED? Run the emulator
 
@@ -139,6 +130,6 @@ npx playwright install chromium
 npx playwright test
 ```
 
-One smoke test runs the page and the published SDK file against a Bluetooth double, and checks
-that the steps, the pictures and the leftover-program banner render, that the SVG files here
-match the ones on the page, and that Pages publishes every file the page loads. It does not prove radio behaviour or iOS background timing.
+One smoke test runs the page against a stub of `navigator.bluetooth` and checks that the steps,
+the pictures and the leftover-program banner render, that the SVG files here match the ones on
+the page, and that Pages publishes every file the page loads. It does not prove radio behaviour or iOS background timing.
