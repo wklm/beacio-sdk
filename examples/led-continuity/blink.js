@@ -50,8 +50,15 @@ export async function blinkInBackground(device) {
   const led = await service.getCharacteristic(LED); // the program needs beacio's id for it, not the UUID
   return programs().requestBackgroundConnection({
     deviceId: device.id,
-    program: { deviceId: device.id, characteristicId: led.id, activeWhen: 'always', // visible or hidden
-      cycle: { frames: [[ON], [OFF]], timer: { cadence: 'uniform', everyMs: 2000 } } }, // beacio's minimum
+    program: {
+      deviceId: device.id,
+      characteristicId: led.id,
+      activeWhen: 'always', // visible or hidden
+      cycle: {
+        frames: [[ON], [OFF]],
+        timer: { cadence: 'uniform', everyMs: 2000 }, // 2 s between commands: beacio's minimum
+      },
+    },
   });
 }
 

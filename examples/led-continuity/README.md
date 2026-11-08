@@ -47,7 +47,7 @@ A sketch, not a measurement: how soon Safari slows and pauses a hidden page vari
 - **Twice is fine.** While beacio runs, a notified value can arrive twice. The lamp shows the value,
   not a count, so it stays right.
 
-## The code that matters
+## LED example
 
 All of it is in [`blink.js`](blink.js): about 70 lines, plain JavaScript, no page code.
 [`app.js`](app.js) only draws the page: the lamp, the steps, the banner and the buttons. The core of `blink.js`:
