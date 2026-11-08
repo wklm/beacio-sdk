@@ -1,0 +1,58 @@
+name: LED continuity Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'examples/led-continuity/**'
+      - '.github/workflows/led-continuity-pages.yml'
+  pull_request:
+    paths:
+      - 'examples/led-continuity/**'
+      - '.github/workflows/led-continuity-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: examples/led-continuity
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: examples/led-continuity/package-lock.json
+      - run: npm ci --workspaces=false
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm test
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: examples/led-continuity/dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
+      - uses: actions/deploy-pages@v4
+        id: deployment

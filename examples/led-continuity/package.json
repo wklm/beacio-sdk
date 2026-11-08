@@ -1,0 +1,25 @@
+{
+  "name": "beacio-led-continuity-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "@beacio/core": "2.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/web-bluetooth": "0.0.21",
+    "typescript": "7.0.2",
+    "vite": "8.3.6"
+  }
+}

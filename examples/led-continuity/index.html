@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>beacio · LED continuity</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">beacio / LED continuity</p>
+        <h1>Keep the light blinking.</h1>
+        <p class="intro">Compare foreground LED blinking with background continuity using an emulated Bluetooth peripheral.</p>
+      </header>
+
+      <section aria-labelledby="peripheral-heading">
+        <h2 id="peripheral-heading">1. Connect the emulated peripheral</h2>
+        <p class="help">Choose <strong>EmulatedPeripheral</strong> in the Bluetooth picker. Keep your phone near the computer running the emulated peripheral. The website does not relay the Bluetooth connection.</p>
+        <p id="connection" role="status">Disconnected</p>
+        <div class="buttons">
+          <button id="connect" class="primary">Connect emulated peripheral</button>
+          <button id="reconnect">Reconnect emulated peripheral</button>
+          <button id="disconnect" disabled>Disconnect</button>
+        </div>
+      </section>
+
+      <section class="led-panel" aria-label="Last observed emulated peripheral value">
+        <div id="led" data-state="unknown" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow">Last observed value</p>
+          <p id="led-state" class="led-state">Unknown</p>
+          <p id="observed" class="subtle">No emulated peripheral value received yet</p>
+        </div>
+      </section>
+
+      <section aria-labelledby="blink-heading">
+        <h2 id="blink-heading">2. Blink the LED</h2>
+        <label for="mode">Blinking mode</label>
+        <select id="mode">
+          <option value="browser">Foreground only</option>
+          <option value="native">Background continuity</option>
+        </select>
+        <p id="mode-help" class="help"></p>
+        <div class="buttons">
+          <button id="start" class="primary" disabled>Start blinking</button>
+          <button id="stop" disabled>Stop</button>
+          <button id="on" disabled>LED on</button>
+          <button id="off" disabled>LED off</button>
+        </div>
+        <p id="run-state" role="status">Stopped</p>
+        <p id="error" role="alert" hidden></p>
+      </section>
+
+      <details>
+        <summary>Timing and background behavior</summary>
+        <p>Foreground only alternates on/off every 500 ms while Safari runs the page. Safari can slow or pause this timer when the page is hidden.</p>
+        <p>Background continuity gives beacio the repeating sequence. It targets 2 seconds on, 2 seconds off, while the page is visible or hidden. Returning to Safari doesn’t stop it. Stop ends the sequence and sends LED off.</p>
+        <p>The 2-second minimum is beacio’s current conservative battery/resource policy, rather than an iOS-imposed minimum. Sustained 500 ms app operation hasn’t been validated or enabled. App timing is best effort and needs a live Bluetooth connection and a running native session.</p>
+        <p>The indicator shows the emulated peripheral’s last reported value. The page can’t display live changes while its JavaScript is paused. A read refreshes it when you return. Closing or reloading the tab, ending the native session, or losing the connection can interrupt continuity.</p>
+      </details>
+
+      <section aria-labelledby="log-heading">
+        <div class="log-heading">
+          <h2 id="log-heading">Event log</h2>
+          <button id="clear-log" class="small">Clear log</button>
+        </div>
+        <p class="subtle"><span id="writes">0</span> page writes acknowledged · <span id="notifications">0</span> notifications received</p>
+        <pre id="log" aria-label="Event log"></pre>
+      </section>
+      <footer>Emulated peripheral: service FFF0 · characteristic FFF1 · 01 on / 00 off</footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
