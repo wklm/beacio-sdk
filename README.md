@@ -1,5 +1,10 @@
 <p align="center">
-  <a href="https://beacio.com"><img src="design-assets/brand/banner.svg" alt="beacio — Web Bluetooth for iPhone Safari" width="820"></a>
+  <a href="https://beacio.com">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="design-assets/brand/banner-dark.svg">
+      <img src="design-assets/brand/banner.svg" alt="beacio — Web Bluetooth for iPhone Safari" width="820">
+    </picture>
+  </a>
 </p>
 
 # beacio SDK
