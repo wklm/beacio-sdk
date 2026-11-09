@@ -6,6 +6,51 @@
 
 Web Bluetooth SDK for iOS Safari. Scan, connect, and talk to BLE devices from any web app.
 
+## LED example
+
+Blink a Bluetooth LED from a web page, and keep it blinking with the phone locked.
+[Open the demo](https://wklm.github.io/beacio-sdk/) on an iPhone with [beacio](https://beacio.com).
+
+This is standard [Web Bluetooth](https://developer.mozilla.org/docs/Web/API/Web_Bluetooth_API), so the same code
+runs in Chrome on a desktop. beacio brings `navigator.bluetooth` to Safari on iPhone. The only beacio-specific line is
+`backgroundSync.requestBackgroundConnection`.
+
+```js
+// Your device
+const SERVICE = '0000fff0-0000-1000-8000-00805f9b34fb';
+const CHARACTERISTIC = '0000fff1-0000-1000-8000-00805f9b34fb'; // the one you write commands to
+const ON = Uint8Array.of(0x01);
+const OFF = Uint8Array.of(0x00);
+
+// Connect. Call this from a tap: Safari opens the chooser only from a user gesture.
+const device = await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE] }] });
+const server = await device.gatt.connect();
+const service = await server.getPrimaryService(SERVICE);
+const characteristic = await service.getCharacteristic(CHARACTERISTIC);
+
+// Switch it from the page.
+await characteristic.writeValue(ON);
+await characteristic.writeValue(OFF);
+
+// Or let beacio blink it, 2 s on and 2 s off, even with the phone locked.
+const program = await navigator.bluetooth.backgroundSync.requestBackgroundConnection({
+  deviceId: device.id,
+  program: {
+    deviceId: device.id,
+    characteristicId: characteristic.id, // beacio's id for this characteristic
+    activeWhen: 'always',
+    cycle: { frames: [Array.from(ON), Array.from(OFF)], timer: { cadence: 'uniform', everyMs: 2000 } },
+  },
+});
+
+// Stop. Leaving the page does not stop a program: unregister it, then switch the LED off.
+await program.unregister();
+await characteristic.writeValue(OFF);
+```
+
+The whole demo, a step-by-step guide and a Bluetooth LED emulator for a Mac or Linux computer are in
+[`examples/led-continuity`](examples/led-continuity).
+
 ## Packages
 
 | Package | Purpose | Size |
